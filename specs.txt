@@ -1,0 +1,19 @@
+Friends Mobile app
+
+Pain point: Group chats are where great plans go to die.
+
+Description: have a space where you and your friends can organize and plan activities together, have a backlog with ideas for future, collaborate 
+
+Slogan: Turn "we should do that sometime" into actual memory-making.
+
+
+Features:
+- Calendar (display events by category: birthdays, one time plans, repetitive activities) 
+- ⁠Backlog with activities (collect cool ideas you and your friends can do together. Has details on who is interested in activity, owner, status, due date, money needed, additional links or details, address) 
+- ⁠Can create multiple groups with different people 
+- ⁠Notifications (get alerts when activities are happening) 
+- ⁠Create categories of activities (e.g. Movie night can have subcategories of movies)
+- ⁠What should we do wheel (When the group is paralyzed by indecision, spin a wheel populated straight from your active backlog ideas (filtered by you, to make a instant pick))
+- ⁠Availability Heatmap: Instead of endless back-and-forth, members mark when they are free, highlighting the best overlap days automatically.
+- Feature/Option Voting: Vote on which restaurant to go to or which movie to watch inside the activity card.
+- ⁠⁠An annual or monthly recap (like Spotify Wrapped) showing your group's highlight stats: Most active planner, total memories made, top activity category
