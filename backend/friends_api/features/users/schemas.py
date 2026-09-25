@@ -7,9 +7,10 @@ from zoneinfo import available_timezones
 
 from pydantic import AfterValidator, BaseModel, Field, HttpUrl, StringConstraints, model_validator
 
+from friends_api.core.schemas import RequestModel
 from friends_api.features.auth.models import User
 
-DisplayName = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=50)]
+DisplayName = Annotated[str, StringConstraints(min_length=1, max_length=50)]
 
 
 @cache
@@ -27,7 +28,7 @@ def _check_timezone(name: str) -> str:
     return name
 
 
-Timezone = Annotated[str, AfterValidator(_check_timezone)]
+Timezone = Annotated[str, StringConstraints(max_length=64), AfterValidator(_check_timezone)]
 
 
 class Birthday(BaseModel):
@@ -46,39 +47,52 @@ class Birthday(BaseModel):
         return self
 
 
+class BirthdayPublic(BaseModel):
+    month: int
+    day: int
+
+
 class UserPublic(BaseModel):
     id: uuid.UUID
     display_name: str
-    avatar_url: str | None = None
+    avatar_url: str | None
+
+    @classmethod
+    def from_user(cls, user: User) -> UserPublic:
+        return cls(id=user.id, display_name=user.display_name, avatar_url=user.avatar_url)
 
 
-class Me(UserPublic):
+def user_birthday(user: User) -> Birthday | None:
+    if user.birthday_month is None or user.birthday_day is None:
+        return None
+    return Birthday(month=user.birthday_month, day=user.birthday_day, year=user.birthday_year)
+
+
+class Me(BaseModel):
+    id: uuid.UUID
     email: str
-    birthday: Birthday | None = None
+    display_name: str
+    avatar_url: str | None
+    birthday: Birthday | None
     timezone: str
-    locale: str | None = None
+    locale: str | None
     created_at: datetime
 
     @classmethod
     def from_user(cls, user: User) -> Me:
-        birthday = None
-        if user.birthday_month is not None and user.birthday_day is not None:
-            birthday = Birthday(
-                month=user.birthday_month, day=user.birthday_day, year=user.birthday_year
-            )
         return cls(
             id=user.id,
+            email=user.email,
             display_name=user.display_name,
             avatar_url=user.avatar_url,
-            email=user.email,
-            birthday=birthday,
+            birthday=user_birthday(user),
             timezone=user.timezone,
             locale=user.locale,
             created_at=user.created_at,
         )
 
 
-class UpdateMeRequest(BaseModel):
+class MeUpdate(RequestModel):
     display_name: DisplayName
     birthday: Birthday | None = None
     timezone: Timezone

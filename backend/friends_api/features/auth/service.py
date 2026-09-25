@@ -16,7 +16,7 @@ from sqlalchemy.orm import Session
 
 from friends_api.core.config import Settings
 from friends_api.core.db import utcnow
-from friends_api.core.errors import Conflict, Unauthenticated, ValidationFailed
+from friends_api.core.errors import AuthError, Conflict, FieldError, Unprocessable
 from friends_api.core.security import (
     Passwords,
     create_access_token,
@@ -40,7 +40,7 @@ def normalize_email(email: str) -> str:
 
 def _check_password_rules(password: str, email: str) -> None:
     if password.strip().lower() == email:
-        raise ValidationFailed("Password must not be your email address.", code="weak_password")
+        raise Unprocessable("Password must not be your email address.", code="weak_password")
 
 
 def _issue_tokens(
@@ -53,8 +53,10 @@ def _issue_tokens(
     device_label: str | None,
 ) -> tuple[TokenPair, RefreshToken]:
     now = utcnow()
-    session_cap = session_started_at + timedelta(days=ctx.settings.session_max_days)
+    session_cap = session_started_at + timedelta(days=ctx.settings.refresh_session_max_days)
     expires_at = min(now + timedelta(days=ctx.settings.refresh_token_ttl_days), session_cap)
+    if expires_at <= now:  # the session reached its absolute cap
+        raise _refresh_invalid()
     token, token_hash = new_refresh_token()
     row = RefreshToken(
         user_id=user.id,
@@ -123,7 +125,7 @@ def authenticate(db: Session, ctx: AuthContext, email: str, password: str) -> Us
         select(User).where(User.email == normalize_email(email), User.deleted_at.is_(None))
     )
     if not ctx.passwords.verify(user.password_hash if user else None, password) or user is None:
-        raise Unauthenticated("Wrong email or password.", code="invalid_credentials")
+        raise AuthError("Wrong email or password.", code="invalid_credentials")
     assert user.password_hash is not None  # noqa: S101 - verify() is False for null hashes
     if ctx.passwords.needs_rehash(user.password_hash):
         user.password_hash = ctx.passwords.hash(password)
@@ -132,40 +134,31 @@ def authenticate(db: Session, ctx: AuthContext, email: str, password: str) -> Us
 
 
 def refresh_session(db: Session, ctx: AuthContext, presented: str) -> TokenPair:
+    """Rotates a refresh token (contract section 4.5)."""
     now = utcnow()
     row = db.scalar(
         select(RefreshToken).where(RefreshToken.token_hash == hash_refresh_token(presented))
     )
-    if row is None or row.expires_at <= now:
-        raise Unauthenticated("Session expired, please sign in again.")
-    user = db.get(User, row.user_id)
-    if user is None or not user.is_active:
-        raise Unauthenticated("Session expired, please sign in again.")
-
-    if row.revoked_at is not None:
-        _revoke_family(db, row.family_id, now)
-        db.commit()
-        raise Unauthenticated(
-            "Session revoked, please sign in again.", code="refresh_reuse_detected"
-        )
+    user = db.get(User, row.user_id) if row is not None else None
+    if row is None or row.revoked_at is not None or user is None or not user.is_active:
+        raise _refresh_invalid()
 
     if row.used_at is not None:
         successor = db.get(RefreshToken, row.replaced_by_id) if row.replaced_by_id else None
         grace = timedelta(seconds=ctx.settings.refresh_reuse_grace_seconds)
-        lost_response = (
-            now - row.used_at <= grace
-            and successor is not None
-            and successor.used_at is None
-            and successor.revoked_at is None
-        )
-        if not lost_response:
+        if (
+            successor is None
+            or now - row.used_at > grace
+            or successor.used_at is not None
+            or successor.revoked_at is not None
+        ):
             _revoke_family(db, row.family_id, now)
             db.commit()
-            raise Unauthenticated(
-                "Session revoked, please sign in again.", code="refresh_reuse_detected"
-            )
-        assert successor is not None  # noqa: S101 - checked in lost_response
+            raise AuthError("Session revoked, please sign in again.", code="refresh_reuse_detected")
+        # The client lost the response carrying `successor`: replace it.
         successor.revoked_at = now
+    elif row.expires_at <= now:
+        raise _refresh_invalid()
 
     pair, new_row = _issue_tokens(
         db,
@@ -181,6 +174,10 @@ def refresh_session(db: Session, ctx: AuthContext, presented: str) -> TokenPair:
     return pair
 
 
+def _refresh_invalid() -> AuthError:
+    return AuthError("Session expired, please sign in again.", code="refresh_invalid")
+
+
 def _revoke_family(db: Session, family_id: uuid.UUID, now: datetime) -> None:
     db.execute(
         update(RefreshToken)
@@ -189,14 +186,12 @@ def _revoke_family(db: Session, family_id: uuid.UUID, now: datetime) -> None:
     )
 
 
-def revoke_all_sessions(db: Session, user: User, *, keep_family: uuid.UUID | None = None) -> None:
-    now = utcnow()
-    query = update(RefreshToken).where(
-        RefreshToken.user_id == user.id, RefreshToken.revoked_at.is_(None)
+def revoke_all_sessions(db: Session, user: User) -> None:
+    db.execute(
+        update(RefreshToken)
+        .where(RefreshToken.user_id == user.id, RefreshToken.revoked_at.is_(None))
+        .values(revoked_at=utcnow())
     )
-    if keep_family is not None:
-        query = query.where(RefreshToken.family_id != keep_family)
-    db.execute(query.values(revoked_at=now))
 
 
 def logout(db: Session, presented: str) -> None:
@@ -214,6 +209,15 @@ def logout_everywhere(db: Session, user: User) -> None:
     db.commit()
 
 
+def check_current_password(ctx: AuthContext, user: User, password: str, field: str) -> None:
+    if not ctx.passwords.verify(user.password_hash, password):
+        raise Unprocessable(
+            "The password is wrong.",
+            code="wrong_password",
+            errors=[FieldError(field=field, message="Wrong password.", type="wrong_password")],
+        )
+
+
 def change_password(
     db: Session,
     ctx: AuthContext,
@@ -223,36 +227,27 @@ def change_password(
     new_password: str,
     session_id: uuid.UUID,
 ) -> TokenPair:
-    """Changes the password and signs out every *other* session.
+    """Changes the password and signs out every session, then starts a new one for the caller.
 
-    Existing access tokens die (token_version bump), so the caller gets a fresh pair for the
-    current session.
+    The caller keeps being signed in (same session start and device); every other device is out.
     """
-    if not ctx.passwords.verify(user.password_hash, current_password):
-        raise Unauthenticated("Wrong password.", code="invalid_credentials")
+    check_current_password(ctx, user, current_password, "current_password")
     _check_password_rules(new_password, user.email)
-    user.password_hash = ctx.passwords.hash(new_password)
-    user.token_version += 1
-    revoke_all_sessions(db, user, keep_family=session_id)
     current = db.scalar(
         select(RefreshToken)
-        .where(
-            RefreshToken.family_id == session_id,
-            RefreshToken.revoked_at.is_(None),
-            RefreshToken.used_at.is_(None),
-        )
+        .where(RefreshToken.family_id == session_id)
         .order_by(RefreshToken.created_at.desc())
         .limit(1)
     )
-    started = current.session_started_at if current else utcnow()
-    if current is not None:
-        current.revoked_at = utcnow()
+    user.password_hash = ctx.passwords.hash(new_password)
+    user.token_version += 1
+    revoke_all_sessions(db, user)
     pair, _ = _issue_tokens(
         db,
         ctx,
         user,
-        family_id=session_id,
-        session_started_at=started,
+        family_id=uuid.uuid7(),
+        session_started_at=current.session_started_at if current else utcnow(),
         device_label=current.device_label if current else None,
     )
     db.commit()

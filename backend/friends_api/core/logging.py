@@ -60,7 +60,8 @@ def configure_logging(log_format: LogFormat, level: str = "INFO") -> None:
 
 
 class RequestContextMiddleware:
-    """Assigns a request ID (echoed as X-Request-ID) and writes one access-log line per request."""
+    """Assigns a request ID (echoed as X-Request-ID), marks API responses `no-store`, and writes
+    one access-log line per request."""
 
     def __init__(self, app: ASGIApp, *, quiet_paths: frozenset[str] = frozenset()) -> None:
         self.app = app
@@ -74,6 +75,7 @@ class RequestContextMiddleware:
         incoming = dict(scope["headers"]).get(REQUEST_ID_HEADER.lower().encode(), b"").decode()
         request_id = incoming if _VALID_REQUEST_ID.match(incoming) else uuid.uuid4().hex
         token = request_id_var.set(request_id)
+        is_api = scope["path"].startswith("/api/")
         started = time.perf_counter()
         status_code = 500
 
@@ -81,7 +83,10 @@ class RequestContextMiddleware:
             nonlocal status_code
             if message["type"] == "http.response.start":
                 status_code = message["status"]
-                MutableHeaders(scope=message)[REQUEST_ID_HEADER] = request_id
+                headers = MutableHeaders(scope=message)
+                headers[REQUEST_ID_HEADER] = request_id
+                if is_api and "cache-control" not in headers:
+                    headers["Cache-Control"] = "no-store"
             await send(message)
 
         try:
@@ -89,18 +94,26 @@ class RequestContextMiddleware:
         finally:
             if scope["path"] not in self.quiet_paths:
                 duration_ms = round((time.perf_counter() - started) * 1000, 1)
+                client = scope.get("client")
+                client_ip = client[0] if client else "-"
+                # Set by the auth dependency via request.state (shared scope["state"] dict).
+                user_id = scope.get("state", {}).get("user_id", "-")
                 access_logger.info(
-                    "%s %s %s %sms",
+                    "%s %s %s %sms ip=%s user=%s",
                     scope["method"],
                     scope["path"],
                     status_code,
                     duration_ms,
+                    client_ip,
+                    user_id,
                     extra={
                         "extra_fields": {
                             "method": scope["method"],
                             "path": scope["path"],
                             "status": status_code,
                             "duration_ms": duration_ms,
+                            "client_ip": client_ip,
+                            "user_id": user_id,
                         }
                     },
                 )

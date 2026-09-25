@@ -61,6 +61,8 @@ def client_ip(request: Request) -> str:
 
 def limit_by_ip(name: str) -> Callable[[Request], None]:
     def dependency(request: Request) -> None:
+        if not request.app.state.settings.rate_limit_enabled:
+            return
         limiter: SlidingWindowLimiter = getattr(request.app.state.rate_limits, name)
         limiter.hit(client_ip(request))
 

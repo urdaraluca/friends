@@ -9,7 +9,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
 from friends_api.core.config import Settings
-from friends_api.core.errors import Unauthenticated
+from friends_api.core.errors import AuthError
 from friends_api.core.security import AccessClaims, decode_access_token
 from friends_api.features.auth.models import User
 from friends_api.features.auth.service import AuthContext
@@ -52,16 +52,18 @@ class Principal:
 
 
 def get_principal(
+    request: Request,
     db: DbSession,
     settings: AppSettings,
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer)],
 ) -> Principal:
     if credentials is None or credentials.scheme.lower() != "bearer":
-        raise Unauthenticated("Sign in to continue.")
+        raise AuthError("Sign in to continue.")
     claims = decode_access_token(settings, credentials.credentials)
     user = db.get(User, claims.user_id)
     if user is None or not user.is_active or user.token_version != claims.token_version:
-        raise Unauthenticated("Session ended, please sign in again.")
+        raise AuthError("Session ended, please sign in again.")
+    request.state.user_id = str(user.id)  # for the access log
     return Principal(user=user, claims=claims)
 
 

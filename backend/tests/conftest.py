@@ -9,7 +9,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from friends_api.cli import alembic_config
-from friends_api.core.config import AppEnv, Settings
+from friends_api.core.config import AppEnv, RegistrationMode, Settings
 from friends_api.main import create_app
 
 # Cheap hashing parameters: the production ones cost ~64 MiB and a few hundred ms per hash.
@@ -49,6 +49,8 @@ def settings(db_path: Path, tmp_path: Path) -> Settings:
         app_version="test",
         database_url=sqlite_url(db_path),
         backup_dir=tmp_path / "backups",
+        registration_mode=RegistrationMode.OPEN,
+        rate_limit_enabled=False,
         **FAST_ARGON2,
     )
 

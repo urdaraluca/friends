@@ -12,7 +12,7 @@ from argon2 import PasswordHasher
 from argon2.exceptions import InvalidHashError, VerificationError, VerifyMismatchError
 
 from friends_api.core.config import Settings
-from friends_api.core.errors import Unauthenticated
+from friends_api.core.errors import AuthError
 
 JWT_ALGORITHM = "HS256"
 JWT_ISSUER = "friends-api"
@@ -94,11 +94,11 @@ def decode_access_token(settings: Settings, token: str) -> AccessClaims:
             options={"require": ["sub", "sid", "tv", "typ", "exp", "iat"]},
         )
     except jwt.ExpiredSignatureError as exc:
-        raise Unauthenticated("Access token expired.", code="token_expired") from exc
+        raise AuthError("Access token expired.", code="token_expired") from exc
     except jwt.InvalidTokenError as exc:
-        raise Unauthenticated("Invalid access token.") from exc
+        raise AuthError("Invalid access token.") from exc
     if payload["typ"] != "access":
-        raise Unauthenticated("Invalid access token.")
+        raise AuthError("Invalid access token.")
     try:
         return AccessClaims(
             user_id=uuid.UUID(payload["sub"]),
@@ -106,7 +106,7 @@ def decode_access_token(settings: Settings, token: str) -> AccessClaims:
             token_version=int(payload["tv"]),
         )
     except (TypeError, ValueError) as exc:
-        raise Unauthenticated("Invalid access token.") from exc
+        raise AuthError("Invalid access token.") from exc
 
 
 def new_refresh_token() -> tuple[str, str]:

@@ -22,7 +22,7 @@ from alembic import command
 from alembic.config import Config
 from alembic.runtime.migration import MigrationContext
 from alembic.script import ScriptDirectory
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.engine import make_url
 
 from friends_api.core.config import Settings, get_settings
@@ -30,7 +30,7 @@ from friends_api.core.db import create_db_engine, create_session_factories
 from friends_api.core.errors import AppError
 from friends_api.core.security import Passwords
 from friends_api.features.auth import service as auth_service
-from friends_api.features.auth.models import User
+from friends_api.features.auth.models import RefreshToken, User
 from friends_api.features.auth.service import AuthContext
 from friends_api.main import create_app
 
@@ -118,14 +118,15 @@ def cmd_backup(settings: Settings, args: argparse.Namespace) -> int:
         print(f"No database at {db_path}", file=sys.stderr)
         return 1
     backup_dir = Path(args.dir) if args.dir else settings.backup_dir
-    target = backup_database(db_path, backup_dir, prefix=SCHEDULED_PREFIX, keep=args.keep)
+    keep = args.keep if args.keep is not None else settings.backup_keep
+    target = backup_database(db_path, backup_dir, prefix=SCHEDULED_PREFIX, keep=keep)
     print(f"Backup written to {target}")
     return 0
 
 
 def cmd_export_openapi(settings: Settings, args: argparse.Namespace) -> int:
     app = create_app(settings.model_copy(update={"docs_enabled": True}))
-    output = Path(args.output) if args.output else DEFAULT_OPENAPI_PATH
+    output = Path(args.path) if args.path else DEFAULT_OPENAPI_PATH
     schema = json.dumps(app.openapi(), indent=2, ensure_ascii=False) + "\n"
     output.write_text(schema, encoding="utf-8", newline="\n")
     print(f"OpenAPI schema written to {output}")
@@ -158,7 +159,7 @@ def cmd_create_user(settings: Settings, args: argparse.Namespace) -> int:
     try:
         with write() as db:
             user = auth_service.create_user(
-                db, ctx, email=args.email, password=password, display_name=args.name
+                db, ctx, email=args.email, password=password, display_name=args.display_name
             )
             db.commit()
             print(f"Created user {user.email} ({user.id})")
@@ -186,7 +187,9 @@ def cmd_reset_password(settings: Settings, args: argparse.Namespace) -> int:
                 print(f"No active user with email {args.email}", file=sys.stderr)
                 return 1
             user.password_hash = passwords.hash(password)
-            auth_service.logout_everywhere(db, user)
+            user.token_version += 1
+            db.execute(delete(RefreshToken).where(RefreshToken.user_id == user.id))
+            db.commit()
             print(f"Password reset for {user.email}; all their sessions were signed out.")
     finally:
         engine.dispose()
@@ -200,21 +203,21 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("migrate", help="back up if needed, then apply migrations")
 
     backup = sub.add_parser("backup", help="online backup of the SQLite database")
-    backup.add_argument("--keep", type=int, default=14, help="scheduled backups to keep")
+    backup.add_argument("--keep", type=int, help="scheduled backups to keep (default: BACKUP_KEEP)")
     backup.add_argument("--dir", help="backup directory (default: BACKUP_DIR)")
 
     export = sub.add_parser("export-openapi", help="write the OpenAPI schema")
-    export.add_argument("--output", help=f"output path (default: {DEFAULT_OPENAPI_PATH})")
+    export.add_argument("path", nargs="?", help=f"output path (default: {DEFAULT_OPENAPI_PATH})")
 
     create = sub.add_parser("create-user", help="create an account (e.g. the very first one)")
     create.add_argument("--email", required=True)
-    create.add_argument("--name", required=True, help="display name")
+    create.add_argument("--display-name", required=True)
     create.add_argument(
         "--password-stdin", action="store_true", help="read the password from stdin"
     )
 
     reset = sub.add_parser("reset-password", help="set a new password and sign out all sessions")
-    reset.add_argument("--email", required=True)
+    reset.add_argument("email")
     reset.add_argument("--password-stdin", action="store_true", help="read the password from stdin")
     return parser
 

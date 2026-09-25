@@ -4,6 +4,8 @@ from typing import Any
 import time_machine
 from fastapi.testclient import TestClient
 
+from friends_api.core.config import Settings
+from friends_api.main import create_app
 from tests.factories import DEFAULT_PASSWORD, bearer, login, register
 
 NOW = datetime(2026, 10, 1, 12, 0, tzinfo=UTC)
@@ -99,12 +101,13 @@ def test_wrong_password_and_unknown_email_look_the_same(client: TestClient) -> N
     assert wrong.json()["code"] == unknown.json()["code"] == "invalid_credentials"
 
 
-def test_the_11th_login_attempt_in_a_minute_is_rate_limited(client: TestClient) -> None:
+def test_the_11th_login_attempt_in_a_minute_is_rate_limited(settings: Settings) -> None:
     payload = {"email": "brute@example.com", "password": "wrong password!"}
-    statuses = [client.post("/api/v1/auth/login", json=payload).status_code for _ in range(11)]
+    with TestClient(create_app(settings.model_copy(update={"rate_limit_enabled": True}))) as client:
+        statuses = [client.post("/api/v1/auth/login", json=payload).status_code for _ in range(10)]
+        limited = client.post("/api/v1/auth/login", json=payload)
 
-    assert statuses[:10] == [401] * 10
-    limited = client.post("/api/v1/auth/login", json=payload)
+    assert statuses == [401] * 10
     assert limited.status_code == 429
     assert limited.json()["code"] == "rate_limited"
     assert int(limited.headers["Retry-After"]) > 0
@@ -156,7 +159,7 @@ def test_reusing_a_token_within_the_grace_window_reissues(client: TestClient) ->
 
     assert retried.status_code == 200
     # The successor from the lost response is dead; the new one works.
-    assert refresh(client, lost["refresh_token"]).json()["code"] == "refresh_reuse_detected"
+    assert refresh(client, lost["refresh_token"]).json()["code"] == "refresh_invalid"
 
 
 def test_reuse_after_the_grace_window_revokes_the_session(client: TestClient) -> None:
@@ -201,7 +204,7 @@ def test_unknown_refresh_tokens_are_rejected(client: TestClient) -> None:
     response = refresh(client, "definitely-not-issued")
 
     assert response.status_code == 401
-    assert response.json()["code"] == "unauthenticated"
+    assert response.json()["code"] == "refresh_invalid"
 
 
 # --- logout ---------------------------------------------------------------------------------
@@ -263,5 +266,6 @@ def test_changing_the_password_requires_the_current_one(client: TestClient) -> N
         json={"current_password": "not my password", "new_password": "a whole new password"},
     )
 
-    assert response.status_code == 401
-    assert response.json()["code"] == "invalid_credentials"
+    assert response.status_code == 422
+    assert response.json()["code"] == "wrong_password"
+    assert response.json()["errors"][0]["field"] == "current_password"

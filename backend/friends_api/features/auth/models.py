@@ -1,17 +1,30 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import ForeignKey, SmallInteger, String
+from sqlalchemy import CheckConstraint, ForeignKey, SmallInteger, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from friends_api.core.db import Base, IdMixin, TimestampMixin, utcnow
 
+DELETED_USER_NAME = "Deleted user"
+
 
 class User(IdMixin, TimestampMixin, Base):
     __tablename__ = "users"
+    __table_args__ = (
+        CheckConstraint("(birthday_month IS NULL) = (birthday_day IS NULL)", name="birthday_pair"),
+        CheckConstraint(
+            "birthday_year IS NULL OR birthday_month IS NOT NULL", name="birthday_year"
+        ),
+        CheckConstraint(
+            "birthday_month IS NULL OR "
+            "(birthday_month BETWEEN 1 AND 12 AND birthday_day BETWEEN 1 AND 31)",
+            name="birthday_range",
+        ),
+    )
 
-    email: Mapped[str] = mapped_column(String(254), unique=True)
-    """Trimmed and lowercased on input."""
+    email: Mapped[str] = mapped_column(String(254, collation="NOCASE"), unique=True)
+    """Trimmed and lowercased on input; deleted users hold 'deleted-<id>@invalid'."""
     password_hash: Mapped[str | None] = mapped_column(String(255))
     """argon2id PHC string; null once the account is deleted."""
     display_name: Mapped[str] = mapped_column(String(50))
@@ -23,7 +36,6 @@ class User(IdMixin, TimestampMixin, Base):
     locale: Mapped[str | None] = mapped_column(String(16))
     token_version: Mapped[int] = mapped_column(default=0)
     """Bumped to revoke every access token at once (log out everywhere)."""
-    email_verified_at: Mapped[datetime | None]
     last_login_at: Mapped[datetime | None]
     deleted_at: Mapped[datetime | None]
 

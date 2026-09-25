@@ -102,8 +102,8 @@ def test_export_openapi_is_deterministic(tmp_path: Path) -> None:
     settings = _settings(tmp_path)
     first, second = tmp_path / "a.json", tmp_path / "b.json"
 
-    assert cli.main(["export-openapi", "--output", str(first)], settings) == 0
-    assert cli.main(["export-openapi", "--output", str(second)], settings) == 0
+    assert cli.main(["export-openapi", str(first)], settings) == 0
+    assert cli.main(["export-openapi", str(second)], settings) == 0
 
     assert first.read_bytes() == second.read_bytes()
     assert b"\r\n" not in first.read_bytes()
@@ -125,7 +125,14 @@ def test_create_user_and_reset_password(
     monkeypatch.setattr("sys.stdin", io.StringIO("first password!\n"))
     assert (
         cli.main(
-            ["create-user", "--email", "Owner@Example.com", "--name", "Owner", "--password-stdin"],
+            [
+                "create-user",
+                "--email",
+                "Owner@Example.com",
+                "--display-name",
+                "Owner",
+                "--password-stdin",
+            ],
             settings,
         )
         == 0
@@ -133,10 +140,7 @@ def test_create_user_and_reset_password(
     assert "Created user owner@example.com" in capsys.readouterr().out
 
     monkeypatch.setattr("sys.stdin", io.StringIO("second password!\n"))
-    assert (
-        cli.main(["reset-password", "--email", "owner@example.com", "--password-stdin"], settings)
-        == 0
-    )
+    assert cli.main(["reset-password", "owner@example.com", "--password-stdin"], settings) == 0
 
     with TestClient(create_app(settings)) as client:
         old = client.post(
@@ -153,7 +157,7 @@ def test_create_user_and_reset_password(
 def test_create_user_rejects_duplicates_and_short_passwords(
     settings: Settings, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    args = ["create-user", "--email", "a@example.com", "--name", "A", "--password-stdin"]
+    args = ["create-user", "--email", "a@example.com", "--display-name", "A", "--password-stdin"]
     monkeypatch.setattr("sys.stdin", io.StringIO("long enough password\n"))
     assert cli.main(args, settings) == 0
 
@@ -169,6 +173,4 @@ def test_reset_password_for_unknown_email_fails(
 ) -> None:
     monkeypatch.setattr("sys.stdin", io.StringIO("long enough password\n"))
 
-    assert (
-        cli.main(["reset-password", "--email", "x@example.com", "--password-stdin"], settings) == 1
-    )
+    assert cli.main(["reset-password", "x@example.com", "--password-stdin"], settings) == 1

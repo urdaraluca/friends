@@ -3,38 +3,44 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, EmailStr, Field, StringConstraints
 
+from friends_api.core.schemas import RequestModel
 from friends_api.features.users.schemas import DisplayName, Me
 
 Password = Annotated[str, StringConstraints(min_length=10, max_length=128)]
-DeviceLabel = Annotated[str, StringConstraints(strip_whitespace=True, max_length=100)]
+AnyPassword = Annotated[str, StringConstraints(min_length=1, max_length=128)]
+DeviceLabel = Annotated[str, StringConstraints(max_length=100)]
 
 
-class RegisterRequest(BaseModel):
-    email: EmailStr
+class RegisterRequest(RequestModel):
+    email: Annotated[EmailStr, StringConstraints(max_length=254)]
     password: Password
     display_name: DisplayName
     timezone: Annotated[str, StringConstraints(max_length=64)] | None = None
     """IANA name from the device; unknown values fall back to UTC."""
     device_label: DeviceLabel | None = None
+    invite_code: Annotated[str, StringConstraints(max_length=32)] | None = None
+    """Required when REGISTRATION_MODE=invite_only; joins that group."""
 
 
-class LoginRequest(BaseModel):
-    email: EmailStr
-    password: Annotated[str, StringConstraints(max_length=128)]
+class LoginRequest(RequestModel):
+    email: Annotated[EmailStr, StringConstraints(max_length=254)]
+    password: AnyPassword
     device_label: DeviceLabel | None = None
 
 
-class RefreshRequest(BaseModel):
-    refresh_token: Annotated[str, StringConstraints(min_length=1, max_length=200)]
+class RefreshRequest(RequestModel):
+    """Also the body of /auth/logout."""
+
+    refresh_token: Annotated[str, StringConstraints(min_length=1, max_length=128)]
 
 
-class LogoutRequest(BaseModel):
-    refresh_token: Annotated[str, StringConstraints(min_length=1, max_length=200)]
-
-
-class ChangePasswordRequest(BaseModel):
-    current_password: Annotated[str, StringConstraints(max_length=128)]
+class PasswordChange(RequestModel):
+    current_password: AnyPassword
     new_password: Password
+
+
+class AccountDeletion(RequestModel):
+    password: AnyPassword
 
 
 class TokenPair(BaseModel):

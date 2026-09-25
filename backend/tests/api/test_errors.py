@@ -49,7 +49,7 @@ def test_unknown_route_is_a_problem_404(test_client: TestClient) -> None:
     assert response.headers["content-type"] == PROBLEM
     body = response.json()
     assert body["code"] == "not_found"
-    assert body["type"] == "urn:friends:problem:not_found"
+    assert body["type"] == "about:blank"
     assert body["title"] == "Not Found"
     assert body["request_id"] == response.headers["X-Request-ID"]
 

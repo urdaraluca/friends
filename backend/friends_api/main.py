@@ -26,7 +26,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-        engine = create_db_engine(settings.database_url)
+        engine = create_db_engine(
+            settings.database_url, busy_timeout_ms=settings.sqlite_busy_timeout_ms
+        )
         app.state.engine = engine
         app.state.read_session, app.state.write_session = create_session_factories(engine)
         try:
@@ -56,9 +58,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             CORSMiddleware,
             allow_origins=settings.cors_origins,
             allow_origin_regex=settings.cors_origin_regex,
-            allow_methods=["*"],
-            allow_headers=["*"],
+            allow_credentials=False,
+            allow_methods=["GET", "POST", "PUT", "DELETE"],
+            allow_headers=["Authorization", "Content-Type", REQUEST_ID_HEADER],
             expose_headers=[REQUEST_ID_HEADER, "Retry-After"],
+            max_age=600,
         )
     app.add_middleware(RequestContextMiddleware, quiet_paths=frozenset({f"{API_PREFIX}/health"}))
 

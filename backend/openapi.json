@@ -171,7 +171,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/LogoutRequest"
+                "$ref": "#/components/schemas/RefreshRequest"
               }
             }
           },
@@ -217,7 +217,7 @@
     "/api/v1/me": {
       "get": {
         "tags": [
-          "me"
+          "users"
         ],
         "summary": "Get Me",
         "operationId": "get_me",
@@ -241,7 +241,7 @@
       },
       "put": {
         "tags": [
-          "me"
+          "users"
         ],
         "summary": "Update Me",
         "operationId": "update_me",
@@ -249,7 +249,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateMeRequest"
+                "$ref": "#/components/schemas/MeUpdate"
               }
             }
           },
@@ -287,7 +287,7 @@
     "/api/v1/me/password": {
       "post": {
         "tags": [
-          "me"
+          "users"
         ],
         "summary": "Change Password",
         "description": "Changes the password, signs out all other sessions and returns new tokens for this one.",
@@ -296,7 +296,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ChangePasswordRequest"
+                "$ref": "#/components/schemas/PasswordChange"
               }
             }
           },
@@ -384,27 +384,6 @@
         ],
         "title": "Birthday"
       },
-      "ChangePasswordRequest": {
-        "properties": {
-          "current_password": {
-            "type": "string",
-            "maxLength": 128,
-            "title": "Current Password"
-          },
-          "new_password": {
-            "type": "string",
-            "maxLength": 128,
-            "minLength": 10,
-            "title": "New Password"
-          }
-        },
-        "type": "object",
-        "required": [
-          "current_password",
-          "new_password"
-        ],
-        "title": "ChangePasswordRequest"
-      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -453,12 +432,14 @@
         "properties": {
           "email": {
             "type": "string",
+            "maxLength": 254,
             "format": "email",
             "title": "Email"
           },
           "password": {
             "type": "string",
             "maxLength": 128,
+            "minLength": 1,
             "title": "Password"
           },
           "device_label": {
@@ -481,27 +462,16 @@
         ],
         "title": "LoginRequest"
       },
-      "LogoutRequest": {
-        "properties": {
-          "refresh_token": {
-            "type": "string",
-            "maxLength": 200,
-            "minLength": 1,
-            "title": "Refresh Token"
-          }
-        },
-        "type": "object",
-        "required": [
-          "refresh_token"
-        ],
-        "title": "LogoutRequest"
-      },
       "Me": {
         "properties": {
           "id": {
             "type": "string",
             "format": "uuid",
             "title": "Id"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
           },
           "display_name": {
             "type": "string",
@@ -517,10 +487,6 @@
               }
             ],
             "title": "Avatar Url"
-          },
-          "email": {
-            "type": "string",
-            "title": "Email"
           },
           "birthday": {
             "anyOf": [
@@ -556,18 +522,100 @@
         "type": "object",
         "required": [
           "id",
-          "display_name",
           "email",
+          "display_name",
+          "avatar_url",
+          "birthday",
           "timezone",
+          "locale",
           "created_at"
         ],
         "title": "Me"
+      },
+      "MeUpdate": {
+        "properties": {
+          "display_name": {
+            "type": "string",
+            "maxLength": 50,
+            "minLength": 1,
+            "title": "Display Name"
+          },
+          "birthday": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Birthday"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "timezone": {
+            "type": "string",
+            "maxLength": 64,
+            "title": "Timezone"
+          },
+          "locale": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 16
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Locale"
+          },
+          "avatar_url": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2083,
+                "minLength": 1,
+                "format": "uri"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avatar Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "display_name",
+          "timezone"
+        ],
+        "title": "MeUpdate"
+      },
+      "PasswordChange": {
+        "properties": {
+          "current_password": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Current Password"
+          },
+          "new_password": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 10,
+            "title": "New Password"
+          }
+        },
+        "type": "object",
+        "required": [
+          "current_password",
+          "new_password"
+        ],
+        "title": "PasswordChange"
       },
       "RefreshRequest": {
         "properties": {
           "refresh_token": {
             "type": "string",
-            "maxLength": 200,
+            "maxLength": 128,
             "minLength": 1,
             "title": "Refresh Token"
           }
@@ -576,12 +624,14 @@
         "required": [
           "refresh_token"
         ],
-        "title": "RefreshRequest"
+        "title": "RefreshRequest",
+        "description": "Also the body of /auth/logout."
       },
       "RegisterRequest": {
         "properties": {
           "email": {
             "type": "string",
+            "maxLength": 254,
             "format": "email",
             "title": "Email"
           },
@@ -620,6 +670,18 @@
               }
             ],
             "title": "Device Label"
+          },
+          "invite_code": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 32
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Invite Code"
           }
         },
         "type": "object",
@@ -665,62 +727,6 @@
           "refresh_expires_at"
         ],
         "title": "TokenPair"
-      },
-      "UpdateMeRequest": {
-        "properties": {
-          "display_name": {
-            "type": "string",
-            "maxLength": 50,
-            "minLength": 1,
-            "title": "Display Name"
-          },
-          "birthday": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/Birthday"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "timezone": {
-            "type": "string",
-            "title": "Timezone"
-          },
-          "locale": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 16
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Locale"
-          },
-          "avatar_url": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 2083,
-                "minLength": 1,
-                "format": "uri"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Avatar Url"
-          }
-        },
-        "type": "object",
-        "required": [
-          "display_name",
-          "timezone"
-        ],
-        "title": "UpdateMeRequest"
       },
       "ValidationError": {
         "properties": {

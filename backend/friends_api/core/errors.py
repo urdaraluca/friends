@@ -2,8 +2,8 @@
 
 Every error body looks like::
 
-    {"type": "urn:friends:problem:<code>", "title": ..., "status": 404, "detail": ...,
-     "code": "<code>", "errors": [{"field", "message", "type"}]?, "request_id": ...}
+    {"type": "about:blank", "title": "Not Found", "status": 404, "detail": ...,
+     "code": "<code>", "errors": [{"field", "message", "type"}] | null, "request_id": ...}
 
 ``code`` is the stable, machine-readable value clients switch on.
 """
@@ -40,7 +40,7 @@ class Problem(BaseModel):
     detail: str | None = None
     code: str
     errors: list[FieldError] | None = None
-    request_id: str | None = None
+    request_id: str
 
 
 class AppError(Exception):
@@ -65,7 +65,7 @@ class AppError(Exception):
         self.headers = dict(headers or {})
 
 
-class Unauthenticated(AppError):
+class AuthError(AppError):
     status_code = 401
     code = "unauthenticated"
 
@@ -93,7 +93,7 @@ class Gone(AppError):
     code = "gone"
 
 
-class ValidationFailed(AppError):
+class Unprocessable(AppError):
     status_code = 422
     code = "validation_error"
 
@@ -118,16 +118,16 @@ def problem_response(
     headers: Mapping[str, str] | None = None,
 ) -> JSONResponse:
     problem = Problem(
-        type=f"urn:friends:problem:{code}",
+        type="about:blank",
         title=HTTPStatus(status).phrase,
         status=status,
         detail=detail,
         code=code,
         errors=list(errors) if errors is not None else None,
-        request_id=request_id_var.get(),
+        request_id=request_id_var.get() or "-",
     )
     return JSONResponse(
-        problem.model_dump(exclude_none=True),
+        problem.model_dump(mode="json"),
         status_code=status,
         headers=dict(headers or {}),
         media_type=PROBLEM_CONTENT_TYPE,
@@ -148,9 +148,10 @@ _HTTP_STATUS_CODES = {
 
 
 def _field_path(loc: Sequence[Any]) -> str:
-    # Drop the leading "body" / "query" / "path" segment: clients map errors onto form fields.
+    # Body fields drop the "body" prefix (clients map them onto form fields);
+    # query and path parameters keep theirs: "query.from", "path.group_id".
     parts = [str(part) for part in loc]
-    if parts and parts[0] in {"body", "query", "path", "header", "cookie"}:
+    if parts and parts[0] == "body":
         parts = parts[1:]
     return ".".join(parts)
 

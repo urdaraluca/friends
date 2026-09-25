@@ -6,7 +6,6 @@ from friends_api.features.auth import service
 from friends_api.features.auth.schemas import (
     AuthSession,
     LoginRequest,
-    LogoutRequest,
     RefreshRequest,
     RegisterRequest,
     TokenPair,
@@ -49,7 +48,7 @@ def refresh_tokens(body: RefreshRequest, db: DbSession, auth: Auth) -> TokenPair
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
-def logout(body: LogoutRequest, db: DbSession) -> None:
+def logout(body: RefreshRequest, db: DbSession) -> None:
     """Ends the session that owns this refresh token. Always succeeds (idempotent)."""
     service.logout(db, body.refresh_token)
 

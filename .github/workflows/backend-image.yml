@@ -81,7 +81,8 @@ jobs:
           TAGS: ${{ steps.meta.outputs.tags }}
         run: |
           ref="$(echo "$TAGS" | head -n1)"
-          docker run -d --name smoke -e JWT_SECRET="$(openssl rand -base64 48)" -p 8000:8000 "$ref"
+          docker run -d --name smoke -e JWT_SECRET="$(openssl rand -base64 48)" \
+            -e PUBLIC_APP_URL=https://friends.example.com -p 8000:8000 "$ref"
           for _ in $(seq 1 30); do
             if curl -fsS http://127.0.0.1:8000/api/v1/health; then echo; docker rm -f smoke; exit 0; fi
             sleep 1

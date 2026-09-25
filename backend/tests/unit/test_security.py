@@ -4,7 +4,7 @@ import jwt
 import pytest
 
 from friends_api.core.config import AppEnv, Settings
-from friends_api.core.errors import Unauthenticated
+from friends_api.core.errors import AuthError
 from friends_api.core.security import (
     Passwords,
     create_access_token,
@@ -57,7 +57,7 @@ def test_tokens_signed_with_another_secret_are_rejected(settings: Settings) -> N
         other, user_id=uuid.uuid7(), session_id=uuid.uuid7(), token_version=0
     )
 
-    with pytest.raises(Unauthenticated) as exc_info:
+    with pytest.raises(AuthError) as exc_info:
         decode_access_token(settings, token)
     assert exc_info.value.code == "unauthenticated"
 
@@ -76,7 +76,7 @@ def test_tokens_for_another_audience_or_type_are_rejected(settings: Settings) ->
     )
 
     for token in (wrong_audience, wrong_type):
-        with pytest.raises(Unauthenticated):
+        with pytest.raises(AuthError):
             decode_access_token(settings, token)
 
 

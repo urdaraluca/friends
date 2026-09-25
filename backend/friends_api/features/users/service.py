@@ -1,10 +1,10 @@
 from sqlalchemy.orm import Session
 
 from friends_api.features.auth.models import User
-from friends_api.features.users.schemas import UpdateMeRequest
+from friends_api.features.users.schemas import MeUpdate
 
 
-def update_profile(db: Session, user: User, body: UpdateMeRequest) -> None:
+def update_profile(db: Session, user: User, body: MeUpdate) -> None:
     user.display_name = body.display_name
     user.timezone = body.timezone
     user.locale = body.locale
