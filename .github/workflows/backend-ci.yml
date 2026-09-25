@@ -42,3 +42,14 @@ jobs:
       - run: uv run ruff format --check .
       - run: uv run mypy
       - run: uv run pytest --cov --cov-report=term-missing
+      - name: Migrations match the models
+        env:
+          DATABASE_URL: sqlite:///./ci.db
+        run: uv run alembic upgrade head && uv run alembic check
+      - name: OpenAPI snapshot is up to date
+        run: |
+          uv run python -m friends_api.cli export-openapi
+          git diff --exit-code -- openapi.json || {
+            echo "::error::backend/openapi.json is stale. Run: uv run python -m friends_api.cli export-openapi"
+            exit 1
+          }

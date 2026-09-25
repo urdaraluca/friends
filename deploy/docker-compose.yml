@@ -1,0 +1,37 @@
+# Friends on the Raspberry Pi. Lives in /srv/friends next to .env and update.sh.
+name: friends
+
+services:
+  backend:
+    image: ghcr.io/urdaraluca/friends-backend:${FRIENDS_TAG:-latest}
+    restart: unless-stopped
+    init: true
+    env_file: .env
+    ports:
+      # Bound to localhost: the reverse proxy / tunnel already running on the Pi forwards to it.
+      # If the proxy runs on another machine, set BIND_ADDRESS=0.0.0.0.
+      - "${BIND_ADDRESS:-127.0.0.1}:${HOST_PORT:-8000}:8000"
+    volumes:
+      - friends-data:/data
+      - ${BACKUP_HOST_DIR:-./backups}:/backups
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 512m
+    stop_grace_period: 20s
+    logging:
+      driver: local
+      options:
+        max-size: "10m"
+        max-file: "5"
+    # If the proxy runs as a container, drop `ports:` above and join its network instead:
+    # networks: [proxy]
+
+# networks:
+#   proxy:
+#     external: true
+
+volumes:
+  friends-data:

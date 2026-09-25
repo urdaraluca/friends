@@ -1,9 +1,15 @@
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.routing import APIRoute
 
 from friends_api.api import API_PREFIX, api_router
 from friends_api.core.config import Settings, get_settings
+from friends_api.core.db import create_db_engine, create_session_factories
+from friends_api.core.errors import CatchAllMiddleware, register_exception_handlers
+from friends_api.core.logging import REQUEST_ID_HEADER, RequestContextMiddleware, configure_logging
 
 
 def _operation_id(route: APIRoute) -> str:
@@ -13,6 +19,18 @@ def _operation_id(route: APIRoute) -> str:
 
 def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or get_settings()
+    configure_logging(settings.log_format, settings.log_level)
+
+    @asynccontextmanager
+    async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+        engine = create_db_engine(settings.database_url)
+        app.state.engine = engine
+        app.state.read_session, app.state.write_session = create_session_factories(engine)
+        try:
+            yield
+        finally:
+            engine.dispose()
+
     app = FastAPI(
         title="Friends API",
         version="1",  # API contract version; the build version is reported by /health
@@ -21,9 +39,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         redoc_url=None,
         generate_unique_id_function=_operation_id,
         separate_input_output_schemas=False,
+        lifespan=lifespan,
     )
     app.state.settings = settings
 
+    register_exception_handlers(app)
+    # Middleware added later wraps the earlier ones: RequestContext > CORS > CatchAll > app.
+    app.add_middleware(CatchAllMiddleware)
     if settings.cors_origins or settings.cors_origin_regex:
         app.add_middleware(
             CORSMiddleware,
@@ -31,8 +53,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             allow_origin_regex=settings.cors_origin_regex,
             allow_methods=["*"],
             allow_headers=["*"],
-            expose_headers=["X-Request-ID", "Retry-After"],
+            expose_headers=[REQUEST_ID_HEADER, "Retry-After"],
         )
+    app.add_middleware(RequestContextMiddleware, quiet_paths=frozenset({f"{API_PREFIX}/health"}))
 
     app.include_router(api_router)
     return app

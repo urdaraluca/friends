@@ -1,5 +1,6 @@
 from enum import StrEnum
 from functools import lru_cache
+from pathlib import Path
 from typing import Annotated
 
 from pydantic import field_validator, model_validator
@@ -14,6 +15,11 @@ class AppEnv(StrEnum):
     PROD = "prod"
 
 
+class LogFormat(StrEnum):
+    CONSOLE = "console"
+    JSON = "json"
+
+
 class Settings(BaseSettings):
     """Runtime configuration, read from environment variables (and `.env` in development)."""
 
@@ -23,6 +29,9 @@ class Settings(BaseSettings):
     app_version: str = "dev"
     git_sha: str = "unknown"
 
+    database_url: str = "sqlite:///./friends.db"
+    backup_dir: Path = Path("./backups")
+
     jwt_secret: str = DEV_JWT_SECRET
 
     docs_enabled: bool | None = None
@@ -31,7 +40,8 @@ class Settings(BaseSettings):
     cors_origins: Annotated[list[str], NoDecode] = []
     """Comma-separated list of allowed origins. Empty in prod: the web app is same-origin."""
 
-    log_format: str = "console"
+    log_format: LogFormat = LogFormat.CONSOLE
+    log_level: str = "INFO"
 
     @field_validator("cors_origins", mode="before")
     @classmethod
