@@ -1,0 +1,77 @@
+[project]
+name = "friends-backend"
+version = "0.1.0"
+description = "Friends API: plan activities with your friend groups"
+requires-python = ">=3.14,<3.15"
+dependencies = [
+    "fastapi>=0.141.1",
+    "uvicorn[standard]>=0.54.0",
+    "sqlalchemy>=2.0.49,<2.1",
+    "alembic>=1.20.0",
+    "pydantic>=2.13.5,<3",
+    "pydantic-settings>=2.15.0",
+    "email-validator>=2.3.0",
+    "argon2-cffi>=25.1.0",
+    "pyjwt>=2.15.0,<3",
+    "python-dateutil>=2.9.0.post0",
+    "tzdata>=2026.4",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "pytest-cov>=7.1.0",
+    "time-machine>=3.5.1",
+    "ruff>=0.16.9",
+    "mypy>=2.3.1",
+    "types-python-dateutil>=2.9.0.20260807",
+    "httpx2>=2.13.1",
+]
+
+# No [build-system]: this is a uv "virtual" project (an application, not a distributable package).
+[tool.uv]
+required-version = ">=0.12"
+
+[tool.ruff]
+target-version = "py314"
+line-length = 100
+extend-exclude = ["alembic/versions"]
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "B", "UP", "SIM", "C4", "DTZ", "S", "N", "RUF", "PT", "FAST", "TID"]
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "S105", "S106", "S311"]
+
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = ["fastapi.Depends", "fastapi.Query", "fastapi.Path", "fastapi.Body"]
+
+[tool.mypy]
+strict = true
+plugins = ["pydantic.mypy"]
+files = ["friends_api", "tests"]
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+
+[tool.pydantic-mypy]
+init_forbid_extra = true
+init_typed = true
+warn_required_dynamic_aliases = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-ra --strict-markers --strict-config"
+filterwarnings = ["error"]
+
+[tool.coverage.run]
+branch = true
+source = ["friends_api"]
+
+[tool.coverage.report]
+skip_covered = true
+show_missing = true

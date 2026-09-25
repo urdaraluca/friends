@@ -1,0 +1,28 @@
+# OS / editors
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+*.iml
+.vscode/*
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# Secrets
+.env
+.env.*
+!.env.example
+*.jks
+*.keystore
+key.properties
+
+# Local databases & backups
+*.db
+*.db-wal
+*.db-shm
+backups/
+
+# Claude Code local state
+.claude/worktrees/
+.claude/settings.local.json
+.claude/launch.json
