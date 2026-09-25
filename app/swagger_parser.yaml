@@ -1,0 +1,15 @@
+swagger_parser:
+  schema_path: ../backend/openapi.json
+  output_directory: lib/core/api/generated
+  json_serializer: freezed
+  use_freezed3: true
+  root_client: true
+  root_client_name: FriendsApi
+  put_clients_in_folder: true
+  enums_to_json: true
+  unknown_enum_value: true      # new server enum values don't crash old app builds
+  # PUT bodies must send explicit nulls (contract section 1.4). In swagger_parser 1.44 `true`
+  # annotates optional nullable fields with includeIfNull: false, which drops them; `false` emits
+  # no annotation, so json_serializable's default (include nulls) applies. See ADR 0003.
+  include_if_null: false
+  mark_files_as_generated: true
