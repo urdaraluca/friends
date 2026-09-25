@@ -3,9 +3,11 @@
 - ``migrate``: back up the database if migrations are pending, then ``alembic upgrade head``.
 - ``backup``: consistent online backup (safe while the app is running), gzip, rotate.
 - ``export-openapi``: write the OpenAPI schema used to generate the Dart client.
+- ``create-user`` / ``reset-password``: account administration (there is no email sending).
 """
 
 import argparse
+import getpass
 import gzip
 import json
 import shutil
@@ -20,10 +22,16 @@ from alembic import command
 from alembic.config import Config
 from alembic.runtime.migration import MigrationContext
 from alembic.script import ScriptDirectory
+from sqlalchemy import select
 from sqlalchemy.engine import make_url
 
 from friends_api.core.config import Settings, get_settings
-from friends_api.core.db import create_db_engine
+from friends_api.core.db import create_db_engine, create_session_factories
+from friends_api.core.errors import AppError
+from friends_api.core.security import Passwords
+from friends_api.features.auth import service as auth_service
+from friends_api.features.auth.models import User
+from friends_api.features.auth.service import AuthContext
 from friends_api.main import create_app
 
 BACKEND_DIR = Path(__file__).resolve().parent.parent
@@ -124,6 +132,67 @@ def cmd_export_openapi(settings: Settings, args: argparse.Namespace) -> int:
     return 0
 
 
+def _read_password(args: argparse.Namespace) -> str:
+    if args.password_stdin:
+        return sys.stdin.readline().rstrip("\r\n")
+    password = getpass.getpass("Password: ")
+    if password != getpass.getpass("Repeat password: "):
+        raise SystemExit("Passwords do not match.")
+    return password
+
+
+def _password_problem(password: str) -> str | None:
+    if not 10 <= len(password) <= 128:
+        return "Password must be 10-128 characters."
+    return None
+
+
+def cmd_create_user(settings: Settings, args: argparse.Namespace) -> int:
+    password = _read_password(args)
+    if problem := _password_problem(password):
+        print(problem, file=sys.stderr)
+        return 1
+    ctx = AuthContext(settings=settings, passwords=Passwords(settings))
+    engine = create_db_engine(settings.database_url)
+    _, write = create_session_factories(engine)
+    try:
+        with write() as db:
+            user = auth_service.create_user(
+                db, ctx, email=args.email, password=password, display_name=args.name
+            )
+            db.commit()
+            print(f"Created user {user.email} ({user.id})")
+    except AppError as exc:
+        print(exc.detail or exc.code, file=sys.stderr)
+        return 1
+    finally:
+        engine.dispose()
+    return 0
+
+
+def cmd_reset_password(settings: Settings, args: argparse.Namespace) -> int:
+    password = _read_password(args)
+    if problem := _password_problem(password):
+        print(problem, file=sys.stderr)
+        return 1
+    passwords = Passwords(settings)
+    engine = create_db_engine(settings.database_url)
+    _, write = create_session_factories(engine)
+    try:
+        with write() as db:
+            email = auth_service.normalize_email(args.email)
+            user = db.scalar(select(User).where(User.email == email))
+            if user is None or not user.is_active:
+                print(f"No active user with email {args.email}", file=sys.stderr)
+                return 1
+            user.password_hash = passwords.hash(password)
+            auth_service.logout_everywhere(db, user)
+            print(f"Password reset for {user.email}; all their sessions were signed out.")
+    finally:
+        engine.dispose()
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="python -m friends_api.cli")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -136,6 +205,17 @@ def build_parser() -> argparse.ArgumentParser:
 
     export = sub.add_parser("export-openapi", help="write the OpenAPI schema")
     export.add_argument("--output", help=f"output path (default: {DEFAULT_OPENAPI_PATH})")
+
+    create = sub.add_parser("create-user", help="create an account (e.g. the very first one)")
+    create.add_argument("--email", required=True)
+    create.add_argument("--name", required=True, help="display name")
+    create.add_argument(
+        "--password-stdin", action="store_true", help="read the password from stdin"
+    )
+
+    reset = sub.add_parser("reset-password", help="set a new password and sign out all sessions")
+    reset.add_argument("--email", required=True)
+    reset.add_argument("--password-stdin", action="store_true", help="read the password from stdin")
     return parser
 
 
@@ -143,6 +223,8 @@ COMMANDS = {
     "migrate": cmd_migrate,
     "backup": cmd_backup,
     "export-openapi": cmd_export_openapi,
+    "create-user": cmd_create_user,
+    "reset-password": cmd_reset_password,
 }
 
 

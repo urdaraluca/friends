@@ -1,4 +1,5 @@
 import gzip
+import io
 import json
 import sqlite3
 from contextlib import closing
@@ -6,10 +7,12 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
+from fastapi.testclient import TestClient
 
 from friends_api import cli
 from friends_api.core.config import AppEnv, Settings
-from tests.conftest import sqlite_url
+from friends_api.main import create_app
+from tests.conftest import FAST_ARGON2, sqlite_url
 
 
 def _settings(tmp_path: Path, db_name: str = "app.db") -> Settings:
@@ -18,6 +21,7 @@ def _settings(tmp_path: Path, db_name: str = "app.db") -> Settings:
         app_env=AppEnv.TEST,
         database_url=sqlite_url(tmp_path / db_name),
         backup_dir=tmp_path / "backups",
+        **FAST_ARGON2,
     )
 
 
@@ -113,3 +117,58 @@ def test_only_file_sqlite_urls_are_supported() -> None:
         cli.sqlite_path("sqlite:///:memory:")
     with pytest.raises(SystemExit):
         cli.sqlite_path("postgresql://localhost/friends")
+
+
+def test_create_user_and_reset_password(
+    settings: Settings, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setattr("sys.stdin", io.StringIO("first password!\n"))
+    assert (
+        cli.main(
+            ["create-user", "--email", "Owner@Example.com", "--name", "Owner", "--password-stdin"],
+            settings,
+        )
+        == 0
+    )
+    assert "Created user owner@example.com" in capsys.readouterr().out
+
+    monkeypatch.setattr("sys.stdin", io.StringIO("second password!\n"))
+    assert (
+        cli.main(["reset-password", "--email", "owner@example.com", "--password-stdin"], settings)
+        == 0
+    )
+
+    with TestClient(create_app(settings)) as client:
+        old = client.post(
+            "/api/v1/auth/login", json={"email": "owner@example.com", "password": "first password!"}
+        )
+        new = client.post(
+            "/api/v1/auth/login",
+            json={"email": "owner@example.com", "password": "second password!"},
+        )
+    assert old.status_code == 401
+    assert new.status_code == 200
+
+
+def test_create_user_rejects_duplicates_and_short_passwords(
+    settings: Settings, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    args = ["create-user", "--email", "a@example.com", "--name", "A", "--password-stdin"]
+    monkeypatch.setattr("sys.stdin", io.StringIO("long enough password\n"))
+    assert cli.main(args, settings) == 0
+
+    monkeypatch.setattr("sys.stdin", io.StringIO("long enough password\n"))
+    assert cli.main(args, settings) == 1
+
+    monkeypatch.setattr("sys.stdin", io.StringIO("short\n"))
+    assert cli.main([*args[:2], "b@example.com", *args[3:]], settings) == 1
+
+
+def test_reset_password_for_unknown_email_fails(
+    settings: Settings, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr("sys.stdin", io.StringIO("long enough password\n"))
+
+    assert (
+        cli.main(["reset-password", "--email", "x@example.com", "--password-stdin"], settings) == 1
+    )

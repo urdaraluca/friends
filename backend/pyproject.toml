@@ -79,5 +79,6 @@ branch = true
 source = ["friends_api"]
 
 [tool.coverage.report]
+fail_under = 80
 skip_covered = true
 show_missing = true

@@ -6,18 +6,27 @@ foreign keys OFF and verify integrity with PRAGMA foreign_key_check afterwards.
 """
 
 from logging.config import fileConfig
+from typing import Any
 
 from alembic import context
 
 from friends_api import db_models
 from friends_api.core.config import get_settings
-from friends_api.core.db import create_db_engine
+from friends_api.core.db import UTCDateTime, create_db_engine
 
 config = context.config
 if config.config_file_name is not None and config.attributes.get("configure_logger", True):
     fileConfig(config.config_file_name, disable_existing_loggers=False)
 
 target_metadata = db_models.Base.metadata
+
+
+def render_item(type_: str, obj: Any, autogen_context: Any) -> str | bool:
+    """Renders our custom column types with an import instead of a module path."""
+    if type_ == "type" and isinstance(obj, UTCDateTime):
+        autogen_context.imports.add("from friends_api.core.db import UTCDateTime")
+        return "UTCDateTime()"
+    return False
 
 
 def _database_url() -> str:
@@ -31,6 +40,7 @@ def run_migrations_offline() -> None:
         target_metadata=target_metadata,
         literal_binds=True,
         render_as_batch=True,
+        render_item=render_item,
         dialect_opts={"paramstyle": "named"},
     )
     with context.begin_transaction():
@@ -45,6 +55,7 @@ def run_migrations_online() -> None:
                 connection=connection,
                 target_metadata=target_metadata,
                 render_as_batch=True,
+                render_item=render_item,
                 compare_type=True,
             )
             with context.begin_transaction():

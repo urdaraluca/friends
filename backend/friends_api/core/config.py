@@ -33,6 +33,17 @@ class Settings(BaseSettings):
     backup_dir: Path = Path("./backups")
 
     jwt_secret: str = DEV_JWT_SECRET
+    access_token_ttl_minutes: int = 15
+    refresh_token_ttl_days: int = 30
+    """Sliding lifetime of a refresh token; every refresh extends it..."""
+    session_max_days: int = 180
+    """...up to this absolute cap after login, then the user signs in again."""
+    refresh_reuse_grace_seconds: int = 60
+    """A just-rotated refresh token may be presented again (lost response) within this window."""
+
+    argon2_time_cost: int = 3
+    argon2_memory_kib: int = 65536
+    argon2_parallelism: int = 4
 
     docs_enabled: bool | None = None
     """Serve Swagger UI at /api/v1/docs. Defaults to on outside prod."""
