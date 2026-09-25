@@ -64,3 +64,38 @@ def login(client: TestClient, email: str, password: str = DEFAULT_PASSWORD) -> d
 
 def bearer(access_token: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {access_token}"}
+
+
+def create_group(client: TestClient, account: Account, **fields: Any) -> dict[str, Any]:
+    response = client.post(
+        "/api/v1/groups", headers=account.headers, json={"name": "Friends", **fields}
+    )
+    assert response.status_code == 201, response.text
+    body: dict[str, Any] = response.json()
+    return body
+
+
+def create_invite(
+    client: TestClient, account: Account, group_id: str, **fields: Any
+) -> dict[str, Any]:
+    response = client.post(
+        f"/api/v1/groups/{group_id}/invites", headers=account.headers, json=fields
+    )
+    assert response.status_code == 201, response.text
+    body: dict[str, Any] = response.json()
+    return body
+
+
+def join(client: TestClient, account: Account, code: str) -> dict[str, Any]:
+    response = client.post(f"/api/v1/invites/{code}/accept", headers=account.headers)
+    assert response.status_code == 200, response.text
+    body: dict[str, Any] = response.json()
+    return body
+
+
+def add_member(client: TestClient, owner: Account, group_id: str) -> Account:
+    """Registers a new account and joins it to the group through an invite."""
+    invite = create_invite(client, owner, group_id)
+    account = register(client)
+    join(client, account, invite["code"])
+    return account

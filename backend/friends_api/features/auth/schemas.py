@@ -4,6 +4,7 @@ from typing import Annotated, Literal
 from pydantic import BaseModel, EmailStr, Field, StringConstraints
 
 from friends_api.core.schemas import RequestModel
+from friends_api.features.groups.schemas import GroupSummary
 from friends_api.features.users.schemas import DisplayName, Me
 
 Password = Annotated[str, StringConstraints(min_length=10, max_length=128)]
@@ -54,3 +55,5 @@ class TokenPair(BaseModel):
 class AuthSession(BaseModel):
     user: Me
     tokens: TokenPair
+    joined_group: GroupSummary | None
+    """The group joined with the invite code at registration."""

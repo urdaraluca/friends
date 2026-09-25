@@ -10,6 +10,7 @@ from friends_api.core.config import Settings, get_settings
 from friends_api.core.db import create_db_engine, create_session_factories
 from friends_api.core.errors import CatchAllMiddleware, register_exception_handlers
 from friends_api.core.logging import REQUEST_ID_HEADER, RequestContextMiddleware, configure_logging
+from friends_api.core.openapi import install_openapi
 from friends_api.core.ratelimit import RateLimits
 from friends_api.core.security import Passwords
 from friends_api.features.auth.service import AuthContext
@@ -50,6 +51,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.auth = AuthContext(settings=settings, passwords=Passwords(settings))
     app.state.rate_limits = RateLimits()
 
+    install_openapi(app)
     register_exception_handlers(app)
     # Middleware added later wraps the earlier ones: RequestContext > CORS > CatchAll > app.
     app.add_middleware(CatchAllMiddleware)

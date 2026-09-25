@@ -1,5 +1,6 @@
 """Shared FastAPI dependencies."""
 
+import uuid
 from collections.abc import Iterator
 from dataclasses import dataclass
 from typing import Annotated
@@ -9,10 +10,12 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
 from friends_api.core.config import Settings
-from friends_api.core.errors import AuthError
+from friends_api.core.errors import AuthError, NotFound
 from friends_api.core.security import AccessClaims, decode_access_token
 from friends_api.features.auth.models import User
 from friends_api.features.auth.service import AuthContext
+from friends_api.features.groups import service as groups_service
+from friends_api.features.groups.service import GroupAccess
 
 _READ_ONLY_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
 
@@ -73,3 +76,15 @@ def get_current_user(principal: Annotated[Principal, Depends(get_principal)]) ->
 
 CurrentPrincipal = Annotated[Principal, Depends(get_principal)]
 CurrentUser = Annotated[User, Depends(get_current_user)]
+
+
+def load_group(group_id: uuid.UUID, db: DbSession, user: CurrentUser) -> GroupAccess:
+    """The group plus the caller's membership. Non-members get the same 404 as a missing group,
+    so the API never reveals that a group exists."""
+    access = groups_service.get_access(db, group_id, user.id)
+    if access is None:
+        raise NotFound("No such group.")
+    return access
+
+
+GroupMember = Annotated[GroupAccess, Depends(load_group)]

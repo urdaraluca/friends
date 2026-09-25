@@ -42,6 +42,7 @@ select = ["E", "W", "F", "I", "B", "UP", "SIM", "C4", "DTZ", "S", "N", "RUF", "P
 ignore = [
     "E501",
     "N818", # error classes are named after the HTTP outcome (NotFound, Conflict, ...)
+    "FAST003", # {group_id} is resolved by a loader dependency (deps.load_group), not a parameter
 ]
 
 [tool.ruff.lint.isort]

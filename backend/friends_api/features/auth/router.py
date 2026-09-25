@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, status
 
 from friends_api.core.ratelimit import limit_by_ip
 from friends_api.deps import Auth, CurrentUser, DbSession
-from friends_api.features.auth import service
+from friends_api.features.auth import registration, service
 from friends_api.features.auth.schemas import (
     AuthSession,
     LoginRequest,
@@ -21,17 +21,9 @@ router = APIRouter(prefix="/auth", tags=["auth"])
     dependencies=[Depends(limit_by_ip("register"))],
 )
 def register(body: RegisterRequest, db: DbSession, auth: Auth) -> AuthSession:
-    user = service.create_user(
-        db,
-        auth,
-        email=body.email,
-        password=body.password,
-        display_name=body.display_name,
-        timezone=body.timezone,
-    )
-    tokens = service.start_session(db, auth, user, body.device_label)
-    db.commit()
-    return AuthSession(user=Me.from_user(user), tokens=tokens)
+    """Creates an account. Needs an invite code unless registration is open; with a code the
+    new user also joins that group (`joined_group`)."""
+    return registration.register(db, auth, body)
 
 
 @router.post("/login", dependencies=[Depends(limit_by_ip("login"))])
@@ -39,7 +31,7 @@ def login(body: LoginRequest, db: DbSession, auth: Auth) -> AuthSession:
     user = service.authenticate(db, auth, body.email, body.password)
     tokens = service.start_session(db, auth, user, body.device_label)
     db.commit()
-    return AuthSession(user=Me.from_user(user), tokens=tokens)
+    return AuthSession(user=Me.from_user(user), tokens=tokens, joined_group=None)
 
 
 @router.post("/refresh", dependencies=[Depends(limit_by_ip("refresh"))])

@@ -9,9 +9,11 @@ SQLite specifics that matter:
 
 import uuid
 from datetime import UTC, datetime
+from enum import StrEnum
 from typing import Any
 
 from sqlalchemy import DateTime, Dialect, Engine, MetaData, Uuid, create_engine, event
+from sqlalchemy import Enum as SAEnum
 from sqlalchemy.engine import Connection
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker
 from sqlalchemy.types import TypeDecorator
@@ -94,3 +96,15 @@ def create_session_factories(engine: Engine) -> tuple[sessionmaker[Any], session
     read = sessionmaker(engine, expire_on_commit=False)
     write = sessionmaker(engine.execution_options(sqlite_begin="IMMEDIATE"), expire_on_commit=False)
     return read, write
+
+
+def str_enum[E: StrEnum](enum_cls: type[E], length: int) -> SAEnum:
+    """A StrEnum stored as its value in a VARCHAR, without a CHECK constraint (new values need
+    no table rebuild on SQLite)."""
+    return SAEnum(
+        enum_cls,
+        native_enum=False,
+        create_constraint=False,
+        length=length,
+        values_callable=lambda members: [member.value for member in members],
+    )

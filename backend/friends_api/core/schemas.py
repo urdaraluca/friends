@@ -1,8 +1,8 @@
 """Base models shared by every feature's request and response schemas."""
 
-from typing import Any, Self
+from typing import Annotated, Any, Self
 
-from pydantic import BaseModel, ConfigDict, model_validator
+from pydantic import AfterValidator, BaseModel, ConfigDict, StringConstraints, model_validator
 
 
 class RequestModel(BaseModel):
@@ -20,7 +20,12 @@ class RequestModel(BaseModel):
         return self
 
 
-class ResponseModel(BaseModel):
-    """Responses always include every field (``null`` when missing)."""
+Color = Annotated[
+    str,
+    StringConstraints(pattern=r"^#[0-9A-Fa-f]{6}$"),
+    AfterValidator(str.upper),
+]
+"""'#RRGGBB', stored uppercase."""
 
-    model_config = ConfigDict(from_attributes=True)
+Currency = Annotated[str, StringConstraints(pattern=r"^[A-Z]{3}$")]
+"""ISO 4217 shape (not checked against a list)."""

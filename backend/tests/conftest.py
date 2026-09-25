@@ -7,9 +7,11 @@ import pytest
 from alembic import command
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session
 
 from friends_api.cli import alembic_config
 from friends_api.core.config import AppEnv, RegistrationMode, Settings
+from friends_api.core.db import create_db_engine
 from friends_api.main import create_app
 
 # Cheap hashing parameters: the production ones cost ~64 MiB and a few hundred ms per hash.
@@ -64,3 +66,12 @@ def app(settings: Settings) -> FastAPI:
 def client(app: FastAPI) -> Iterator[TestClient]:
     with TestClient(app) as test_client:
         yield test_client
+
+
+@pytest.fixture
+def db_session(settings: Settings) -> Iterator[Session]:
+    """A session on the test database, for asserting on rows the API wrote."""
+    engine = create_db_engine(settings.database_url)
+    with Session(engine) as session:
+        yield session
+    engine.dispose()
