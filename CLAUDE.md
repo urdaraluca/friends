@@ -20,7 +20,11 @@ App (run from `app/`):
 - `flutter pub get`
 - `dart run build_runner build -d` (generated `*.g.dart` and `*.freezed.dart` are gitignored)
 - `flutter analyze --fatal-infos`
-- `dart format lib test`
+- `dart format $(git ls-files 'lib/*.dart' 'test/*.dart' ':!lib/core/api/generated')` (never format
+  `lib/core/api/generated/`: it is committed swagger_parser output and CI checks it for drift)
+- `dart run swagger_parser` after every `backend/openapi.json` change (commit the output). The
+  analyzer excludes the generated code, so only `flutter test` (which imports it) catches compile
+  errors there.
 - `flutter test`
 - Web dev run: `flutter run -d chrome --web-port 5000 --dart-define-from-file=env/dev.json`
 

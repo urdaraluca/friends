@@ -24,17 +24,20 @@ from friends_api.features.activities.schemas import (
 
 router = APIRouter(tags=["activities"])
 
-_DEFAULT_STATUS_LIST = list(DEFAULT_STATUSES)
-
 
 @router.get("/groups/{group_id}/activities")
 def list_activities(
     db: DbSession,
     access: GroupMember,
     status: Annotated[
-        list[ActivityStatus],
-        Query(description="Repeat the key for several; done and dropped are the archive."),
-    ] = _DEFAULT_STATUS_LIST,
+        list[ActivityStatus] | None,
+        Query(
+            description=(
+                "Repeat the key for several. Omitted: idea, planning and scheduled; done and "
+                "dropped are the archive."
+            )
+        ),
+    ] = None,
     category_id: uuid.UUID | None = None,
     include_subcategories: Annotated[
         bool, Query(description="With `category_id`: also its subcategories.")
@@ -66,7 +69,7 @@ def list_activities(
     """The backlog, cursor-paginated. Due date and cost sort with nulls last; ties are broken
     by id (descending)."""
     filters = ActivityFilters(
-        statuses=status,
+        statuses=status or DEFAULT_STATUSES,
         category_id=category_id,
         include_subcategories=include_subcategories,
         owner_id=owner_id,

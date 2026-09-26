@@ -1661,19 +1661,21 @@
             "in": "query",
             "required": false,
             "schema": {
-              "type": "array",
-              "items": {
-                "$ref": "#/components/schemas/ActivityStatus"
-              },
-              "description": "Repeat the key for several; done and dropped are the archive.",
-              "default": [
-                "idea",
-                "planning",
-                "scheduled"
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ActivityStatus"
+                  }
+                },
+                {
+                  "type": "null"
+                }
               ],
+              "description": "Repeat the key for several. Omitted: idea, planning and scheduled; done and dropped are the archive.",
               "title": "Status"
             },
-            "description": "Repeat the key for several; done and dropped are the archive."
+            "description": "Repeat the key for several. Omitted: idea, planning and scheduled; done and dropped are the archive."
           },
           {
             "name": "category_id",
