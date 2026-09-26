@@ -1,0 +1,15 @@
+# Wire-rule spike (ADR 0003): the same generator settings as app/swagger_parser.yaml, run on a
+# small FastAPI schema with the shapes later milestones need (repeated enum query parameters,
+# dates, instants, a PUT body with nullable fields). Regenerate from app/ with:
+#   dart run swagger_parser -f test/core/api/spike/swagger_parser.yaml
+swagger_parser:
+  schema_path: test/core/api/spike/spike_openapi.json
+  output_directory: test/core/api/spike/generated
+  json_serializer: freezed
+  use_freezed3: true
+  root_client: false
+  put_clients_in_folder: true
+  enums_to_json: true
+  unknown_enum_value: true
+  include_if_null: false
+  mark_files_as_generated: true

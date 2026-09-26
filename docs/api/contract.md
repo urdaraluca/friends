@@ -109,7 +109,8 @@ changes one, it changes the other.
 - Responses always include every schema field. Missing values are `null`, never omitted. Empty lists
   are `[]`.
 - **PUT bodies are the complete new state.** An omitted field is reset to its default, so clients
-  send every field. The generated client does this (`include_if_null: true`).
+  send every field. The generated client does this (swagger_parser `include_if_null: false`; see
+  [ADR 0003](../adr/0003-client-codegen.md) for why `false`).
 - **No request field gives "omitted" and "null" different meanings.** The generated Dart client
   can't tell them apart.
 - **Strings** are trimmed (`str_strip_whitespace=True`).
@@ -308,6 +309,7 @@ codes for each endpoint.
 | `refresh_invalid` | 401 | The refresh token is unknown, revoked or expired, or the session cap has been reached. |
 | `refresh_reuse_detected` | 401 | A rotated refresh token was presented outside the grace rule. The whole family is revoked. |
 | `wrong_password` | 422 | The current password is wrong on `/me/password` or `/me/deletion`. This is deliberately not a 401, so the client doesn't treat it as session expiry. |
+| `weak_password` | 422 | The new password equals the account's email (case-insensitive) on `/auth/register` or `/me/password`. There is no `errors[]`; the client shows it on the password field. |
 | `forbidden` | 403 | A member without the needed role or ownership. |
 | `registration_closed` | 403 | `REGISTRATION_MODE=invite_only` and there was no `invite_code`. |
 | `not_found` | 404 | The resource doesn't exist, **or the caller isn't a member of its group** (the two look identical); also unknown routes and unknown or malformed invite codes. |
@@ -655,7 +657,8 @@ or endpoint for it; the recap and notifications will build on it. For `member.*`
 - For an unknown or deleted email, the password is verified against a module-level dummy hash, so the
   timing doesn't reveal whether the account exists. The response is 401 `invalid_credentials`.
 - After a successful login, `check_needs_rehash` runs; if it is true, the new hash is stored.
-- Rules: 10..128 code points, and not equal to the email (case-insensitive). No composition rules.
+- Rules: 10..128 code points (422 `validation_error` on the field), and not equal to the email
+  (case-insensitive; 422 `weak_password`, section 2). No composition rules.
 
 ### 4.3 Register (`POST /auth/register`)
 
@@ -1260,7 +1263,7 @@ The Docker HEALTHCHECK calls `http://127.0.0.1:8000/api/v1/health`.
 
 | Endpoint | operationId | Auth | Request | Success | Extra errors |
 |---|---|---|---|---|---|
-| `POST /auth/register` | `register` | public, RL:register | `RegisterRequest` | 201 `AuthSession` | 403 `registration_closed`; 404 `not_found` (invite); 409 `email_taken`; 410 `invite_*`; 422 `limit_reached` |
+| `POST /auth/register` | `register` | public, RL:register | `RegisterRequest` | 201 `AuthSession` | 403 `registration_closed`; 404 `not_found` (invite); 409 `email_taken`; 410 `invite_*`; 422 `limit_reached`, `weak_password` |
 | `POST /auth/login` | `login` | public, RL:login | `LoginRequest` | 200 `AuthSession` | 401 `invalid_credentials` |
 | `POST /auth/refresh` | `refresh_tokens` | public, RL:refresh | `RefreshRequest` | 200 `TokenPair` | 401 `refresh_invalid`, `refresh_reuse_detected` |
 | `POST /auth/logout` | `logout` | public | `RefreshRequest` | 204 always; revokes the token's family | – |
@@ -1272,7 +1275,7 @@ The Docker HEALTHCHECK calls `http://127.0.0.1:8000/api/v1/health`.
 |---|---|---|---|---|---|
 | `GET /me` | `get_me` | user | – | 200 `Me` | – |
 | `PUT /me` | `update_me` | user | `MeUpdate` | 200 `Me` | – |
-| `POST /me/password` | `change_password` | user | `PasswordChange` | 200 `TokenPair` (section 4.6) | 422 `wrong_password` |
+| `POST /me/password` | `change_password` | user | `PasswordChange` | 200 `TokenPair` (section 4.6) | 422 `wrong_password`, `weak_password` |
 | `POST /me/deletion` | `delete_account` | user | `AccountDeletion` | 204 (section 4.8) | 422 `wrong_password` |
 | `GET /me/calendar` | `get_my_calendar` | user | query `from`, `to`, `tz?`, `kinds*` | 200 `CalendarResponse` across all my groups (section 5.5); endpoint only, no MVP UI | 422 `range_too_large` |
 
@@ -1729,7 +1732,10 @@ swagger_parser:
   put_clients_in_folder: true
   enums_to_json: true
   unknown_enum_value: true      # new server enum values don't crash old app builds
-  include_if_null: true         # PUT bodies send explicit nulls (section 1.4)
+  # PUT bodies send explicit nulls (section 1.4). In swagger_parser 1.44 `true` annotates optional
+  # nullable fields with includeIfNull: false, which drops them; `false` keeps json_serializable's
+  # default (include nulls). See ADR 0003.
+  include_if_null: false
   mark_files_as_generated: true
 ```
 - `dart run swagger_parser` output is **committed** (and marked `linguist-generated`).
@@ -1741,14 +1747,17 @@ swagger_parser:
 1. **Repeated query parameters:** configure Dio with `listFormat: ListFormat.multi`, so a list goes out
    as `status=idea&status=planning`.
 2. **Enum query values** go out as their wire values (`kinds=one_time`, not `oneTime`).
-3. **Dates:** build them with the `DateOnly` helpers as a **naive local midnight**
-   (`DateTime(y, m, d)`). The server's `ApiDate` accepts `YYYY-MM-DD` and midnight date-times with a
-   `T` or space separator, with or without `Z`, and rejects any other time. swagger_parser
-   `field_parsers` are not usable with freezed, so there is no per-field converter.
-4. **Instants:** every `DateTime` put into a generated model or query goes through `.toUtc()` first.
-   One helper does it (`ApiInstant.of`), and one test enforces it. A local `toIso8601String()` has no
-   offset and gets a 422.
-5. **Explicit nulls** in PUT bodies (`include_if_null`).
+3. **Dates:** build them with the `DateOnly` helpers as a **UTC midnight** (`DateTime.utc(y, m, d)`),
+   which goes out as `2026-10-01T00:00:00.000Z`. Not a local `DateTime(y, m, d)`: where DST starts at
+   midnight (e.g. `America/Santiago` on 2026-09-06) local midnight doesn't exist and that value is
+   01:00. The server's `ApiDate` accepts `YYYY-MM-DD` and midnight date-times with a `T` or space
+   separator, with or without `Z`, and rejects any other time. Dates in responses parse to local
+   `DateTime`s, so the client passes them through `DateOnly.from` before sending them back.
+   swagger_parser `field_parsers` are not usable with freezed, so there is no per-field converter.
+4. **Instants:** every instant `DateTime` put into a generated model or query goes through `.toUtc()`
+   first. One helper does it (`ApiInstant.of`), and one test enforces it. A local `toIso8601String()`
+   has no offset and gets a 422.
+5. **Explicit nulls** in PUT bodies (`include_if_null: false`, see above and ADR 0003).
 6. **Problem decoding:** a Dio interceptor turns `application/problem+json` into a
    `ProblemException(status, code, detail, errors)`, and the UI maps `errors[].field` onto form fields.
 

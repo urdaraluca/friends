@@ -1,34 +1,16 @@
-import 'package:dio/dio.dart';
-import 'package:friends/core/config/env.dart';
+import 'package:friends/core/api/api_exception.dart';
+import 'package:friends/core/api/api_providers.dart';
+import 'package:friends/core/api/generated/models/health.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+
+export 'package:friends/core/api/generated/models/health.dart';
+export 'package:friends/core/api/generated/models/health_db.dart';
+export 'package:friends/core/api/generated/models/health_status.dart';
 
 part 'health_repository.g.dart';
 
-class ApiHealth {
-  const new({required this.status, required this.version});
-
-  factory fromJson(Map<String, dynamic> json) => ApiHealth(
-    status: json['status'] as String,
-    version: json['version'] as String,
-  );
-
-  final String status;
-  final String version;
-}
-
-@Riverpod(keepAlive: true)
-Dio healthDio(Ref ref) => Dio(
-  BaseOptions(
-    baseUrl: Env.apiBaseUrl,
-    connectTimeout: const Duration(seconds: 5),
-    receiveTimeout: const Duration(seconds: 10),
-  ),
-);
-
+/// `GET /health` (public). A degraded API answers 503, which surfaces as an
+/// error.
 @riverpod
-Future<ApiHealth> apiHealth(Ref ref) async {
-  final response = await ref
-      .watch(healthDioProvider)
-      .get<Map<String, dynamic>>('/api/v1/health');
-  return ApiHealth.fromJson(response.data!);
-}
+Future<Health> apiHealth(Ref ref) =>
+    apiCall(ref.watch(healthClientProvider).getHealth);

@@ -20,6 +20,8 @@
 
 # Generated code (collapsed in GitHub diffs)
 app/lib/core/api/generated/** linguist-generated=true
+app/test/core/api/spike/generated/** linguist-generated=true
+app/test/core/api/spike/spike_openapi.json linguist-generated=true
 backend/openapi.json linguist-generated=true
 backend/uv.lock linguist-generated=true
 app/pubspec.lock linguist-generated=true

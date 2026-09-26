@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:friends/core/api/api_exception.dart';
 import 'package:friends/features/health/data/health_repository.dart';
 import 'package:friends/features/health/presentation/health_screen.dart';
 
@@ -11,7 +12,11 @@ void main() {
         const HealthScreen(),
         overrides: [
           apiHealthProvider.overrideWith(
-            (ref) async => const ApiHealth(status: 'ok', version: '1.2.3'),
+            (ref) async => const Health(
+              status: HealthStatus.ok,
+              version: '1.2.3',
+              db: HealthDb.ok,
+            ),
           ),
         ],
       );
@@ -19,6 +24,7 @@ void main() {
 
       expect(find.text('API ok'), findsOneWidget);
       expect(find.text('version 1.2.3'), findsOneWidget);
+      expect(find.text('database ok'), findsOneWidget);
     });
 
     testWidgets('shows an error with a retry button when the API is down', (
@@ -28,13 +34,13 @@ void main() {
         const HealthScreen(),
         overrides: [
           apiHealthProvider.overrideWith(
-            (ref) => Future<ApiHealth>.error(Exception('offline')),
+            (ref) => Future<Health>.error(const NetworkException()),
           ),
         ],
       );
       await tester.pump();
 
-      expect(find.text("Can't reach the API"), findsOneWidget);
+      expect(find.text("Can't reach the server"), findsOneWidget);
       expect(find.text('Retry'), findsOneWidget);
     });
   });

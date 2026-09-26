@@ -5,6 +5,7 @@ analyzer:
     - "**/*.g.dart"
     - "**/*.freezed.dart"
     - "lib/core/api/generated/**"
+    - "test/core/api/spike/generated/**"
     - build/**
     - android/**
     - ios/**

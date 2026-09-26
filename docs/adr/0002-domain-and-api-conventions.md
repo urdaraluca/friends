@@ -39,14 +39,14 @@ therefore have to suit code generation, a single SQLite writer, and future analy
 
 ## Consequences
 
-- Clients send complete PUT bodies with explicit nulls (`include_if_null: true`). Request fields never
-  give "omitted" and "null" different meanings (for example `InviteCreate.never_expires` instead of a
-  null expiry).
+- Clients send complete PUT bodies with explicit nulls (the generator setting is in ADR 0003).
+  Request fields never give "omitted" and "null" different meanings (for example
+  `InviteCreate.never_expires` instead of a null expiry).
 - Every new group-scoped mutation must write a `group_log` row and respect the loader and policy functions. The
   `can_*` flags in responses come from those same policy functions.
 - Attribute queries (filters on genre or rating) aren't indexed. That is acceptable at this scale;
   `json_extract` or generated columns can come later.
 - Changing a convention means updating the contract, the OpenAPI snapshot and the generated client in
   the same PR.
-- ADR 0003 (client codegen) will record the results of the M4 spike: the date and enum wire formats,
-  repeated query parameters, problem decoding, and explicit nulls.
+- [ADR 0003](0003-client-codegen.md) (client codegen) records the results of the M4 spike: the date
+  and enum wire formats, repeated query parameters, problem decoding, and explicit nulls.
