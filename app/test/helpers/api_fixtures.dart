@@ -56,6 +56,7 @@ abstract final class Ids {
   static const gamesCategoryId = '0190c3a5-0000-7000-8000-0000000000d2';
   static const activityId = '0190c3a5-0000-7000-8000-0000000000e1';
   static const otherActivityId = '0190c3a5-0000-7000-8000-0000000000e2';
+  static const pollId = '0190c3a5-0000-7000-8000-0000000000f1';
 }
 
 Map<String, Object?> groupSummaryJson({
@@ -201,6 +202,10 @@ abstract final class ApiPaths {
   static String activity(String id) => '/api/v1/activities/$id';
   static String activityStatus(String id) => '${activity(id)}/status';
   static String interest(String id) => '${activity(id)}/interest';
+  static String polls(String activityId) => '${activity(activityId)}/polls';
+  static String poll(String id) => '/api/v1/polls/$id';
+  static String myVote(String pollId) => '${poll(pollId)}/votes/me';
+  static String pollOptions(String pollId) => '${poll(pollId)}/options';
 }
 
 /// An access token shaped like the API's JWTs (contract section 4.1) for
@@ -413,3 +418,65 @@ Map<String, Object?> activityPageJson(
   List<Map<String, Object?>> items, {
   String? nextCursor,
 }) => {'items': items, 'next_cursor': nextCursor};
+
+Map<String, Object?> pollOptionJson({
+  required String id,
+  required String label,
+  int position = 0,
+  String? url,
+  List<Map<String, Object?>> voters = const [],
+  bool canDelete = false,
+}) => {
+  'id': id,
+  'label': label,
+  'url': url,
+  'position': position,
+  'vote_count': voters.length,
+  'voters': voters,
+  'added_by': userPublicJson(),
+  'can_delete': canDelete,
+};
+
+Map<String, Object?> pollJson({
+  String id = Ids.pollId,
+  String activityId = Ids.activityId,
+  String question = 'Which movie?',
+  bool allowMultiple = false,
+  bool isOpen = true,
+  String? closesAt,
+  String? closedAt,
+  List<Map<String, Object?>>? options,
+  List<String> myOptionIds = const [],
+  List<String> winningOptionIds = const [],
+  bool canManage = true,
+}) {
+  final all =
+      options ??
+      [
+        pollOptionJson(id: 'o1', label: 'Dune'),
+        pollOptionJson(id: 'o2', label: 'Up', position: 1),
+      ];
+  final voters = {
+    for (final option in all)
+      for (final voter in option['voters']! as List<Object?>)
+        (voter! as Map<String, Object?>)['id'],
+  };
+  return {
+    'id': id,
+    'group_id': Ids.groupId,
+    'activity_id': activityId,
+    'question': question,
+    'allow_multiple': allowMultiple,
+    'closes_at': closesAt,
+    'closed_at': closedAt,
+    'is_open': isOpen,
+    'options': all,
+    'my_option_ids': myOptionIds,
+    'total_voters': voters.length,
+    'winning_option_ids': winningOptionIds,
+    'created_by': userPublicJson(),
+    'can_manage': canManage,
+    'created_at': '2026-09-20T10:00:00Z',
+    'updated_at': '2026-09-20T10:00:00Z',
+  };
+}

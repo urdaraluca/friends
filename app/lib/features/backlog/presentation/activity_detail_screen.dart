@@ -21,6 +21,7 @@ import 'package:friends/features/backlog/presentation/widgets/attributes_view.da
 import 'package:friends/features/backlog/presentation/widgets/category_visuals.dart';
 import 'package:friends/features/groups/data/group_providers.dart';
 import 'package:friends/features/groups/presentation/widgets/group_themed.dart';
+import 'package:friends/features/polls/presentation/polls_section.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:material_ui/material_ui.dart';
@@ -222,6 +223,7 @@ class _ActivityBody extends ConsumerWidget {
         if (activity.notes case final notes?)
           section('Notes', SelectableText(notes)),
         section('Plans', _LinkedEvents(activity: activity)),
+        PollsSection(activity: activity),
       ],
     );
   }
