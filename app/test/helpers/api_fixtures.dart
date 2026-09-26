@@ -218,6 +218,7 @@ abstract final class ApiPaths {
   static String occurrence(String eventId, String key) =>
       '${event(eventId)}/occurrences/$key';
   static const myAvailability = '$me/availability';
+  static String recap(String groupId) => '${group(groupId)}/recap';
   static String groupAvailability(String groupId) =>
       '${group(groupId)}/availability';
 }
@@ -720,3 +721,102 @@ Map<String, Object?> groupAvailabilityJson(
         },
   ]..sort((a, b) => (b['score']! as num).compareTo(a['score']! as num)),
 };
+
+Map<String, Object?> recapActivityJson({
+  String id = Ids.activityId,
+  String title = 'Picnic',
+  String? color = '#2E7D32',
+  String createdAt = '2026-09-01T10:00:00Z',
+  String completedAt = '2026-10-04T10:00:00Z',
+}) => {
+  'id': id,
+  'title': title,
+  'category_id': null,
+  'color': color,
+  'created_at': createdAt,
+  'completed_at': completedAt,
+};
+
+Map<String, Object?> recapJson({
+  String period = 'month',
+  String start = '2026-10-01',
+  String end = '2026-11-01',
+  bool complete = true,
+  List<Map<String, Object?>>? memories,
+  List<Map<String, Object?>>? planners,
+  List<Map<String, Object?>>? topCategories,
+  int ideasAdded = 5,
+  int eventsPlanned = 2,
+  int pollsCreated = 1,
+  int wheelDecisions = 3,
+  int newMembers = 0,
+  Map<String, Object?>? topPoll,
+  Map<String, Object?>? longestWait,
+  Map<String, Object?>? busiestMonth,
+  Map<String, Object?>? mostWanted,
+}) {
+  final items =
+      memories ??
+      [
+        recapActivityJson(),
+        recapActivityJson(id: Ids.otherActivityId, title: 'Board games'),
+      ];
+  return {
+    'period': period,
+    'start': start,
+    'end': end,
+    'timezone': 'Europe/Bucharest',
+    'complete': complete,
+    'memory_count': items.length,
+    'memories': items,
+    'planners':
+        planners ??
+        [
+          {
+            'user': userPublicJson(id: Ids.beaId, displayName: 'Bea'),
+            'score': 6,
+            'ideas': 3,
+            'events': 2,
+            'polls': 0,
+            'done': 1,
+          },
+          {
+            'user': userPublicJson(),
+            'score': 2,
+            'ideas': 2,
+            'events': 0,
+            'polls': 0,
+            'done': 0,
+          },
+        ],
+    'top_categories':
+        topCategories ??
+        [
+          {
+            'id': Ids.movieCategoryId,
+            'name': 'Outdoors',
+            'color': '#2E7D32',
+            'icon': 'outdoors',
+            'count': 2,
+          },
+        ],
+    'ideas_added': ideasAdded,
+    'events_planned': eventsPlanned,
+    'polls_created': pollsCreated,
+    'wheel_decisions': wheelDecisions,
+    'new_members': newMembers,
+    'top_poll': topPoll,
+    'longest_wait':
+        longestWait ??
+        {'activity': recapActivityJson(title: 'Ski trip'), 'days': 120},
+    'busiest_month': busiestMonth,
+    'most_wanted':
+        mostWanted ??
+        {
+          'activity_id': Ids.activityId,
+          'title': 'Escape room',
+          'color': null,
+          'interested': 3,
+        },
+  };
+}

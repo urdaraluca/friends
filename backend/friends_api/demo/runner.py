@@ -13,6 +13,7 @@ from friends_api.demo.base import create_base
 from friends_api.demo.categories import create_subcategories
 from friends_api.demo.context import DEMO_SEED, DemoContext
 from friends_api.demo.events import create_events
+from friends_api.demo.history import create_history
 from friends_api.demo.polls import create_polls
 from friends_api.demo.wheel import create_spins
 from friends_api.features.auth.service import AuthContext
@@ -30,6 +31,8 @@ STEPS: list[Step] = [
     create_spins,
     # -- one step per line --
     create_availability,
+    # -- last: moves the log rows to the moments the steps above backdated --
+    create_history,
 ]
 """Each step gets the session and the shared context; the runner flushes after each one."""
 

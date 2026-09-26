@@ -9,6 +9,7 @@ from friends_api.features.groups.router import router as groups_router
 from friends_api.features.health.router import router as health_router
 from friends_api.features.invites.router import router as invites_router
 from friends_api.features.polls.router import router as polls_router
+from friends_api.features.recap.router import router as recap_router
 from friends_api.features.users.router import router as users_router
 from friends_api.features.wheel.router import router as wheel_router
 
@@ -26,3 +27,4 @@ api_router.include_router(wheel_router)
 api_router.include_router(polls_router)
 api_router.include_router(events_router)
 api_router.include_router(availability_router)
+api_router.include_router(recap_router)

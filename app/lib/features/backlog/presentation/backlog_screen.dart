@@ -12,6 +12,7 @@ import 'package:friends/features/backlog/domain/activity_filter.dart';
 import 'package:friends/features/backlog/domain/category_index.dart';
 import 'package:friends/features/backlog/presentation/widgets/activity_card.dart';
 import 'package:friends/features/backlog/presentation/widgets/backlog_filter_bar.dart';
+import 'package:friends/features/recap/presentation/widgets/recap_banner.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -31,6 +32,7 @@ class BacklogScreen extends ConsumerWidget {
     return Scaffold(
       body: Column(
         children: [
+          RecapBanner(groupId: groupId),
           BacklogFilterBar(
             groupId: groupId,
             filter: filter,

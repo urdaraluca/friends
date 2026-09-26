@@ -15,6 +15,7 @@ import 'clients/wheel_client.dart';
 import 'clients/polls_client.dart';
 import 'clients/events_client.dart';
 import 'clients/availability_client.dart';
+import 'clients/recap_client.dart';
 
 /// Friends API `v1`
 class FriendsApi {
@@ -40,6 +41,7 @@ class FriendsApi {
   PollsClient? _polls;
   EventsClient? _events;
   AvailabilityClient? _availability;
+  RecapClient? _recap;
 
   HealthClient get health => _health ??= HealthClient(_dio, baseUrl: _baseUrl);
 
@@ -62,4 +64,6 @@ class FriendsApi {
   EventsClient get events => _events ??= EventsClient(_dio, baseUrl: _baseUrl);
 
   AvailabilityClient get availability => _availability ??= AvailabilityClient(_dio, baseUrl: _baseUrl);
+
+  RecapClient get recap => _recap ??= RecapClient(_dio, baseUrl: _baseUrl);
 }

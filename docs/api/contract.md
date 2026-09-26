@@ -1664,7 +1664,7 @@ own phone, and the history feeds the recap ("the wheel decided 14 times").
   ranked.
 - It needs nothing new from the MVP beyond floating dates and `groups.timezone`.
 
-**Monthly and annual recap**
+**Monthly and annual recap** (built: section 14)
 - It relies on data that can't be rebuilt later, so the MVP stores it from day one:
   - `created_by_id` everywhere;
   - `activities.completed_at` and `status_changed_at`;
@@ -1843,4 +1843,70 @@ DayAvailability   { date: date, score: float, slots: SlotCounts[] (all_day, morn
 BestDay           { date: date, score: float, free: int, maybe: int, busy: int, unknown: int }
 GroupAvailability { from_date: date, to_date: date (exclusive), member_count: int,
                     days: DayAvailability[] (every date of the range), best_days: BestDay[] (<= 10) }
+```
+
+## 14. Recap (post-MVP, issue #17)
+
+A group's "Wrapped": highlight stats for a calendar month or year. Decisions:
+[ADR 0005](../adr/0005-recap.md).
+
+| Endpoint | operationId | Auth | Request | Success | Extra errors |
+|---|---|---|---|---|---|
+| `GET /groups/{group_id}/recap` | `get_group_recap` (tag `recap`) | member | query `period` (`month \| year`, required), `start` (`ApiDate`, optional) | 200 `Recap` | 422 `validation_error` on `query.start` |
+
+**Periods**
+- A period is a calendar month or year **in the group's timezone**: `[start, end)` local midnights,
+  compared as UTC instants. A month that contains a DST change still has its local days.
+- `start` must be the period's first day (the 1st, or 1 January). Omitted, it is the current period.
+- Only past and current periods have a recap. Errors on `query.start` (422 `validation_error`):
+  - "Must be the first day of a month." (or "…of a year.");
+  - "Recaps start in 2000.";
+  - "This period hasn't started yet."
+- `complete` is false while the period is still running. Its numbers can still change.
+
+**Stats**, all over the group's rows in the period:
+- **Memories** (`memory_count`, `memories`): activities that are `done` with `completed_at` in the
+  period, in completion order. At most 100 are listed; all are counted.
+- **Planners** (`planners`): `group_log` rows per actor:
+  - `ideas` counts `activity.created`;
+  - `events` counts `event.created`;
+  - `polls` counts `poll.created`;
+  - `done` counts `activity.status_changed` to `done`.
+
+  `score` is their sum. The top 3 are listed by score, then name. They include former members.
+  Rows without an actor (a deleted account) count in the totals only.
+- **Top categories** (`top_categories`): up to 3 top-level categories by memories. Subcategories
+  count under their parent; uncategorized memories don't count.
+- **Totals**: the log rows `activity.created` (`ideas_added`), `event.created` (`events_planned`),
+  `poll.created` (`polls_created`) and `member.joined` (`new_members`), and the spins accepted
+  (`wheel_decisions`).
+- **Extras**:
+  - `top_poll`: the poll created in the period with the most distinct voters (ties go to the
+    earlier poll). Null without votes.
+  - `longest_wait`: the memory with the longest time from `created_at` to `completed_at`, in whole
+    days (ties go to the earlier completion).
+  - `busiest_month`: for a year, the month with the most memories (ties go to the earlier month).
+    Null for a month.
+  - `most_wanted`: the idea with the most interest added before the period's end, among
+    activities that are **still** `idea` or `planning` today and were created before the end.
+
+The recap is computed on request, from the rows as they are now. A deleted activity leaves its
+period's memories. There is no cache table, because GET handlers never write (section 1.7).
+
+```
+RecapPeriod   = month | year
+RecapActivity { id: uuid, title: str, category_id: uuid | null, color: str | null (effective),
+                created_at: ts, completed_at: ts }
+RecapPlanner  { user: UserPublic, score: int, ideas: int, events: int, polls: int, done: int }
+RecapCategory { id: uuid, name: str, color: str | null, icon: str | null, count: int }
+RecapPoll     { id: uuid, question: str, activity_id: uuid, activity_title: str, voters: int }
+RecapWait     { activity: RecapActivity, days: int }
+RecapMonth    { month: date (first day), count: int }
+RecapIdea     { activity_id: uuid, title: str, color: str | null, interested: int }
+Recap { period: RecapPeriod, start: date, end: date (exclusive), timezone: str, complete: bool,
+        memory_count: int, memories: RecapActivity[] (<= 100), planners: RecapPlanner[] (<= 3),
+        top_categories: RecapCategory[] (<= 3), ideas_added: int, events_planned: int,
+        polls_created: int, wheel_decisions: int, new_members: int,
+        top_poll: RecapPoll | null, longest_wait: RecapWait | null,
+        busiest_month: RecapMonth | null, most_wanted: RecapIdea | null }
 ```

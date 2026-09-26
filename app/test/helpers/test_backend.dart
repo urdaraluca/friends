@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart';
 import 'package:friends/core/api/generated/export.dart';
@@ -7,6 +9,7 @@ import 'package:friends/core/device/device_info.dart';
 import 'package:friends/core/network/dio_provider.dart';
 import 'package:friends/features/groups/data/last_group_store.dart';
 import 'package:friends/features/invites/data/invite_sharer.dart';
+import 'package:friends/features/recap/data/recap_providers.dart';
 import 'package:material_ui/material_ui.dart' show Rect;
 
 import 'api_fixtures.dart';
@@ -59,6 +62,18 @@ class FakeInviteSharer extends InviteSharer {
   }) async => shared.add(InviteSharer.message(invite, groupName));
 }
 
+/// A [RecapSharer] that records the images it would have shared.
+class FakeRecapSharer extends RecapSharer {
+  final List<({Uint8List png, String text})> shared = [];
+
+  @override
+  Future<void> shareImage(
+    Uint8List png, {
+    required String text,
+    Rect? origin,
+  }) async => shared.add((png: png, text: text));
+}
+
 /// A clock tests move by hand.
 class FakeClock {
   new([DateTime? now]) : now = now ?? DateTime.utc(2026, 10);
@@ -97,6 +112,13 @@ class TestBackend {
   /// What the share buttons shared.
   final sharer = FakeInviteSharer();
 
+  /// The recap images shared.
+  final recapSharer = FakeRecapSharer();
+
+  /// The device date the recap banner sees: mid-month, so no banner unless
+  /// a test moves it.
+  DateTime today = DateTime(2026, 10, 15);
+
   /// Overrides for a `ProviderScope` or `ProviderContainer`.
   List<Override> get overrides => [
     apiBaseUrlProvider.overrideWithValue('http://api.test'),
@@ -107,6 +129,8 @@ class TestBackend {
     deviceTimezoneProvider.overrideWith((ref) async => 'Europe/Bucharest'),
     lastGroupStoreProvider.overrideWithValue(lastGroup),
     inviteSharerProvider.overrideWithValue(sharer),
+    recapClockProvider.overrideWithValue(() => today),
+    recapSharerProvider.overrideWithValue(recapSharer),
   ];
 
   /// A container disposed at the end of the test.

@@ -4188,6 +4188,92 @@
           }
         }
       }
+    },
+    "/api/v1/groups/{group_id}/recap": {
+      "get": {
+        "tags": [
+          "recap"
+        ],
+        "summary": "Get Group Recap",
+        "description": "The group's highlights for a month or a year.\n\nMemories made, the most active planners, the top categories and a few extras.\nOnly past and current periods, in the group's timezone.",
+        "operationId": "get_group_recap",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "group_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Group Id"
+            }
+          },
+          {
+            "name": "period",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/RecapPeriod"
+            }
+          },
+          {
+            "name": "start",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "The period's first day (the 1st of a month, or 1 January), in the group's timezone. Omitted: the current period.",
+              "title": "Start"
+            },
+            "description": "The period's first day (the 1st of a month, or 1 January), in the group's timezone. Omitted: the current period."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Recap"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Error (RFC 9457 problem details)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (RFC 9457 problem details)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -7794,6 +7880,395 @@
         ],
         "title": "PollUpdate",
         "description": "The complete new state (``allow_multiple`` can't change)."
+      },
+      "Recap": {
+        "properties": {
+          "period": {
+            "$ref": "#/components/schemas/RecapPeriod"
+          },
+          "start": {
+            "type": "string",
+            "format": "date",
+            "title": "Start"
+          },
+          "end": {
+            "type": "string",
+            "format": "date",
+            "title": "End"
+          },
+          "timezone": {
+            "type": "string",
+            "title": "Timezone"
+          },
+          "complete": {
+            "type": "boolean",
+            "title": "Complete"
+          },
+          "memory_count": {
+            "type": "integer",
+            "title": "Memory Count"
+          },
+          "memories": {
+            "items": {
+              "$ref": "#/components/schemas/RecapActivity"
+            },
+            "type": "array",
+            "title": "Memories"
+          },
+          "planners": {
+            "items": {
+              "$ref": "#/components/schemas/RecapPlanner"
+            },
+            "type": "array",
+            "title": "Planners"
+          },
+          "top_categories": {
+            "items": {
+              "$ref": "#/components/schemas/RecapCategory"
+            },
+            "type": "array",
+            "title": "Top Categories"
+          },
+          "ideas_added": {
+            "type": "integer",
+            "title": "Ideas Added"
+          },
+          "events_planned": {
+            "type": "integer",
+            "title": "Events Planned"
+          },
+          "polls_created": {
+            "type": "integer",
+            "title": "Polls Created"
+          },
+          "wheel_decisions": {
+            "type": "integer",
+            "title": "Wheel Decisions"
+          },
+          "new_members": {
+            "type": "integer",
+            "title": "New Members"
+          },
+          "top_poll": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RecapPoll"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "longest_wait": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RecapWait"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "busiest_month": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RecapMonth"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "most_wanted": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RecapIdea"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "period",
+          "start",
+          "end",
+          "timezone",
+          "complete",
+          "memory_count",
+          "memories",
+          "planners",
+          "top_categories",
+          "ideas_added",
+          "events_planned",
+          "polls_created",
+          "wheel_decisions",
+          "new_members",
+          "top_poll",
+          "longest_wait",
+          "busiest_month",
+          "most_wanted"
+        ],
+        "title": "Recap"
+      },
+      "RecapActivity": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "category_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category Id"
+          },
+          "color": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Color"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "completed_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Completed At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "category_id",
+          "color",
+          "created_at",
+          "completed_at"
+        ],
+        "title": "RecapActivity"
+      },
+      "RecapCategory": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "color": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Color"
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "color",
+          "icon",
+          "count"
+        ],
+        "title": "RecapCategory",
+        "description": "A top-level category and how many memories fall under it (its subcategories\nincluded)."
+      },
+      "RecapIdea": {
+        "properties": {
+          "activity_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Activity Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "color": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Color"
+          },
+          "interested": {
+            "type": "integer",
+            "title": "Interested"
+          }
+        },
+        "type": "object",
+        "required": [
+          "activity_id",
+          "title",
+          "color",
+          "interested"
+        ],
+        "title": "RecapIdea"
+      },
+      "RecapMonth": {
+        "properties": {
+          "month": {
+            "type": "string",
+            "format": "date",
+            "title": "Month"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "month",
+          "count"
+        ],
+        "title": "RecapMonth"
+      },
+      "RecapPeriod": {
+        "type": "string",
+        "enum": [
+          "month",
+          "year"
+        ],
+        "title": "RecapPeriod"
+      },
+      "RecapPlanner": {
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/UserPublic"
+          },
+          "score": {
+            "type": "integer",
+            "title": "Score"
+          },
+          "ideas": {
+            "type": "integer",
+            "title": "Ideas"
+          },
+          "events": {
+            "type": "integer",
+            "title": "Events"
+          },
+          "polls": {
+            "type": "integer",
+            "title": "Polls"
+          },
+          "done": {
+            "type": "integer",
+            "title": "Done"
+          }
+        },
+        "type": "object",
+        "required": [
+          "user",
+          "score",
+          "ideas",
+          "events",
+          "polls",
+          "done"
+        ],
+        "title": "RecapPlanner"
+      },
+      "RecapPoll": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "question": {
+            "type": "string",
+            "title": "Question"
+          },
+          "activity_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Activity Id"
+          },
+          "activity_title": {
+            "type": "string",
+            "title": "Activity Title"
+          },
+          "voters": {
+            "type": "integer",
+            "title": "Voters"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "question",
+          "activity_id",
+          "activity_title",
+          "voters"
+        ],
+        "title": "RecapPoll"
+      },
+      "RecapWait": {
+        "properties": {
+          "activity": {
+            "$ref": "#/components/schemas/RecapActivity"
+          },
+          "days": {
+            "type": "integer",
+            "title": "Days"
+          }
+        },
+        "type": "object",
+        "required": [
+          "activity",
+          "days"
+        ],
+        "title": "RecapWait"
       },
       "RefreshRequest": {
         "properties": {

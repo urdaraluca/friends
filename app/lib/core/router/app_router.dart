@@ -1,4 +1,5 @@
 import 'package:friends/core/api/date_only.dart';
+import 'package:friends/core/api/generated/export.dart' show RecapPeriod;
 import 'package:friends/core/auth/auth_controller.dart';
 import 'package:friends/core/router/routes.dart';
 import 'package:friends/features/auth/presentation/login_screen.dart';
@@ -21,6 +22,7 @@ import 'package:friends/features/groups/presentation/groups_list_screen.dart';
 import 'package:friends/features/health/presentation/health_screen.dart';
 import 'package:friends/features/invites/presentation/join_screen.dart';
 import 'package:friends/features/profile/presentation/profile_screen.dart';
+import 'package:friends/features/recap/presentation/recap_screen.dart';
 import 'package:friends/features/wheel/presentation/wheel_history_screen.dart';
 import 'package:friends/features/wheel/presentation/wheel_screen.dart';
 import 'package:go_router/go_router.dart';
@@ -143,6 +145,20 @@ GoRouter router(Ref ref) {
       GoRoute(
         path: Routes.groupCategoriesPattern,
         builder: (context, state) => CategoriesScreen(groupId: _groupId(state)),
+      ),
+      GoRoute(
+        path: Routes.groupRecapPattern,
+        builder: (context, state) => RecapScreen(
+          groupId: _groupId(state),
+          period:
+              state.uri.queryParameters[Routes.periodParam] ==
+                  RecapPeriod.year.json
+              ? RecapPeriod.year
+              : RecapPeriod.month,
+          start: _dateQuery(state, Routes.startParam) == null
+              ? null
+              : state.uri.queryParameters[Routes.startParam],
+        ),
       ),
       GoRoute(
         path: Routes.groupPattern,

@@ -113,6 +113,24 @@ abstract final class Routes {
   static String wheelHistory(String groupId) =>
       '${groupTab(groupId, GroupTab.wheel)}/history';
 
+  /// Query parameters of [groupRecap].
+  static const periodParam = 'period';
+  static const startParam = 'start';
+
+  /// Route pattern of [groupRecap].
+  static const groupRecapPattern = '$groupPattern/recap';
+
+  /// `/groups/<id>/recap?period=month|year&start=YYYY-MM-DD`: the group's
+  /// recap for the [period] starting on [start], or the current one.
+  static String groupRecap(
+    String groupId, {
+    String period = 'month',
+    String? start,
+  }) => _withQuery('${group(groupId)}/recap', {
+    periodParam: period,
+    startParam: start,
+  });
+
   /// `/groups/<id>/settings/categories`: categories and their fields.
   static String groupCategories(String groupId) =>
       '${group(groupId)}/settings/categories';

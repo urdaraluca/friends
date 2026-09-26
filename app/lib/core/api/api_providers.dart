@@ -88,3 +88,7 @@ EventsClient eventsClient(Ref ref) => ref.watch(friendsApiProvider).events;
 @Riverpod(keepAlive: true)
 AvailabilityClient availabilityClient(Ref ref) =>
     ref.watch(friendsApiProvider).availability;
+
+/// A group's month or year recap.
+@Riverpod(keepAlive: true)
+RecapClient recapClient(Ref ref) => ref.watch(friendsApiProvider).recap;

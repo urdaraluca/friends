@@ -294,8 +294,8 @@ def create_activities(db: Session, ctx: DemoContext) -> None:
 
 
 def _backdate(ctx: DemoContext, activity: Activity) -> None:
-    """Spread creation over the last 8 months, and status changes after that."""
-    created_at = ctx.now - timedelta(days=ctx.rng.uniform(0.5, 240))
+    """Spread creation over the last year, and status changes after that."""
+    created_at = ctx.now - timedelta(days=ctx.rng.uniform(0.5, 360))
     changed_at = created_at
     if activity.status is not ActivityStatus.IDEA:
         changed_at = created_at + (ctx.now - created_at) * ctx.rng.random()
