@@ -156,6 +156,13 @@ class _ProfileFormState extends ConsumerState<ProfileForm>
           ),
           const SizedBox(height: 16),
           Text('Birthday', style: Theme.of(context).textTheme.labelLarge),
+          const SizedBox(height: 4),
+          Text(
+            'Members see the day and month in their group calendars, never '
+            'the year. To hide it in a group, turn off "Show my birthday" in '
+            "that group's Group tab.",
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
           const SizedBox(height: 8),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,

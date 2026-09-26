@@ -222,7 +222,7 @@ class _ActivityBody extends ConsumerWidget {
           ),
         if (activity.notes case final notes?)
           section('Notes', SelectableText(notes)),
-        section('Plans', _LinkedEvents(activity: activity)),
+        section('Plans', _LinkedEvents(groupId: groupId, activity: activity)),
         PollsSection(activity: activity),
       ],
     );
@@ -495,28 +495,45 @@ class _InterestRowState extends ConsumerState<_InterestRow> {
 }
 
 class _LinkedEvents extends StatelessWidget {
-  const new({required this.activity});
+  const new({required this.groupId, required this.activity});
 
+  final String groupId;
   final Activity activity;
 
   @override
   Widget build(BuildContext context) {
-    if (activity.events.isEmpty) {
-      return Text(
-        'Not in the calendar yet.',
-        style: Theme.of(context).textTheme.bodyMedium
-            ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
-      );
-    }
+    final schedule = Align(
+      alignment: AlignmentDirectional.centerStart,
+      child: FilledButton.tonalIcon(
+        onPressed: () => unawaited(
+          context.push(Routes.newEvent(groupId, activityId: activity.id)),
+        ),
+        icon: const Icon(Icons.event_available),
+        label: const Text('Schedule it'),
+      ),
+    );
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (activity.events.isEmpty)
+          Text(
+            'Not in the calendar yet.',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
         for (final event in activity.events)
           ListTile(
             contentPadding: EdgeInsets.zero,
             leading: Icon(event.rrule == null ? Icons.event : Icons.repeat),
             title: Text(event.title),
             subtitle: Text(eventRefWhen(event)),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () =>
+                unawaited(context.push(Routes.event(groupId, event.id))),
           ),
+        const SizedBox(height: 8),
+        schedule,
       ],
     );
   }

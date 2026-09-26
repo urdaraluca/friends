@@ -52,6 +52,40 @@ abstract final class Routes {
   static String editActivity(String groupId, String activityId) =>
       '${activity(groupId, activityId)}/edit';
 
+  /// Path parameter holding an event's ID.
+  static const eventIdParam = 'eventId';
+
+  /// Query parameters of the calendar routes.
+  static const dayParam = 'day';
+  static const dateParam = 'date';
+  static const activityIdQuery = 'activityId';
+  static const occurrenceParam = 'occurrence';
+
+  /// `/groups/<id>/calendar`, opened on [day] (`YYYY-MM-DD`) when given.
+  static String calendar(String groupId, {String? day}) =>
+      _withQuery(groupTab(groupId, GroupTab.calendar), {dayParam: day});
+
+  /// `/groups/<id>/calendar/events/new`: the event form, starting on [date]
+  /// (`YYYY-MM-DD`) and linked to [activityId] ("Schedule it").
+  static String newEvent(String groupId, {String? activityId, String? date}) =>
+      _withQuery('${groupTab(groupId, GroupTab.calendar)}/events/new', {
+        activityIdQuery: activityId,
+        dateParam: date,
+      });
+
+  /// `/groups/<id>/calendar/events/<eventId>`, showing [occurrence] (an
+  /// occurrence key) when given.
+  static String event(String groupId, String eventId, {String? occurrence}) =>
+      _withQuery(
+        '${groupTab(groupId, GroupTab.calendar)}/events/'
+        '${Uri.encodeComponent(eventId)}',
+        {occurrenceParam: occurrence},
+      );
+
+  /// `/groups/<id>/calendar/events/<eventId>/edit`.
+  static String editEvent(String groupId, String eventId) =>
+      '${event(groupId, eventId)}/edit';
+
   /// `/groups/<id>/wheel/history`: past spins.
   static String wheelHistory(String groupId) =>
       '${groupTab(groupId, GroupTab.wheel)}/history';

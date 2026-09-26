@@ -4,7 +4,7 @@ import 'package:friends/core/api/error_codes.dart';
 import 'package:friends/core/auth/auth_controller.dart';
 import 'package:friends/core/router/routes.dart';
 import 'package:friends/features/backlog/presentation/backlog_screen.dart';
-import 'package:friends/features/calendar/presentation/calendar_placeholder_screen.dart';
+import 'package:friends/features/calendar/presentation/calendar_screen.dart';
 import 'package:friends/features/groups/presentation/group_hub_screen.dart';
 import 'package:friends/features/groups/presentation/group_shell.dart';
 import 'package:friends/features/groups/presentation/groups_list_screen.dart';
@@ -53,7 +53,7 @@ void main() {
       final container = await open(tester, Routes.groupBacklog(Ids.groupId));
 
       for (final (label, path, screen) in [
-        ('Calendar', 'calendar', CalendarPlaceholderScreen),
+        ('Calendar', 'calendar', CalendarScreen),
         ('Wheel', 'wheel', WheelScreen),
         ('Group', 'group', GroupHubScreen),
         ('Backlog', 'backlog', BacklogScreen),

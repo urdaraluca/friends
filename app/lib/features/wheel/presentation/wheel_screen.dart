@@ -352,6 +352,16 @@ class SpinResultCard extends ConsumerWidget {
                     icon: const Icon(Icons.celebration),
                     label: const Text("Let's do it!"),
                   ),
+                if (activityId != null && spin.acceptedAt != null)
+                  FilledButton.icon(
+                    onPressed: () => unawaited(
+                      context.push(
+                        Routes.newEvent(groupId, activityId: activityId),
+                      ),
+                    ),
+                    icon: const Icon(Icons.event_available),
+                    label: const Text('Schedule it'),
+                  ),
                 if (activityId != null)
                   OutlinedButton(
                     onPressed: () => unawaited(

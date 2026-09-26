@@ -1,3 +1,4 @@
+import 'package:friends/core/api/date_only.dart';
 import 'package:friends/core/auth/auth_controller.dart';
 import 'package:friends/core/router/routes.dart';
 import 'package:friends/features/auth/presentation/login_screen.dart';
@@ -7,7 +8,9 @@ import 'package:friends/features/backlog/presentation/activity_detail_screen.dar
 import 'package:friends/features/backlog/presentation/activity_form_screen.dart';
 import 'package:friends/features/backlog/presentation/backlog_screen.dart';
 import 'package:friends/features/backlog/presentation/categories_screen.dart';
-import 'package:friends/features/calendar/presentation/calendar_placeholder_screen.dart';
+import 'package:friends/features/calendar/presentation/calendar_screen.dart';
+import 'package:friends/features/calendar/presentation/event_detail_screen.dart';
+import 'package:friends/features/calendar/presentation/event_form_screen.dart';
 import 'package:friends/features/groups/data/home_location.dart';
 import 'package:friends/features/groups/presentation/group_form_screen.dart';
 import 'package:friends/features/groups/presentation/group_hub_screen.dart';
@@ -183,8 +186,42 @@ GoRouter router(Ref ref) {
           GoRoute(
             path: GroupTab.calendar.pattern,
             pageBuilder: (context, state) => NoTransitionPage(
-              child: CalendarPlaceholderScreen(groupId: _groupId(state)),
+              child: CalendarScreen(
+                groupId: _groupId(state),
+                initialDay: _dateQuery(state, Routes.dayParam),
+              ),
             ),
+            routes: [
+              GoRoute(
+                path: 'events/new',
+                parentNavigatorKey: rootNavigatorKey,
+                builder: (context, state) => EventFormScreen.create(
+                  groupId: _groupId(state),
+                  activityId: state.uri.queryParameters[Routes.activityIdQuery],
+                  date: _dateQuery(state, Routes.dateParam),
+                ),
+              ),
+              GoRoute(
+                path: 'events/:${Routes.eventIdParam}',
+                parentNavigatorKey: rootNavigatorKey,
+                builder: (context, state) => EventDetailScreen(
+                  groupId: _groupId(state),
+                  eventId: state.pathParameters[Routes.eventIdParam]!,
+                  occurrenceKey:
+                      state.uri.queryParameters[Routes.occurrenceParam],
+                ),
+                routes: [
+                  GoRoute(
+                    path: 'edit',
+                    parentNavigatorKey: rootNavigatorKey,
+                    builder: (context, state) => EventFormScreen.edit(
+                      groupId: _groupId(state),
+                      eventId: state.pathParameters[Routes.eventIdParam]!,
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
           GoRoute(
             path: GroupTab.wheel.pattern,
@@ -242,4 +279,11 @@ class NotFoundScreen extends StatelessWidget {
       ),
     );
   }
+}
+
+/// A `YYYY-MM-DD` query parameter as a local date, or null.
+DateTime? _dateQuery(GoRouterState state, String name) {
+  final value = state.uri.queryParameters[name];
+  final date = value == null ? null : DateOnly.tryParse(value);
+  return date == null ? null : DateTime(date.year, date.month, date.day);
 }

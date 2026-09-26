@@ -57,6 +57,7 @@ abstract final class Ids {
   static const activityId = '0190c3a5-0000-7000-8000-0000000000e1';
   static const otherActivityId = '0190c3a5-0000-7000-8000-0000000000e2';
   static const pollId = '0190c3a5-0000-7000-8000-0000000000f1';
+  static const eventId = '0190c3a5-0000-7000-8000-0000000000f2';
 }
 
 Map<String, Object?> groupSummaryJson({
@@ -211,6 +212,11 @@ abstract final class ApiPaths {
   static String spins(String groupId) => '${group(groupId)}/wheel/spins';
   static String acceptSpin(String spinId) =>
       '/api/v1/wheel/spins/$spinId/accept';
+  static String calendar(String groupId) => '${group(groupId)}/calendar';
+  static String events(String groupId) => '${group(groupId)}/events';
+  static String event(String id) => '/api/v1/events/$id';
+  static String occurrence(String eventId, String key) =>
+      '${event(eventId)}/occurrences/$key';
 }
 
 /// An access token shaped like the API's JWTs (contract section 4.1) for
@@ -537,4 +543,103 @@ Map<String, Object?> wheelSpinJson({
     'accepted_by': acceptedBy,
     'created_at': '2026-09-26T18:00:00Z',
   };
+}
+
+Map<String, Object?> occurrenceJson({
+  String title = 'Game night',
+  String? startsAt,
+  String? endsAt,
+  String? startDate,
+  String? endDate,
+  String kind = 'one_time',
+  String source = 'event',
+  String? eventId = Ids.eventId,
+  String? userId,
+  String? color = '#1565C0',
+  String? occurrenceKey,
+  String? activityId,
+  bool canEdit = true,
+}) {
+  final allDay = startsAt == null;
+  return {
+    'occurrence_key':
+        occurrenceKey ??
+        (allDay
+            ? (startDate ?? '2026-10-03').replaceAll('-', '')
+            : instantKey(DateTime.parse(startsAt))),
+    'source': source,
+    'event_id': source == 'event' ? eventId : null,
+    'user_id': userId,
+    'group_id': Ids.groupId,
+    'kind': kind,
+    'title': title,
+    'all_day': allDay,
+    'starts_at': startsAt,
+    'ends_at': endsAt,
+    'start_date': allDay ? (startDate ?? '2026-10-03') : null,
+    'end_date': allDay ? (endDate ?? startDate ?? '2026-10-03') : null,
+    'timezone': source == 'event' ? 'Europe/Bucharest' : null,
+    'category_id': null,
+    'color': color,
+    'activity_id': activityId,
+    'is_recurring': kind != 'one_time',
+    'can_edit': canEdit,
+  };
+}
+
+Map<String, Object?> calendarJson(
+  List<Map<String, Object?>> occurrences, {
+  String from = '2026-09-28',
+  String to = '2026-11-09',
+  String tz = 'Europe/Bucharest',
+}) => {'from_date': from, 'to_date': to, 'tz': tz, 'occurrences': occurrences};
+
+Map<String, Object?> eventJson({
+  String id = Ids.eventId,
+  String kind = 'recurring',
+  String title = 'Game night',
+  bool allDay = false,
+  String? startsAt = '2026-10-01T16:00:00Z',
+  String? endsAt = '2026-10-01T19:00:00Z',
+  String? startDate,
+  String? endDate,
+  String? rrule = 'FREQ=WEEKLY;BYDAY=TH',
+  String? activityId,
+  List<String> cancelled = const [],
+  int version = 1,
+  bool canEdit = true,
+  String? description,
+}) => {
+  'id': id,
+  'group_id': Ids.groupId,
+  'kind': kind,
+  'title': title,
+  'description': description,
+  'all_day': allDay,
+  'starts_at': allDay ? null : startsAt,
+  'ends_at': allDay ? null : endsAt,
+  'start_date': allDay ? startDate : null,
+  'end_date': allDay ? (endDate ?? startDate) : null,
+  'timezone': 'Europe/Bucharest',
+  'rrule': rrule,
+  'category_id': Ids.gamesCategoryId,
+  'color': '#1565C0',
+  'activity_id': activityId,
+  'location_name': null,
+  'address': null,
+  'cancelled_occurrence_keys': cancelled,
+  'version': version,
+  'created_by': userPublicJson(),
+  'can_edit': canEdit,
+  'can_delete': canEdit,
+  'created_at': '2026-09-20T10:00:00Z',
+  'updated_at': '2026-09-20T10:00:00Z',
+};
+
+/// An occurrence key of a timed event: `YYYYMMDDTHHMMSSZ` (contract 5.6).
+String instantKey(DateTime instant) {
+  final utc = instant.toUtc();
+  String two(int value) => value.toString().padLeft(2, '0');
+  return '${utc.year}${two(utc.month)}${two(utc.day)}'
+      'T${two(utc.hour)}${two(utc.minute)}${two(utc.second)}Z';
 }
