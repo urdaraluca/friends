@@ -1,13 +1,14 @@
+import math
 import uuid
 from datetime import date, datetime
 from enum import StrEnum
 from typing import Annotated, Any
 
-from pydantic import BaseModel, Field, StringConstraints
+from pydantic import BaseModel, Field, StringConstraints, model_validator
 
 from friends_api.core.schemas import ApiDate, Currency, HttpUrlStr, RequestModel
 from friends_api.features.activities.models import MAX_ESTIMATED_COST, ActivityStatus
-from friends_api.features.categories.schemas import FieldType
+from friends_api.features.categories.schemas import FieldKey, FieldType
 from friends_api.features.events.schemas import EventRef, OccurrenceRef
 from friends_api.features.users.schemas import UserPublic
 
@@ -136,3 +137,51 @@ class InterestState(BaseModel):
 class ActivityPage(BaseModel):
     items: list[ActivitySummary]
     next_cursor: str | None
+
+
+MAX_ATTRIBUTE_FILTERS = 5
+"""The most attribute filters one request may combine."""
+
+
+class AttributeOp(StrEnum):
+    EQ = "eq"
+    """Text equal (ASCII case-insensitive), or number equal when ``value`` is one."""
+    CONTAINS = "contains"
+    """Text contains (ASCII case-insensitive)."""
+    GTE = "gte"
+    """Number at least ``value``."""
+    LTE = "lte"
+    """Number at most ``value``."""
+
+
+def as_number(value: str) -> float | None:
+    """``value`` as a finite number, or None."""
+    try:
+        number = float(value)
+    except ValueError:
+        return None
+    return number if math.isfinite(number) else None
+
+
+class AttributeFilter(RequestModel):
+    """Matches activities whose custom attribute ``key`` (contract section 6) satisfies ``op``.
+    An activity without the attribute, or with a value of another type, never matches."""
+
+    key: FieldKey
+    op: AttributeOp
+    value: str = Field(min_length=1, max_length=100)
+
+    @model_validator(mode="after")
+    def _numbers_for_comparisons(self) -> AttributeFilter:
+        if self.op in (AttributeOp.GTE, AttributeOp.LTE) and as_number(self.value) is None:
+            raise ValueError("gte and lte need a number.")
+        return self
+
+
+def parse_attribute_filter(raw: str) -> AttributeFilter:
+    """``key:op:value`` (the value may contain ``:``); ``ValueError`` when malformed."""
+    parts = raw.split(":", 2)
+    if len(parts) != 3:
+        raise ValueError("Use key:op:value, e.g. imdb_rating:gte:7.5.")
+    key, op, value = parts
+    return AttributeFilter.model_validate({"key": key, "op": op, "value": value})

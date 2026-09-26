@@ -12,6 +12,7 @@ import 'package:friends/core/widgets/async_value_view.dart';
 import 'package:friends/features/backlog/data/backlog_providers.dart';
 import 'package:friends/features/backlog/domain/activity_rules.dart';
 import 'package:friends/features/backlog/domain/category_index.dart';
+import 'package:friends/features/backlog/presentation/widgets/attribute_filter.dart';
 import 'package:friends/features/backlog/presentation/widgets/backlog_filter_bar.dart';
 import 'package:friends/features/backlog/presentation/widgets/category_picker.dart';
 import 'package:friends/features/backlog/presentation/widgets/category_visuals.dart';
@@ -464,15 +465,28 @@ class _WheelFilterBar extends ConsumerWidget {
                   filters.copyWith(
                     categoryId: choice.id,
                     includeSubcategories: true,
+                    attributes: null,
                   ),
                 );
               }
             },
             onDeleted: filters.categoryId == null
                 ? null
-                : () => onChanged(filters.copyWith(categoryId: null)),
+                : () => onChanged(
+                    filters.copyWith(categoryId: null, attributes: null),
+                  ),
           ),
           const SizedBox(width: 6),
+          if (filters.categoryId != null)
+            AttributeFilterChip(
+              fieldDefs: categories.fieldDefs(filters.categoryId),
+              value: filters.attributes ?? const [],
+              onChanged: (attributes) => onChanged(
+                filters.copyWith(
+                  attributes: attributes.isEmpty ? null : attributes,
+                ),
+              ),
+            ),
           InputChip(
             avatar: const Icon(Icons.payments_outlined, size: 18),
             label: Text(

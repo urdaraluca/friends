@@ -75,6 +75,7 @@ def activity_filters(filters: WheelFilters) -> ActivityFilters:
         cost_max=filters.cost_max,
         include_unpriced=filters.include_unpriced,
         due_before=filters.due_before,
+        attributes=tuple(filters.attributes or ()),
     )
 
 

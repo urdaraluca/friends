@@ -19,6 +19,7 @@ class ActivityFilter {
     this.costMax,
     this.includeUnpriced = true,
     this.query = '',
+    this.attributes = const [],
     this.sort = ActivitySort.createdAt,
     this.order = SortOrder.desc,
   });
@@ -62,6 +63,9 @@ class ActivityFilter {
 
   /// Title search (`q`); blank means none.
   final String query;
+
+  /// Custom attribute filters (`attr`); they depend on [categoryId].
+  final List<AttributeFilter> attributes;
   final ActivitySort sort;
   final SortOrder order;
 
@@ -87,6 +91,7 @@ class ActivityFilter {
       onlyInterested ||
       onlyMine ||
       costMax != null ||
+      attributes.isNotEmpty ||
       queryText != null;
 
   /// A copy with the given fields replaced. Nullable fields take a function
@@ -101,6 +106,7 @@ class ActivityFilter {
     int? Function()? costMax,
     bool? includeUnpriced,
     String? query,
+    List<AttributeFilter>? attributes,
     ActivitySort? sort,
     SortOrder? order,
   }) {
@@ -114,6 +120,7 @@ class ActivityFilter {
       costMax: costMax == null ? this.costMax : costMax(),
       includeUnpriced: includeUnpriced ?? this.includeUnpriced,
       query: query ?? this.query,
+      attributes: attributes ?? this.attributes,
       sort: sort ?? this.sort,
       order: order ?? this.order,
     );
@@ -131,6 +138,7 @@ class ActivityFilter {
       other.costMax == costMax &&
       other.includeUnpriced == includeUnpriced &&
       other.query == query &&
+      listEquals(other.attributes, attributes) &&
       other.sort == sort &&
       other.order == order;
 
@@ -145,6 +153,7 @@ class ActivityFilter {
     costMax,
     includeUnpriced,
     query,
+    Object.hashAll(attributes),
     sort,
     order,
   );

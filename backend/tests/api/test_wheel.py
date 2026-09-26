@@ -458,6 +458,7 @@ def test_the_filters_are_stored_normalized(client: TestClient, backlog: Backlog)
         "cost_max": None,
         "include_unpriced": True,
         "due_before": "2026-10-31",
+        "attributes": None,
     }
     assert body["filters"] == expected
     assert backlog.names(candidate_ids(body)) == ["a7", "a1"]

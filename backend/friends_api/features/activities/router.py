@@ -9,9 +9,14 @@ from friends_api.core.schemas import ApiDate
 from friends_api.deps import DbSession, GroupMember
 from friends_api.features.activities import service
 from friends_api.features.activities.deps import ActivityMember
-from friends_api.features.activities.filters import DEFAULT_STATUSES, ActivityFilters
+from friends_api.features.activities.filters import (
+    DEFAULT_STATUSES,
+    ActivityFilters,
+    parse_attribute_filters,
+)
 from friends_api.features.activities.models import ActivityStatus
 from friends_api.features.activities.schemas import (
+    MAX_ATTRIBUTE_FILTERS,
     Activity,
     ActivityCreate,
     ActivityPage,
@@ -61,6 +66,16 @@ def list_activities(
         str | None,
         Query(min_length=1, max_length=100, description="Case-insensitive title substring."),
     ] = None,
+    attr: Annotated[
+        list[str] | None,
+        Query(
+            max_length=MAX_ATTRIBUTE_FILTERS,
+            description=(
+                "Custom attribute filters, `key:op:value` (op: `eq`, `contains`, `gte`, `lte`); "
+                "repeat the key for several, all must match. E.g. `imdb_rating:gte:7.5`."
+            ),
+        ),
+    ] = None,
     sort: ActivitySort = ActivitySort.CREATED_AT,
     order: SortOrder = SortOrder.DESC,
     cursor: CursorParam = None,
@@ -78,6 +93,7 @@ def list_activities(
         include_unpriced=include_unpriced,
         due_before=due_before,
         q=q,
+        attributes=parse_attribute_filters(attr, field="query.attr"),
     )
     return service.list_activities(
         db, access, filters, sort=sort, order=order, cursor=cursor, limit=limit

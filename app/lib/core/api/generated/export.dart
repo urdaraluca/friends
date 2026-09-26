@@ -26,6 +26,8 @@ export 'models/activity_status.dart';
 export 'models/activity_summary.dart';
 export 'models/activity_update.dart';
 export 'models/assignable_role.dart';
+export 'models/attribute_filter.dart';
+export 'models/attribute_op.dart';
 export 'models/auth_session.dart';
 export 'models/availability_entry.dart';
 export 'models/availability_entry_write.dart';

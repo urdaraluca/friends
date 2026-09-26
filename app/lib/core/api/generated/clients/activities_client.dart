@@ -38,6 +38,8 @@ abstract class ActivitiesClient {
   ///
   /// [q] - Case-insensitive title substring.
   ///
+  /// [attr] - Custom attribute filters, `key:op:value` (op: `eq`, `contains`, `gte`, `lte`); repeat the key for several, all must match. E.g. `imdb_rating:gte:7.5`.
+  ///
   /// [cursor] - Opaque: the `next_cursor` of the previous page.
   @GET('/api/v1/groups/{group_id}/activities')
   Future<ActivityPage> listActivities({
@@ -54,6 +56,7 @@ abstract class ActivitiesClient {
     @Query('cost_max') int? costMax,
     @Query('due_before') DateTime? dueBefore,
     @Query('q') String? q,
+    @Query('attr') List<String>? attr,
     @Query('cursor') String? cursor,
   });
 

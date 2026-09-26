@@ -7,7 +7,9 @@ from fastapi import status as http_status
 from friends_api.core.pagination import DEFAULT_LIMIT, CursorParam, LimitParam
 from friends_api.core.schemas import ApiDate
 from friends_api.deps import DbSession, GroupMember
+from friends_api.features.activities.filters import parse_attribute_filters
 from friends_api.features.activities.models import ActivityStatus
+from friends_api.features.activities.schemas import MAX_ATTRIBUTE_FILTERS
 from friends_api.features.wheel import service
 from friends_api.features.wheel.deps import SpinMember, WheelRng
 from friends_api.features.wheel.schemas import (
@@ -56,6 +58,16 @@ def list_wheel_candidates(
     due_before: Annotated[
         ApiDate | None, Query(description="`due_date <= due_before` (inclusive).")
     ] = None,
+    attr: Annotated[
+        list[str] | None,
+        Query(
+            max_length=MAX_ATTRIBUTE_FILTERS,
+            description=(
+                "Custom attribute filters, `key:op:value` (op: `eq`, `contains`, `gte`, `lte`); "
+                "repeat the key for several, all must match. E.g. `imdb_rating:gte:7.5`."
+            ),
+        ),
+    ] = None,
 ) -> WheelCandidates:
     """`WheelFilters` as query parameters: the pool's size and its first 50 activities, newest
     first."""
@@ -68,6 +80,7 @@ def list_wheel_candidates(
         cost_max=cost_max,
         include_unpriced=include_unpriced,
         due_before=due_before,
+        attributes=list(parse_attribute_filters(attr, field="query.attr")) or None,
     )
     return service.list_candidates(db, access, filters)
 

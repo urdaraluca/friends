@@ -5,6 +5,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'activity_status.dart';
+import 'attribute_filter.dart';
 
 part 'wheel_filters.freezed.dart';
 part 'wheel_filters.g.dart';
@@ -34,6 +35,7 @@ abstract class WheelFilters with _$WheelFilters {
     int? costMax,
     @JsonKey(name: 'due_before')
     DateTime? dueBefore,
+    List<AttributeFilter>? attributes,
   }) = _WheelFilters;
   
   factory WheelFilters.fromJson(Map<String, Object?> json) => _$WheelFiltersFromJson(json);

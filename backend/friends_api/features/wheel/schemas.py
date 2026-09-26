@@ -8,7 +8,11 @@ from pydantic import BaseModel, Field, field_validator
 
 from friends_api.core.schemas import ApiDate, RequestModel
 from friends_api.features.activities.models import ActivityStatus
-from friends_api.features.activities.schemas import ActivitySummary
+from friends_api.features.activities.schemas import (
+    MAX_ATTRIBUTE_FILTERS,
+    ActivitySummary,
+    AttributeFilter,
+)
 from friends_api.features.users.schemas import UserPublic
 
 MIN_CANDIDATES = 2
@@ -45,6 +49,8 @@ class WheelFilters(RequestModel):
     """With ``cost_max``: also activities without a cost or in another currency."""
     due_before: ApiDate | None = None
     """``due_date <= due_before`` (inclusive); activities without a due date are excluded."""
+    attributes: list[AttributeFilter] | None = Field(default=None, max_length=MAX_ATTRIBUTE_FILTERS)
+    """Custom attributes (issue #18); all must match. Null or omitted: none."""
 
     @field_validator("status", mode="before")
     @classmethod

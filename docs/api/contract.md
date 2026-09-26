@@ -1371,6 +1371,7 @@ Rules for categories:
 | `include_unpriced` | bool | `true` | with `cost_max`: also activities without a cost, or with another currency |
 | `due_before` | `ApiDate` | – | `due_date <= due_before` (**inclusive**); activities without a due date are excluded |
 | `q` | str 1..100 | – | case-insensitive substring of `title` (`LIKE` with `%` and `_` escaped) |
+| `attr` | str, repeated (at most 5) | – | custom attribute filters, `key:op:value`; all must match (below) |
 | `sort` | `ActivitySort` | `created_at` | `created_at`, `due_date`, `title`, `interest_count`, `estimated_cost` |
 | `order` | `SortOrder` | `desc` | `asc` or `desc` |
 | `cursor`, `limit` | | –, 50 | section 1.6 |
@@ -1378,6 +1379,24 @@ Rules for categories:
 - `due_date` and `estimated_cost` sort with **nulls last** in both orders.
 - Ties are broken by `id` descending, so paging is stable.
 - `title` sorts with NOCASE.
+
+**Attribute filters** (`attr`, issue #18) work on `activities.attributes` (section 6):
+- The format is `key:op:value`. The value may contain `:`. It is 1..100 characters, and `key` follows
+  the field key pattern.
+- Operators:
+  - `gte` and `lte`: the attribute is a number at least (at most) `value`. `value` must be a number.
+  - `eq`: text equal (ASCII case-insensitive), or number equal when `value` is a number.
+  - `contains`: the text contains `value` (ASCII case-insensitive; `%` and `_` escaped).
+- An activity without the attribute, or with a value of another JSON type, never matches. The type
+  is checked with SQLite's `json_type`; Postgres would use `jsonb_typeof`.
+- A malformed filter is a 422 `validation_error` on `query.attr.<index>`, for example
+  "gte and lte need a number.". More than 5 is a 422 too.
+- The client offers the filters for the selected category's effective field definitions:
+  - a range for `number`, `rating` and `year`;
+  - a choice for `select`;
+  - "contains" for `text` and `long_text`.
+
+  URLs can't be filtered on.
 
 ### 8.8 events and calendar (tag `events`)
 
@@ -1594,7 +1613,9 @@ VoteRequest       { option_ids: uuid[] (0..20) }
 # ---- wheel ----
 WheelFilters      { status: ActivityStatus[] = [idea, planning] (1..5 items), category_id: uuid?,
                     include_subcategories: bool = true, interested_by: uuid?, owner_id: uuid?,
-                    cost_max: int? (>=0), include_unpriced: bool = true, due_before: date? }
+                    cost_max: int? (>=0), include_unpriced: bool = true, due_before: date?,
+                    attributes: AttributeFilter[]? (<=5; null: none) }
+AttributeFilter   { key: str (field key), op: eq | contains | gte | lte, value: str (1..100) }
 WheelCandidates   { items: ActivitySummary[] (<=50), total: int }
 SpinCreate        { filters: WheelFilters, activity_ids: uuid[]? (<=50 items; duplicates ignored;
                     fewer than 2 distinct -> 422 not_enough_candidates; section 10) }
@@ -1706,7 +1727,8 @@ own phone, and the history feeds the recap ("the wheel decided 14 times").
 - iOS Universal Links (`apple-app-site-association`, served like `assetlinks.json`) and TestFlight,
   once a Mac and an Apple account exist.
 - TMDB/OMDb auto-fill of `attributes` (needs an API key).
-- Backlog and wheel filters on attributes (`json_extract`, or generated columns).
+- Backlog and wheel filters on attributes (`json_extract`, or generated columns). Built: `attr`
+  (section 8.7) and `WheelFilters.attributes`.
 - A group feed UI (`GET /groups/{id}/feed` over `group_log`). Built: section 15.
 - A personal calendar UI over `/me/calendar`. Built (`/calendar` in the app).
 - Single-occurrence edits through `override_*` columns on `event_exceptions`.

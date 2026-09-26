@@ -2124,6 +2124,28 @@
             "description": "Case-insensitive title substring."
           },
           {
+            "name": "attr",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "maxItems": 5
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Custom attribute filters, `key:op:value` (op: `eq`, `contains`, `gte`, `lte`); repeat the key for several, all must match. E.g. `imdb_rating:gte:7.5`.",
+              "title": "Attr"
+            },
+            "description": "Custom attribute filters, `key:op:value` (op: `eq`, `contains`, `gte`, `lte`); repeat the key for several, all must match. E.g. `imdb_rating:gte:7.5`."
+          },
+          {
             "name": "sort",
             "in": "query",
             "required": false,
@@ -2792,6 +2814,28 @@
               "title": "Due Before"
             },
             "description": "`due_date <= due_before` (inclusive)."
+          },
+          {
+            "name": "attr",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "maxItems": 5
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Custom attribute filters, `key:op:value` (op: `eq`, `contains`, `gte`, `lte`); repeat the key for several, all must match. E.g. `imdb_rating:gte:7.5`.",
+              "title": "Attr"
+            },
+            "description": "Custom attribute filters, `key:op:value` (op: `eq`, `contains`, `gte`, `lte`); repeat the key for several, all must match. E.g. `imdb_rating:gte:7.5`."
           }
         ],
         "responses": {
@@ -5242,6 +5286,42 @@
           "member"
         ],
         "title": "AssignableRole"
+      },
+      "AttributeFilter": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]{0,29}$",
+            "title": "Key"
+          },
+          "op": {
+            "$ref": "#/components/schemas/AttributeOp"
+          },
+          "value": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Value"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "op",
+          "value"
+        ],
+        "title": "AttributeFilter",
+        "description": "Matches activities whose custom attribute ``key`` (contract section 6) satisfies ``op``.\nAn activity without the attribute, or with a value of another type, never matches."
+      },
+      "AttributeOp": {
+        "type": "string",
+        "enum": [
+          "eq",
+          "contains",
+          "gte",
+          "lte"
+        ],
+        "title": "AttributeOp"
       },
       "AuthSession": {
         "properties": {
@@ -9020,6 +9100,21 @@
               }
             ],
             "title": "Due Before"
+          },
+          "attributes": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/AttributeFilter"
+                },
+                "type": "array",
+                "maxItems": 5
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Attributes"
           }
         },
         "type": "object",

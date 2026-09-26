@@ -6,6 +6,7 @@ import 'package:friends/core/api/generated/export.dart';
 import 'package:friends/features/backlog/domain/activity_filter.dart';
 import 'package:friends/features/backlog/domain/activity_rules.dart';
 import 'package:friends/features/backlog/domain/category_index.dart';
+import 'package:friends/features/backlog/presentation/widgets/attribute_filter.dart';
 import 'package:friends/features/backlog/presentation/widgets/category_picker.dart';
 import 'package:friends/features/groups/data/group_providers.dart';
 import 'package:material_ui/material_ui.dart';
@@ -190,10 +191,21 @@ class _BacklogFilterBarState extends ConsumerState<BacklogFilterBar> {
                   onDeleted: filter.categoryId == null
                       ? null
                       : () => widget.onChanged(
-                          filter.copyWith(categoryId: () => null),
+                          filter.copyWith(
+                            categoryId: () => null,
+                            attributes: const [],
+                          ),
                         ),
                 ),
                 const SizedBox(width: 6),
+                if (filter.categoryId != null)
+                  AttributeFilterChip(
+                    fieldDefs: widget.categories.fieldDefs(filter.categoryId),
+                    value: filter.attributes,
+                    onChanged: (attributes) => widget.onChanged(
+                      filter.copyWith(attributes: attributes),
+                    ),
+                  ),
                 FilterChip(
                   label: const Text("I'm interested"),
                   selected: filter.onlyInterested,

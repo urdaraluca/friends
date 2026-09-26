@@ -3,6 +3,7 @@ import 'package:friends/core/api/api_providers.dart';
 import 'package:friends/core/api/generated/export.dart';
 import 'package:friends/core/auth/auth_controller.dart';
 import 'package:friends/features/backlog/data/backlog_controller.dart';
+import 'package:friends/features/backlog/presentation/widgets/attribute_filter.dart';
 import 'package:material_ui/material_ui.dart' show immutable;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -50,6 +51,10 @@ Future<WheelCandidates> wheelCandidates(
       costMax: filters.costMax,
       includeUnpriced: filters.includeUnpriced,
       dueBefore: filters.dueBefore,
+      attr: [
+        for (final attribute in filters.attributes ?? const <AttributeFilter>[])
+          attrParam(attribute),
+      ],
     ),
   );
 }

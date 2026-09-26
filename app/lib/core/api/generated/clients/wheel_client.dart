@@ -31,6 +31,8 @@ abstract class WheelClient {
   /// [includeUnpriced] - With `cost_max`: also activities without a cost or in another currency.
   ///
   /// [dueBefore] - `due_date <= due_before` (inclusive).
+  ///
+  /// [attr] - Custom attribute filters, `key:op:value` (op: `eq`, `contains`, `gte`, `lte`); repeat the key for several, all must match. E.g. `imdb_rating:gte:7.5`.
   @GET('/api/v1/groups/{group_id}/wheel/candidates')
   Future<WheelCandidates> listWheelCandidates({
     @Path('group_id') required String groupId,
@@ -42,6 +44,7 @@ abstract class WheelClient {
     @Query('owner_id') String? ownerId,
     @Query('cost_max') int? costMax,
     @Query('due_before') DateTime? dueBefore,
+    @Query('attr') List<String>? attr,
   });
 
   /// Create Spin.

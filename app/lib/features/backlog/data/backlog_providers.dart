@@ -4,6 +4,7 @@ import 'package:friends/core/api/generated/export.dart';
 import 'package:friends/core/auth/auth_controller.dart';
 import 'package:friends/features/backlog/domain/activity_filter.dart';
 import 'package:friends/features/backlog/domain/category_index.dart';
+import 'package:friends/features/backlog/presentation/widgets/attribute_filter.dart';
 import 'package:material_ui/material_ui.dart' show immutable;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -111,6 +112,9 @@ class ActivitiesPager extends _$ActivitiesPager {
         costMax: filter.costMax,
         includeUnpriced: filter.includeUnpriced,
         q: filter.queryText,
+        attr: filter.attributes.isEmpty
+            ? null
+            : [for (final attribute in filter.attributes) attrParam(attribute)],
         sort: filter.sort,
         order: filter.order,
         cursor: cursor,

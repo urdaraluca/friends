@@ -11,15 +11,24 @@ from dataclasses import dataclass
 from datetime import date
 from typing import Any
 
-from sqlalchemy import ColumnElement, Select, and_, exists, false, func, or_, select
+from pydantic import ValidationError
+from sqlalchemy import ColumnElement, Float, Select, String, and_, exists, false, func, or_, select
 
+from friends_api.core.errors import FieldError, Unprocessable
 from friends_api.features.activities.models import (
     MAX_ESTIMATED_COST,
     Activity,
     ActivityInterest,
     ActivityStatus,
 )
-from friends_api.features.activities.schemas import ActivitySort, SortOrder
+from friends_api.features.activities.schemas import (
+    ActivitySort,
+    AttributeFilter,
+    AttributeOp,
+    SortOrder,
+    as_number,
+    parse_attribute_filter,
+)
 from friends_api.features.categories.models import Category
 from friends_api.features.groups.models import Group
 
@@ -51,6 +60,53 @@ class ActivityFilters:
     """``due_date <= due_before`` (inclusive); activities without a due date are excluded."""
     q: str | None = None
     """Case-insensitive substring of the title."""
+    attributes: tuple[AttributeFilter, ...] = ()
+    """Custom attributes; all must match."""
+
+
+def parse_attribute_filters(values: list[str] | None, *, field: str) -> tuple[AttributeFilter, ...]:
+    """The ``attr`` query parameter: ``key:op:value`` strings. A malformed one is a 422
+    ``validation_error`` on ``<field>.<index>``."""
+    filters = []
+    for index, raw in enumerate(values or []):
+        try:
+            filters.append(parse_attribute_filter(raw))
+        except ValidationError as exc:
+            message = str(exc.errors()[0]["msg"]).removeprefix("Value error, ")
+            raise _invalid_attribute(f"{field}.{index}", message) from exc
+        except ValueError as exc:
+            raise _invalid_attribute(f"{field}.{index}", str(exc)) from exc
+    return tuple(filters)
+
+
+def _invalid_attribute(field: str, message: str) -> Unprocessable:
+    return Unprocessable(
+        "Invalid attribute filter.",
+        errors=[FieldError(field=field, message=message, type="value_error")],
+    )
+
+
+def attribute_condition(attribute: AttributeFilter) -> ColumnElement[bool]:
+    """SQLite JSON1. ``json_type`` keeps a value of another type (say, text left in a field that
+    is now a number) from matching."""
+    path = f"$.{attribute.key}"
+    kind = func.json_type(Activity.attributes, path)
+    numeric = kind.in_(("integer", "real"))
+    as_float = func.json_extract(Activity.attributes, path, type_=Float)
+    as_text = func.json_extract(Activity.attributes, path, type_=String)
+    number = as_number(attribute.value)
+    match attribute.op:
+        case AttributeOp.GTE:
+            return and_(numeric, as_float >= number)
+        case AttributeOp.LTE:
+            return and_(numeric, as_float <= number)
+        case AttributeOp.CONTAINS:
+            return and_(kind == "text", as_text.contains(attribute.value, autoescape=True))
+        case AttributeOp.EQ:
+            same_text = and_(kind == "text", as_text.collate("NOCASE") == attribute.value)
+            if number is None:
+                return same_text
+            return or_(same_text, and_(numeric, as_float == number))
 
 
 def filter_conditions(group: Group, filters: ActivityFilters) -> list[ColumnElement[bool]]:
@@ -92,6 +148,7 @@ def filter_conditions(group: Group, filters: ActivityFilters) -> list[ColumnElem
             conditions.append(priced)
     if filters.due_before is not None:
         conditions.append(Activity.due_date <= filters.due_before)  # NULL never matches
+    conditions.extend(attribute_condition(a) for a in filters.attributes)
     if filters.q is not None:
         # LIKE with % and _ escaped; SQLite's LIKE is case-insensitive (ASCII).
         conditions.append(Activity.title.contains(filters.q, autoescape=True))
