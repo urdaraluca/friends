@@ -8,7 +8,10 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
 
+from sqlalchemy import and_, case, exists, func, select
 from sqlalchemy.orm import Session
+
+from friends_api.features.polls.models import Poll, PollVote
 
 
 @dataclass(frozen=True, slots=True)
@@ -27,9 +30,22 @@ NO_POLLS = PollCounters()
 def poll_counters(
     db: Session, activity_ids: Sequence[uuid.UUID], user_id: uuid.UUID, *, now: datetime
 ) -> dict[uuid.UUID, PollCounters]:
-    """Counters by activity ID; activities without polls may be left out (``NO_POLLS``).
-
-    TODO(#10): polls don't exist yet, so every activity has none. Replace this body with one
-    grouped query over ``polls`` (and ``poll_votes`` for the caller) for ``activity_ids``.
-    """
-    return {}
+    """Counters by activity ID; activities without polls are left out (``NO_POLLS``)."""
+    is_open = Poll.open_clause(now)
+    voted = exists().where(PollVote.poll_id == Poll.id, PollVote.user_id == user_id)
+    rows = db.execute(
+        select(
+            Poll.activity_id,
+            func.count(),
+            func.sum(case((is_open, 1), else_=0)),
+            func.sum(case((and_(is_open, ~voted), 1), else_=0)),
+        )
+        .where(Poll.activity_id.in_(activity_ids))
+        .group_by(Poll.activity_id)
+    ).tuples()
+    return {
+        activity_id: PollCounters(
+            poll_count=total, open_poll_count=open_count, my_unvoted_poll_count=unvoted
+        )
+        for activity_id, total, open_count, unvoted in rows
+    }

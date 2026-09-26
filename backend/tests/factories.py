@@ -156,3 +156,19 @@ def activity_update(activity: dict[str, Any], **changes: Any) -> dict[str, Any]:
     body["owner_id"] = activity["owner"]["id"] if activity["owner"] else None
     body["version"] = activity["version"]
     return {**body, **changes}
+
+
+def create_poll(
+    client: TestClient, account: Account, activity_id: str, **fields: Any
+) -> dict[str, Any]:
+    payload = {
+        "question": f"Question {next(_sequence)}?",
+        "options": [{"label": "Yes"}, {"label": "No"}],
+        **fields,
+    }
+    response = client.post(
+        f"/api/v1/activities/{activity_id}/polls", headers=account.headers, json=payload
+    )
+    assert response.status_code == 201, response.text
+    body: dict[str, Any] = response.json()
+    return body

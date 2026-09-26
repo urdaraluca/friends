@@ -22,6 +22,7 @@ from tests.factories import (
     create_activity,
     create_group,
     create_invite,
+    create_poll,
     list_categories,
     register,
 )
@@ -37,6 +38,7 @@ class World:
 
 GROUP_UPDATE = {"name": "G", "currency": "EUR", "timezone": "UTC", "members_can_invite": True}
 CATEGORY_WRITE = {"name": "Board games", "color": "#123456"}
+POLL_UPDATE = {"question": "Which one?", "closes_at": None}
 
 # operationId -> request body. A plain member (not creator/owner) must get 403.
 RESTRICTED: dict[str, Callable[[World], dict[str, Any] | None]] = {
@@ -49,6 +51,12 @@ RESTRICTED: dict[str, Callable[[World], dict[str, Any] | None]] = {
     "update_category": lambda w: CATEGORY_WRITE,
     "delete_category": lambda w: None,
     "delete_activity": lambda w: None,
+    "update_poll": lambda w: POLL_UPDATE,
+    "delete_poll": lambda w: None,
+    "close_poll": lambda w: None,
+    "reopen_poll": lambda w: None,
+    # A plain member who neither added the option nor manages the poll.
+    "delete_poll_option": lambda w: None,
 }
 
 # Routes any member may use (non-members still get 404).
@@ -71,6 +79,11 @@ MEMBER_LEVEL = {
     "create_spin",
     "list_spins",
     "accept_spin",
+    "list_polls",
+    "create_poll",
+    "get_poll",
+    "add_poll_option",
+    "set_my_vote",
 }
 
 BODIES: dict[str, Callable[[World], dict[str, Any] | None]] = {
@@ -82,6 +95,9 @@ BODIES: dict[str, Callable[[World], dict[str, Any] | None]] = {
     "update_activity": lambda w: {"title": "Picnic", "version": 1},
     "set_activity_status": lambda w: {"status": "planning"},
     "create_spin": lambda w: {"filters": {}},
+    "create_poll": lambda w: {"question": "When?", "options": [{"label": "A"}, {"label": "B"}]},
+    "add_poll_option": lambda w: {"label": "Another one"},
+    "set_my_vote": lambda w: {"option_ids": [w.ids["option_id"]]},
 }
 
 
@@ -104,6 +120,9 @@ def world(client: TestClient) -> World:
             "activity_ids": [activity["id"], create_activity(client, owner, group["id"])["id"]],
         },
     ).json()
+    # Created by the owner on the owner's activity: the plain member doesn't manage it, and
+    # its options were added by the owner.
+    poll = create_poll(client, owner, activity["id"])
     return World(
         owner=owner,
         member=member,
@@ -117,6 +136,8 @@ def world(client: TestClient) -> World:
             "category_id": category["id"],
             "activity_id": activity["id"],
             "spin_id": spin["id"],
+            "poll_id": poll["id"],
+            "option_id": poll["options"][0]["id"],
         },
     )
 
