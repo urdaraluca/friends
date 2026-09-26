@@ -52,6 +52,10 @@ abstract final class Routes {
   static String editActivity(String groupId, String activityId) =>
       '${activity(groupId, activityId)}/edit';
 
+  /// `/groups/<id>/wheel/history`: past spins.
+  static String wheelHistory(String groupId) =>
+      '${groupTab(groupId, GroupTab.wheel)}/history';
+
   /// `/groups/<id>/settings/categories`: categories and their fields.
   static String groupCategories(String groupId) =>
       '${group(groupId)}/settings/categories';

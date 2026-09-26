@@ -16,7 +16,8 @@ import 'package:friends/features/groups/presentation/groups_list_screen.dart';
 import 'package:friends/features/health/presentation/health_screen.dart';
 import 'package:friends/features/invites/presentation/join_screen.dart';
 import 'package:friends/features/profile/presentation/profile_screen.dart';
-import 'package:friends/features/wheel/presentation/wheel_placeholder_screen.dart';
+import 'package:friends/features/wheel/presentation/wheel_history_screen.dart';
+import 'package:friends/features/wheel/presentation/wheel_screen.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -187,9 +188,16 @@ GoRouter router(Ref ref) {
           ),
           GoRoute(
             path: GroupTab.wheel.pattern,
-            pageBuilder: (context, state) => NoTransitionPage(
-              child: WheelPlaceholderScreen(groupId: _groupId(state)),
-            ),
+            pageBuilder: (context, state) =>
+                NoTransitionPage(child: WheelScreen(groupId: _groupId(state))),
+            routes: [
+              GoRoute(
+                path: 'history',
+                parentNavigatorKey: rootNavigatorKey,
+                builder: (context, state) =>
+                    WheelHistoryScreen(groupId: _groupId(state)),
+              ),
+            ],
           ),
           GoRoute(
             path: GroupTab.group.pattern,

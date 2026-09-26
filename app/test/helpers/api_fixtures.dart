@@ -206,6 +206,11 @@ abstract final class ApiPaths {
   static String poll(String id) => '/api/v1/polls/$id';
   static String myVote(String pollId) => '${poll(pollId)}/votes/me';
   static String pollOptions(String pollId) => '${poll(pollId)}/options';
+  static String wheelCandidates(String groupId) =>
+      '${group(groupId)}/wheel/candidates';
+  static String spins(String groupId) => '${group(groupId)}/wheel/spins';
+  static String acceptSpin(String spinId) =>
+      '/api/v1/wheel/spins/$spinId/accept';
 }
 
 /// An access token shaped like the API's JWTs (contract section 4.1) for
@@ -478,5 +483,58 @@ Map<String, Object?> pollJson({
     'can_manage': canManage,
     'created_at': '2026-09-20T10:00:00Z',
     'updated_at': '2026-09-20T10:00:00Z',
+  };
+}
+
+Map<String, Object?> wheelCandidatesJson(
+  List<Map<String, Object?>> items, {
+  int? total,
+}) => {'items': items, 'total': total ?? items.length};
+
+Map<String, Object?> wheelSpinJson({
+  String id = 'spin-1',
+  List<Map<String, Object?>>? candidates,
+  int resultIndex = 1,
+  String? resultActivityId,
+  String? acceptedAt,
+  Map<String, Object?>? acceptedBy,
+}) {
+  final slices =
+      candidates ??
+      [
+        {
+          'id': Ids.activityId,
+          'title': 'Dune',
+          'category_id': Ids.movieCategoryId,
+          'color': '#7E57C2',
+        },
+        {
+          'id': Ids.otherActivityId,
+          'title': 'Catan',
+          'category_id': Ids.gamesCategoryId,
+          'color': '#1565C0',
+        },
+      ];
+  return {
+    'id': id,
+    'group_id': Ids.groupId,
+    'spun_by': userPublicJson(),
+    'filters': {
+      'status': ['idea', 'planning'],
+      'category_id': null,
+      'include_subcategories': true,
+      'interested_by': Ids.anaId,
+      'owner_id': null,
+      'cost_max': null,
+      'include_unpriced': true,
+      'due_before': null,
+    },
+    'candidates': slices,
+    'result_index': resultIndex,
+    'result': slices[resultIndex],
+    'result_activity_id': resultActivityId ?? slices[resultIndex]['id'],
+    'accepted_at': acceptedAt,
+    'accepted_by': acceptedBy,
+    'created_at': '2026-09-26T18:00:00Z',
   };
 }

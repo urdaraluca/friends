@@ -93,9 +93,9 @@ class _BacklogFilterBarState extends ConsumerState<BacklogFilterBar> {
 
   Future<void> _pickCost() async {
     final currency = ref.read(groupProvider(widget.groupId)).value?.currency;
-    final result = await showDialog<_CostFilter>(
+    final result = await showDialog<CostFilter>(
       context: context,
-      builder: (context) => _CostFilterDialog(
+      builder: (context) => CostFilterDialog(
         costMax: widget.filter.costMax,
         includeUnpriced: widget.filter.includeUnpriced,
         currency: currency,
@@ -281,18 +281,22 @@ class _SortMenu extends StatelessWidget {
   }
 }
 
-class _CostFilter {
+/// The max-cost filter chosen in [CostFilterDialog].
+class CostFilter {
   const new(this.costMax, {required this.includeUnpriced});
 
   final int? costMax;
   final bool includeUnpriced;
 }
 
-class _CostFilterDialog extends StatefulWidget {
+/// Asks for a maximum cost (in the group currency) and whether to include
+/// ideas without one. Pops a [CostFilter]; "Clear" pops one without a max.
+class CostFilterDialog extends StatefulWidget {
   const new({
     required this.costMax,
     required this.includeUnpriced,
     required this.currency,
+    super.key,
   });
 
   final int? costMax;
@@ -300,10 +304,10 @@ class _CostFilterDialog extends StatefulWidget {
   final String? currency;
 
   @override
-  State<_CostFilterDialog> createState() => _CostFilterDialogState();
+  State<CostFilterDialog> createState() => _CostFilterDialogState();
 }
 
-class _CostFilterDialogState extends State<_CostFilterDialog> {
+class _CostFilterDialogState extends State<CostFilterDialog> {
   late final _amount = TextEditingController(
     text: widget.costMax?.toString() ?? '',
   );
@@ -348,12 +352,12 @@ class _CostFilterDialogState extends State<_CostFilterDialog> {
         TextButton(
           onPressed: () =>
               Navigator.of(context)
-                  .pop(const _CostFilter(null, includeUnpriced: true)),
+                  .pop(const CostFilter(null, includeUnpriced: true)),
           child: const Text('Clear'),
         ),
         FilledButton(
           onPressed: () => Navigator.of(context).pop(
-            _CostFilter(
+            CostFilter(
               int.tryParse(_amount.text),
               includeUnpriced: _includeUnpriced,
             ),

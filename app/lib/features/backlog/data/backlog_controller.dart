@@ -2,6 +2,7 @@ import 'package:friends/core/api/api_exception.dart';
 import 'package:friends/core/api/api_providers.dart';
 import 'package:friends/core/api/generated/export.dart';
 import 'package:friends/features/backlog/data/backlog_providers.dart';
+import 'package:friends/features/wheel/data/wheel_providers.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'backlog_controller.g.dart';
@@ -24,7 +25,10 @@ class BacklogController extends _$BacklogController {
   /// Everything derived from the backlog is stale: the pagers, the activity
   /// (when given), and every other list of activities.
   void activitiesChanged({String? activityId}) {
-    ref.invalidate(activitiesPagerProvider);
+    ref
+      ..invalidate(activitiesPagerProvider)
+      // The wheel's pool is a filtered backlog.
+      ..invalidate(wheelCandidatesProvider);
     if (activityId != null) ref.invalidate(activityProvider(activityId));
   }
 

@@ -8,7 +8,7 @@ import 'package:friends/features/calendar/presentation/calendar_placeholder_scre
 import 'package:friends/features/groups/presentation/group_hub_screen.dart';
 import 'package:friends/features/groups/presentation/group_shell.dart';
 import 'package:friends/features/groups/presentation/groups_list_screen.dart';
-import 'package:friends/features/wheel/presentation/wheel_placeholder_screen.dart';
+import 'package:friends/features/wheel/presentation/wheel_screen.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../helpers/api_fixtures.dart';
@@ -54,7 +54,7 @@ void main() {
 
       for (final (label, path, screen) in [
         ('Calendar', 'calendar', CalendarPlaceholderScreen),
-        ('Wheel', 'wheel', WheelPlaceholderScreen),
+        ('Wheel', 'wheel', WheelScreen),
         ('Group', 'group', GroupHubScreen),
         ('Backlog', 'backlog', BacklogScreen),
       ]) {
