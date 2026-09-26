@@ -689,3 +689,95 @@ def test_deleting_a_top_level_category_logs_each_deleted_subcategory(
         (owner.id, first["id"], {"name": "First"}),
         (owner.id, second["id"], {"name": "Second"}),
     ]
+
+
+# --- reordering (issue #18) ---------------------------------------------------------------
+
+
+def reorder(client: TestClient, account: Account, group_id: str, **body: Any) -> Any:
+    return client.put(
+        f"/api/v1/groups/{group_id}/categories/order", headers=account.headers, json=body
+    )
+
+
+def test_admins_reorder_top_level_categories(client: TestClient, db_session: Session) -> None:
+    owner = register(client)
+    gid = create_group(client, owner)["id"]
+    ids = [c["id"] for c in list_categories(client, owner, gid)]
+    new_order = [*reversed(ids)]
+
+    response = reorder(client, owner, gid, category_ids=new_order)
+
+    assert response.status_code == 200, response.text
+    assert [c["id"] for c in response.json()] == new_order
+    assert [c["position"] for c in response.json()] == list(range(len(ids)))
+    assert [c["id"] for c in list_categories(client, owner, gid)] == new_order
+    logged = db_session.scalars(
+        select(GroupLog).where(GroupLog.action == "category.reordered")
+    ).one()
+    assert logged.subject_id is None
+    assert logged.data == {"count": len(ids)}
+
+
+def test_subcategories_are_reordered_under_their_parent(client: TestClient) -> None:
+    owner = register(client)
+    gid = create_group(client, owner)["id"]
+    parent = list_categories(client, owner, gid)[0]
+    subs = [
+        create_category(client, owner, gid, name=name, parent_id=parent["id"])["id"]
+        for name in ("A", "B", "C")
+    ]
+
+    response = reorder(
+        client, owner, gid, parent_id=parent["id"], category_ids=[subs[2], subs[0], subs[1]]
+    )
+
+    assert response.status_code == 200, response.text
+    node = next(c for c in response.json() if c["id"] == parent["id"])
+    assert [s["name"] for s in node["subcategories"]] == ["C", "A", "B"]
+
+
+@pytest.mark.parametrize("change", ["missing", "extra", "repeated", "subcategory"])
+def test_the_order_must_list_every_sibling_once(client: TestClient, change: str) -> None:
+    owner = register(client)
+    gid = create_group(client, owner)["id"]
+    ids = [c["id"] for c in list_categories(client, owner, gid)]
+    sub = create_category(client, owner, gid, name="Sub", parent_id=ids[0])["id"]
+    order = {
+        "missing": ids[1:],
+        "extra": [*ids, str(uuid.uuid4())],
+        "repeated": [*ids[:-1], ids[0]],
+        "subcategory": [*ids, sub],
+    }[change]
+
+    response = reorder(client, owner, gid, category_ids=order)
+
+    assert response.status_code == 422
+    assert response.json()["errors"][0]["field"] == "category_ids"
+
+
+def test_reordering_under_a_subcategory_or_another_group_is_rejected(
+    client: TestClient,
+) -> None:
+    owner = register(client)
+    gid = create_group(client, owner)["id"]
+    other = create_group(client, owner)["id"]
+    top = list_categories(client, owner, gid)[0]["id"]
+    sub = create_category(client, owner, gid, name="Sub", parent_id=top)["id"]
+    foreign = list_categories(client, owner, other)[0]["id"]
+
+    assert reorder(client, owner, gid, parent_id=foreign, category_ids=[]).status_code == 422
+    response = reorder(client, owner, gid, parent_id=sub, category_ids=[])
+    assert response.status_code == 422
+    assert response.json()["code"] == "category_depth_exceeded"
+
+
+def test_members_cannot_reorder(client: TestClient) -> None:
+    owner = register(client)
+    gid = create_group(client, owner)["id"]
+    member = add_member(client, owner, gid)
+    ids = [c["id"] for c in list_categories(client, owner, gid)]
+
+    response = reorder(client, member, gid, category_ids=ids)
+
+    assert response.status_code == 403

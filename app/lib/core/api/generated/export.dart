@@ -38,6 +38,7 @@ export 'models/calendar_response.dart';
 export 'models/card_attribute.dart';
 export 'models/category.dart';
 export 'models/category_node.dart';
+export 'models/category_order.dart';
 export 'models/category_write.dart';
 export 'models/day_availability.dart';
 export 'models/event.dart';

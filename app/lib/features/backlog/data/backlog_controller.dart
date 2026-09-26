@@ -124,6 +124,22 @@ class BacklogController extends _$BacklogController {
     _categoriesChanged(groupId);
   }
 
+  /// `PUT /groups/{id}/categories/order` (admin+): the top-level
+  /// categories, or [parentId]'s subcategories, in the order of [ids].
+  Future<void> reorderCategories(
+    String groupId,
+    List<String> ids, {
+    String? parentId,
+  }) async {
+    await apiCall(
+      () => _categories.reorderCategories(
+        groupId: groupId,
+        body: CategoryOrder(parentId: parentId, categoryIds: ids),
+      ),
+    );
+    ref.invalidate(categoriesProvider(groupId));
+  }
+
   void _categoriesChanged(String groupId) {
     ref
       ..invalidate(categoriesProvider(groupId))

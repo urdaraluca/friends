@@ -52,6 +52,7 @@ RESTRICTED: dict[str, Callable[[World], dict[str, Any] | None]] = {
     "revoke_invite": lambda w: None,
     "update_category": lambda w: CATEGORY_WRITE,
     "delete_category": lambda w: None,
+    "reorder_categories": lambda w: {"category_ids": []},
     "delete_activity": lambda w: None,
     "update_poll": lambda w: POLL_UPDATE,
     "delete_poll": lambda w: None,

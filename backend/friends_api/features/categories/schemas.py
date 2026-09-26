@@ -139,3 +139,10 @@ class CategoryWrite(RequestModel):
         if value is None and "parent_id" in info.data and info.data["parent_id"] is None:
             raise PydanticCustomError("missing", "A top-level category needs a color.")
         return value
+
+
+class CategoryOrder(RequestModel):
+    parent_id: uuid.UUID | None = None
+    """Whose subcategories to order; null for the top-level categories."""
+    category_ids: list[uuid.UUID] = Field(max_length=100)
+    """Every one of them, exactly once, in the new order (a group has at most 100)."""

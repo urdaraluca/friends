@@ -40,6 +40,9 @@ class GroupPermissions {
   /// `PUT /groups/{id}`: admin+.
   bool get canEditGroup => myRole.isAdminOrOwner;
 
+  /// `PUT /groups/{id}/categories/order`: admin+.
+  bool get canReorderCategories => myRole.isAdminOrOwner;
+
   /// `DELETE /groups/{id}`: owner.
   bool get canDeleteGroup => myRole.isOwner;
 

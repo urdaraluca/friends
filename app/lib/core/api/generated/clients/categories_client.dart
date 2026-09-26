@@ -7,6 +7,7 @@ import 'package:retrofit/retrofit.dart';
 
 import '../models/category.dart';
 import '../models/category_node.dart';
+import '../models/category_order.dart';
 import '../models/category_write.dart';
 
 part 'categories_client.g.dart';
@@ -31,6 +32,16 @@ abstract class CategoriesClient {
   Future<Category> createCategory({
     @Path('group_id') required String groupId,
     @Body() required CategoryWrite body,
+  });
+
+  /// Reorder Categories.
+  ///
+  /// Admins. Orders the top-level categories, or one category's subcategories.
+  /// ``category_ids`` lists every one of them, exactly once. Returns the whole tree.
+  @PUT('/api/v1/groups/{group_id}/categories/order')
+  Future<List<CategoryNode>> reorderCategories({
+    @Path('group_id') required String groupId,
+    @Body() required CategoryOrder body,
   });
 
   /// Update Category.

@@ -16,11 +16,13 @@ from friends_api.features.categories.models import Category
 from friends_api.features.categories.schemas import (
     MAX_POSITION,
     CategoryNode,
+    CategoryOrder,
     CategoryWrite,
     FieldDef,
 )
 from friends_api.features.categories.schemas import Category as CategoryOut
 from friends_api.features.group_log.service import log_event
+from friends_api.features.groups import policies as group_policies
 from friends_api.features.groups.models import Membership
 from friends_api.features.groups.service import GroupAccess, invalid_reference, limit_reached
 from friends_api.features.users.lookup import public_user, users_by_id
@@ -391,4 +393,42 @@ def delete_category(db: Session, access: CategoryAccess) -> None:
             data={"name": name},
         )
     db.execute(delete(Category).where(Category.id.in_(removed_ids)))
+    db.commit()
+
+
+def reorder_categories(db: Session, access: GroupAccess, body: CategoryOrder) -> None:
+    """Admins only: the order is the whole group's. Sets the siblings' positions to 0..n-1 in
+    the order given, which must list each of them exactly once."""
+    if not group_policies.can_edit_group(access.membership):
+        raise Forbidden("Only admins can reorder categories.")
+    group_id = access.group.id
+    _resolve_parent(db, group_id, body.parent_id, moving=None)
+    siblings = {
+        category.id: category
+        for category in db.scalars(
+            select(Category).where(
+                Category.group_id == group_id,
+                Category.parent_id.is_(None)
+                if body.parent_id is None
+                else Category.parent_id == body.parent_id,
+            )
+        )
+    }
+    if len(body.category_ids) != len(siblings) or set(body.category_ids) != set(siblings):
+        message = "List every category under this parent exactly once."
+        raise Unprocessable(
+            message,
+            errors=[FieldError(field="category_ids", message=message, type="value_error")],
+        )
+    for position, category_id in enumerate(body.category_ids):
+        siblings[category_id].position = position
+    log_event(
+        db,
+        group_id=group_id,
+        actor_id=access.membership.user_id,
+        action="category.reordered",
+        subject_type="category" if body.parent_id else None,
+        subject_id=body.parent_id,
+        data={"count": len(body.category_ids)},
+    )
     db.commit()

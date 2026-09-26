@@ -11,7 +11,9 @@ import 'package:friends/features/backlog/data/backlog_controller.dart';
 import 'package:friends/features/backlog/data/backlog_providers.dart';
 import 'package:friends/features/backlog/domain/category_index.dart';
 import 'package:friends/features/backlog/presentation/category_form_page.dart';
+import 'package:friends/features/backlog/presentation/category_order_page.dart';
 import 'package:friends/features/backlog/presentation/widgets/category_visuals.dart';
+import 'package:friends/features/groups/data/group_providers.dart';
 import 'package:friends/features/groups/presentation/widgets/group_themed.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -26,10 +28,31 @@ class CategoriesScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final categories = ref.watch(categoriesProvider(groupId));
+    final tree = categories.value ?? const <CategoryNode>[];
+    final canReorder =
+        ref.watch(groupPermissionsProvider(groupId))?.canReorderCategories ??
+        false;
     return GroupThemed(
       groupId: groupId,
       child: Scaffold(
-        appBar: AppBar(title: const Text('Categories')),
+        appBar: AppBar(
+          title: const Text('Categories'),
+          actions: [
+            if (canReorder && tree.length > 1)
+              IconButton(
+                tooltip: 'Reorder',
+                icon: const Icon(Icons.swap_vert),
+                onPressed: () => unawaited(
+                  openCategoryOrder(
+                    context,
+                    groupId: groupId,
+                    categories: [for (final node in tree) orderedNode(node)],
+                    tree: tree,
+                  ),
+                ),
+              ),
+          ],
+        ),
         floatingActionButton: FloatingActionButton.extended(
           heroTag: 'new-category',
           onPressed: () => unawaited(

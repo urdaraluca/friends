@@ -620,6 +620,7 @@ or endpoint for it; the recap and notifications will build on it. For `member.*`
 | `member.settings_updated` | member | `{"show_birthday": bool}` |
 | `invite.created`, `invite.revoked` | invite | `{"max_uses": int \| null, "expires_at": str \| null}` / `{}` |
 | `category.created`, `category.updated`, `category.deleted` | category | `{"name": str}` |
+| `category.reordered` | category (the parent), or none for the top level | `{"count": int}` |
 | `activity.created` | activity | `{"title": str, "category_id": uuid \| null, "status": str}` |
 | `activity.updated` | activity | `{"fields": [...]}` |
 | `activity.status_changed` | activity | `{"from": status, "to": status, "via": "status" \| "event" \| "wheel"}` |
@@ -1202,6 +1203,7 @@ Movie night `field_defs`, exactly:
 | Revoke an invite | own | any | any | |
 | Create a category | ✓ | ✓ | ✓ | |
 | Edit or delete a category (including `field_defs`) | own (creator) | any | any | |
+| Reorder categories | – | ✓ | ✓ | the order is the whole group's |
 | Create an activity, edit its content (PUT), change its status | ✓ | ✓ | ✓ | version check |
 | Change an activity's `owner_id` (in PUT) | claim it if unowned (set to self); the current owner can hand it to anyone or to nobody | any | any | otherwise 403 |
 | Delete an activity | if creator or owner | ✓ | ✓ | |
@@ -1326,6 +1328,7 @@ The Docker HEALTHCHECK calls `http://127.0.0.1:8000/api/v1/health`.
 | `POST /groups/{group_id}/categories` | `create_category` | member | `CategoryWrite` | 201 `Category` | 409 `name_taken`; 422 `category_depth_exceeded`, `invalid_reference`, `field_key_conflict`, `limit_reached`, `validation_error` (top-level without `color`) |
 | `PUT /categories/{category_id}` | `update_category` | creator or admin+ | `CategoryWrite` | 200 `Category` | 403; 409 `name_taken`; 422 `category_depth_exceeded`, `invalid_reference`, `field_key_conflict`, `field_type_change` |
 | `DELETE /categories/{category_id}` | `delete_category` | creator or admin+ | – | 204 (see below) | 403 |
+| `PUT /groups/{group_id}/categories/order` | `reorder_categories` | admin+ | `CategoryOrder` | 200 `CategoryNode[]` (the whole tree) | 403; 422 `validation_error` (`category_ids` must list every sibling exactly once), `invalid_reference`, `category_depth_exceeded` (a subcategory as `parent_id`) |
 
 Rules for categories:
 - **Deleting a subcategory:** its activities and events move to the parent (`version + 1` each).
@@ -1338,6 +1341,9 @@ Rules for categories:
   - key conflicts are re-checked.
 - `position: null` in `CategoryWrite` means "append at the end among siblings" on create and "keep"
   on update.
+- **Reordering** (issue #18): `CategoryOrder { parent_id: uuid | null, category_ids: uuid[] }`
+  sets the positions of the top-level categories (`parent_id: null`), or of one category's
+  subcategories, to `0..n-1` in the order given. It logs one `category.reordered` row.
 
 ### 8.7 activities (tag `activities`)
 

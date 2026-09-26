@@ -3,7 +3,12 @@ from fastapi import APIRouter, status
 from friends_api.deps import DbSession, GroupMember
 from friends_api.features.categories import service
 from friends_api.features.categories.deps import CategoryMember
-from friends_api.features.categories.schemas import Category, CategoryNode, CategoryWrite
+from friends_api.features.categories.schemas import (
+    Category,
+    CategoryNode,
+    CategoryOrder,
+    CategoryWrite,
+)
 
 router = APIRouter(tags=["categories"])
 
@@ -21,6 +26,16 @@ def create_category(body: CategoryWrite, db: DbSession, access: GroupMember) -> 
     category = service.create_category(db, access, body)
     db.commit()
     return service.to_category(db, category, access.membership)
+
+
+@router.put("/groups/{group_id}/categories/order")
+def reorder_categories(
+    body: CategoryOrder, db: DbSession, access: GroupMember
+) -> list[CategoryNode]:
+    """Admins. Orders the top-level categories, or one category's subcategories.
+    ``category_ids`` lists every one of them, exactly once. Returns the whole tree."""
+    service.reorder_categories(db, access, body)
+    return service.list_categories(db, access)
 
 
 @router.put("/categories/{category_id}")
