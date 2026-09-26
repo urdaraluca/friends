@@ -8,7 +8,8 @@ The API routers are matched first. Whatever they don't match is handled here:
 2. ``/.well-known/assetlinks.json``: a normal route, hidden from the OpenAPI schema;
 3. ``GET``/``HEAD`` from ``WEB_DIR``, only when ``WEB_DIR/index.html`` exists: an existing file as
    is; otherwise ``index.html`` (SPA fallback) if the last segment of the normalised path has no
-   ``.``; otherwise 404. Every response from ``WEB_DIR`` is ``Cache-Control: no-cache``;
+   ``.``; otherwise 404. Every response from ``WEB_DIR`` is ``Cache-Control: no-cache`` and
+   carries the security headers (``WEB_SECURITY_HEADERS``: a strict Content-Security-Policy);
 4. any other method: 405.
 
 uvicorn passes paths on as sent, so they are normalised here the way the file lookup resolves them:
@@ -46,6 +47,36 @@ WEB_CACHE_CONTROL = "no-cache"
 (``flutter_bootstrap.js`` loads ``main.dart.js``, ``canvaskit/`` and ``assets/`` by fixed names), so
 browsers must revalidate each one (a 304 while unchanged): a copy cached heuristically, from its
 ``Last-Modified``, could outlive a release."""
+
+CONTENT_SECURITY_POLICY = "; ".join(
+    [
+        "default-src 'self'",
+        # No inline or eval'd scripts; CanvasKit compiles WebAssembly.
+        "script-src 'self' 'wasm-unsafe-eval'",
+        # Flutter sets inline styles on the elements it creates.
+        "style-src 'self' 'unsafe-inline'",
+        # Avatars are external https URLs (contract section 3); CanvasKit fetches images and
+        # its fallback fonts (emoji, other scripts) from fonts.gstatic.com.
+        "img-src 'self' data: blob: https:",
+        "font-src 'self' data: https://fonts.gstatic.com",
+        "connect-src 'self' https:",
+        "worker-src 'self' blob:",
+        "manifest-src 'self'",
+        "object-src 'none'",
+        "base-uri 'self'",
+        "form-action 'self'",
+        "frame-ancestors 'none'",
+    ]
+)
+"""For the web build: the app can't be framed, and only its own scripts run."""
+
+WEB_SECURITY_HEADERS = {
+    "Content-Security-Policy": CONTENT_SECURITY_POLICY,
+    "X-Content-Type-Options": "nosniff",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+    "X-Frame-Options": "DENY",
+}
+"""On every response from ``WEB_DIR``, next to ``Cache-Control``."""
 
 _STATIC_METHODS = ("GET", "HEAD")
 
@@ -129,6 +160,7 @@ class WebFallback:
             response = self.files.file_response(index_path, index_stat, scope)
         # Files, the app shell and their 304s alike, whatever spelling of the path was used.
         response.headers["Cache-Control"] = WEB_CACHE_CONTROL
+        response.headers.update(WEB_SECURITY_HEADERS)
         return response
 
 

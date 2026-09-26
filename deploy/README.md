@@ -76,6 +76,9 @@
      TTL for `.js` files): the Flutter build's file names (`main.dart.js`, `canvaskit/…`) don't
      change between releases, so a new release shows up on the next reload only because browsers
      revalidate every file (a cheap 304 when it hasn't changed);
+   - keep the security headers the app sends on the web app (`Content-Security-Policy`,
+     `X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options`; contract section 1.1). A
+     proxy that adds its own CSP must allow at least the same sources, or the app won't start;
    - pass `X-Forwarded-For` / `X-Forwarded-Proto` (uvicorn trusts them, see `FORWARDED_ALLOW_IPS`).
 
    Then check from outside, e.g. from a phone on mobile data:

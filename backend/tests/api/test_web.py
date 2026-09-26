@@ -3,6 +3,7 @@
 import errno
 import logging
 import os
+import re
 import uuid
 from collections.abc import Callable, Iterator
 from pathlib import Path
@@ -80,6 +81,33 @@ def test_app_routes_get_the_app_shell(web: TestClient, path: str) -> None:
     assert response.headers["content-type"].startswith("text/html")
     assert response.text == INDEX_HTML
     assert response.headers["cache-control"] == "no-cache"
+
+
+@pytest.mark.parametrize("path", ["/", "/groups/abc/backlog", "/main.dart.js", "/assets/x.png"])
+def test_the_web_build_has_security_headers(web: TestClient, path: str) -> None:
+    response = web.get(path)
+
+    assert response.status_code == 200
+    csp = response.headers["content-security-policy"]
+    assert "script-src 'self' 'wasm-unsafe-eval'" in csp  # no inline scripts, no eval
+    assert "frame-ancestors 'none'" in csp
+    assert "object-src 'none'" in csp
+    assert response.headers["x-content-type-options"] == "nosniff"
+    assert response.headers["x-frame-options"] == "DENY"
+    assert response.headers["referrer-policy"] == "strict-origin-when-cross-origin"
+
+
+def test_the_api_has_no_csp(web: TestClient) -> None:
+    response = web.get("/api/v1/health")
+
+    assert "content-security-policy" not in response.headers
+
+
+def test_the_web_build_has_no_inline_scripts() -> None:
+    # The CSP allows only the app's own script files.
+    index = (Path(__file__).parents[3] / "app" / "web" / "index.html").read_text(encoding="utf-8")
+
+    assert re.findall(r"<script(?![^>]*\bsrc=)[^>]*>", index) == []
 
 
 def test_existing_files_are_served_as_is(web: TestClient) -> None:

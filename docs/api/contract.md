@@ -48,6 +48,20 @@ changes one, it changes the other.
   without a content hash (`flutter_bootstrap.js` loads `main.dart.js`, `canvaskit/…` and
   `assets/…` by fixed names), so without this a browser could keep a heuristically cached old
   `main.dart.js` or CanvasKit after a release. API responses send `Cache-Control: no-store`.
+- **Security headers** (issue #18). Every response from `WEB_DIR` also sends:
+  - `Content-Security-Policy`:
+    - `script-src 'self' 'wasm-unsafe-eval'`: no inline or eval'd scripts, only the app's own
+      files; CanvasKit compiles WebAssembly. The HTML splash is removed by `splash.js` for this
+      reason.
+    - `style-src 'self' 'unsafe-inline'`: Flutter styles the elements it creates.
+    - `img-src … https:` and `connect-src 'self' https:`: avatars are external https URLs.
+      CanvasKit fetches its fallback fonts (emoji, other scripts) from `fonts.gstatic.com`
+      (`font-src`).
+    - `object-src 'none'`, `base-uri 'self'`, `form-action 'self'`, and `frame-ancestors 'none'`
+      (no framing).
+  - `X-Content-Type-Options: nosniff`;
+  - `Referrer-Policy: strict-origin-when-cross-origin`;
+  - `X-Frame-Options: DENY`.
 - Docs: OpenAPI at `/api/v1/openapi.json`, Swagger UI at `/api/v1/docs`. Both exist only when
   `DOCS_ENABLED=true` (the default in dev and test; false in prod). No ReDoc.
 - The OpenAPI `info.version` is the fixed string `"1"`. `APP_VERSION` never appears in the schema,
