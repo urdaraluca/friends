@@ -1,6 +1,7 @@
 """Calendar queries (contract sections 5.5 and 5.7): ``GET /groups/{id}/calendar`` and
 ``GET /me/calendar``."""
 
+import re
 from datetime import date, timedelta
 from typing import Any
 
@@ -16,6 +17,8 @@ from tests.factories import (
     list_categories,
     register,
 )
+
+UUID_PATTERN = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
 
 WEEKLY_THURSDAY_1900_BUCHAREST = {
     "kind": "recurring",
@@ -412,7 +415,8 @@ def test_member_birthdays_are_virtual_all_day_occurrences(
         }
         for key, day in (("20261002", "2026-10-02"), ("20271002", "2027-10-02"))
     ]
-    assert "1990" not in str(body)
+    # The birth year appears nowhere (IDs aside: a random UUID may contain "1990").
+    assert "1990" not in UUID_PATTERN.sub("<id>", str(body))
 
 
 def test_hidden_birthdays_are_left_out(
