@@ -113,6 +113,12 @@ abstract final class Routes {
   static String wheelHistory(String groupId) =>
       '${groupTab(groupId, GroupTab.wheel)}/history';
 
+  /// Route pattern of [groupFeed].
+  static const groupFeedPattern = '$groupPattern/feed';
+
+  /// `/groups/<id>/feed`: what happened in the group.
+  static String groupFeed(String groupId) => '${group(groupId)}/feed';
+
   /// Query parameters of [groupRecap].
   static const periodParam = 'period';
   static const startParam = 'start';

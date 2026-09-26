@@ -14,6 +14,7 @@ import 'package:friends/features/backlog/presentation/categories_screen.dart';
 import 'package:friends/features/calendar/presentation/calendar_screen.dart';
 import 'package:friends/features/calendar/presentation/event_detail_screen.dart';
 import 'package:friends/features/calendar/presentation/event_form_screen.dart';
+import 'package:friends/features/feed/presentation/feed_screen.dart';
 import 'package:friends/features/groups/data/home_location.dart';
 import 'package:friends/features/groups/presentation/group_form_screen.dart';
 import 'package:friends/features/groups/presentation/group_hub_screen.dart';
@@ -145,6 +146,10 @@ GoRouter router(Ref ref) {
       GoRoute(
         path: Routes.groupCategoriesPattern,
         builder: (context, state) => CategoriesScreen(groupId: _groupId(state)),
+      ),
+      GoRoute(
+        path: Routes.groupFeedPattern,
+        builder: (context, state) => FeedScreen(groupId: _groupId(state)),
       ),
       GoRoute(
         path: Routes.groupRecapPattern,

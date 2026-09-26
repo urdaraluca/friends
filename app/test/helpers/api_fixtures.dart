@@ -219,6 +219,7 @@ abstract final class ApiPaths {
       '${event(eventId)}/occurrences/$key';
   static const myAvailability = '$me/availability';
   static String recap(String groupId) => '${group(groupId)}/recap';
+  static String feed(String groupId) => '${group(groupId)}/feed';
   static String groupAvailability(String groupId) =>
       '${group(groupId)}/availability';
 }
@@ -820,3 +821,25 @@ Map<String, Object?> recapJson({
         },
   };
 }
+
+Map<String, Object?> feedItemJson({
+  String id = '0190c3a5-0000-7000-8000-0000000000f9',
+  String action = 'activity.created',
+  Map<String, Object?>? actor,
+  String? subjectType = 'activity',
+  String? subjectId = Ids.activityId,
+  String? subjectTitle = 'Picnic',
+  bool subjectExists = true,
+  Map<String, Object?> data = const {},
+  String createdAt = '2026-10-01T10:00:00Z',
+}) => {
+  'id': id,
+  'action': action,
+  'actor': actor ?? userPublicJson(),
+  'subject_type': subjectType,
+  'subject_id': subjectId,
+  'subject_title': subjectTitle,
+  'subject_exists': subjectExists,
+  'data': data,
+  'created_at': createdAt,
+};

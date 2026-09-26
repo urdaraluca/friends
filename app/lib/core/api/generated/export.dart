@@ -15,6 +15,7 @@ export 'clients/polls_client.dart';
 export 'clients/events_client.dart';
 export 'clients/availability_client.dart';
 export 'clients/recap_client.dart';
+export 'clients/feed_client.dart';
 // Data classes
 export 'models/account_deletion.dart';
 export 'models/activity.dart';
@@ -44,6 +45,8 @@ export 'models/event_kind.dart';
 export 'models/event_ref.dart';
 export 'models/event_update.dart';
 export 'models/event_write.dart';
+export 'models/feed_item.dart';
+export 'models/feed_page.dart';
 export 'models/field_def.dart';
 export 'models/field_type.dart';
 export 'models/group.dart';

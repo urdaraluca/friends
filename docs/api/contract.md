@@ -1687,7 +1687,7 @@ own phone, and the history feeds the recap ("the wheel decided 14 times").
   once a Mac and an Apple account exist.
 - TMDB/OMDb auto-fill of `attributes` (needs an API key).
 - Backlog and wheel filters on attributes (`json_extract`, or generated columns).
-- A group feed UI (`GET /groups/{id}/feed` over `group_log`).
+- A group feed UI (`GET /groups/{id}/feed` over `group_log`). Built: section 15.
 - A personal calendar UI over `/me/calendar`.
 - Single-occurrence edits through `override_*` columns on `event_exceptions`.
 - Email verification and password reset, once SMTP exists.
@@ -1909,4 +1909,54 @@ Recap { period: RecapPeriod, start: date, end: date (exclusive), timezone: str, 
         polls_created: int, wheel_decisions: int, new_members: int,
         top_poll: RecapPoll | null, longest_wait: RecapWait | null,
         busiest_month: RecapMonth | null, most_wanted: RecapIdea | null }
+```
+
+## 15. Group feed (post-MVP, issue #18)
+
+What happened in a group, newest first, built from `group_log` (section 3.2).
+
+| Endpoint | operationId | Auth | Request | Success | Extra errors |
+|---|---|---|---|---|---|
+| `GET /groups/{group_id}/feed` | `list_group_feed` (tag `feed`) | member | query `cursor`, `limit` (section 1.6) | 200 `FeedPage` | – |
+
+**Actions in the feed**, and the `data` keys shown for each (anything else logged stays out):
+
+| Actions | `data` |
+|---|---|
+| `group.created`, `group.ownership_transferred`, `member.removed`, `activity.deleted`, `activity.interest_added`, `poll.voted` | `{}` |
+| `group.updated`, `activity.updated` | `fields` |
+| `member.joined` | `via` |
+| `member.left` | `reason` |
+| `member.role_changed` | `from`, `to` |
+| `activity.created` | `status` |
+| `activity.status_changed` | `from`, `to`, `via` |
+| `event.created`, `event.updated`, `event.deleted` | `kind` |
+| `event.occurrence_cancelled`, `event.occurrence_restored` | `occurrence_key` |
+| `poll.created`, `poll.updated`, `poll.closed`, `poll.reopened`, `poll.deleted` | `activity_id` |
+| `poll.option_added` | `label` |
+| `wheel.spun` | `result_activity_id`, `candidate_count` |
+| `wheel.accepted` | `activity_id` |
+
+Left out:
+- categories: setup work, and a new group logs its seven defaults;
+- invites;
+- personal settings (`member.settings_updated`);
+- removed interest;
+- the options of a vote.
+
+**Subjects**
+- `subject_title` is the subject's **current** title:
+  - an activity's or event's title, a poll's question, the group's name;
+  - a member's display name;
+  - a spin's result title.
+- Once the subject is deleted, `subject_title` falls back to the title that was logged (`title` or
+  `question`), and `subject_exists` is false.
+
+Order: `created_at` descending, then `id` descending.
+
+```
+FeedItem { id: uuid, action: str, actor: UserPublic | null, subject_type: str | null,
+           subject_id: uuid | null, subject_title: str | null, subject_exists: bool,
+           data: object, created_at: ts }
+FeedPage { items: FeedItem[], next_cursor: str | null }
 ```

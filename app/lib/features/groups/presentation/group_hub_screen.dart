@@ -64,13 +64,25 @@ class GroupHubScreen extends ConsumerWidget {
               _GroupHeader(group: group),
               Card(
                 margin: const EdgeInsets.only(bottom: 16),
-                child: ListTile(
-                  leading: const Icon(Icons.auto_awesome_outlined),
-                  title: const Text('Recap'),
-                  subtitle: const Text('Your highlights, month by month'),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () =>
-                      unawaited(context.push(Routes.groupRecap(groupId))),
+                child: Column(
+                  children: [
+                    ListTile(
+                      leading: const Icon(Icons.dynamic_feed_outlined),
+                      title: const Text("What's new"),
+                      subtitle: const Text('Ideas, plans, polls and spins'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () =>
+                          unawaited(context.push(Routes.groupFeed(groupId))),
+                    ),
+                    ListTile(
+                      leading: const Icon(Icons.auto_awesome_outlined),
+                      title: const Text('Recap'),
+                      subtitle: const Text('Your highlights, month by month'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () =>
+                          unawaited(context.push(Routes.groupRecap(groupId))),
+                    ),
+                  ],
                 ),
               ),
               _Section(

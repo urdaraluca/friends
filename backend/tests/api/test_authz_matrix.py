@@ -93,6 +93,7 @@ MEMBER_LEVEL = {
     "get_group_calendar",
     "get_group_availability",
     "get_group_recap",
+    "list_group_feed",
     "create_event",
     "get_event",
 }
