@@ -1,9 +1,15 @@
 name: flutter-setup
-description: Install Flutter, fetch packages and run code generation for app/
+description: Install Flutter, fetch packages and (by default) run code generation for app/
 inputs:
   flutter-version:
     description: Flutter SDK version
     required: true
+  build-runner:
+    description: >
+      Run `dart run build_runner build` after `flutter pub get`. Set to "false" to run steps in
+      between (e.g. the swagger_parser drift check), then run build_runner yourself.
+    required: false
+    default: "true"
 runs:
   using: composite
   steps:
@@ -17,4 +23,7 @@ runs:
       run: |
         flutter --version
         flutter pub get
-        dart run build_runner build --delete-conflicting-outputs
+    - if: inputs.build-runner == 'true'
+      shell: bash
+      working-directory: app
+      run: dart run build_runner build --delete-conflicting-outputs

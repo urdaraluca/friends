@@ -51,6 +51,7 @@ def settings(db_path: Path, tmp_path: Path) -> Settings:
         app_version="test",
         database_url=sqlite_url(db_path),
         backup_dir=tmp_path / "backups",
+        web_dir=tmp_path / "no-web-build",  # never the machine's /app/web
         registration_mode=RegistrationMode.OPEN,
         rate_limit_enabled=False,
         **FAST_ARGON2,

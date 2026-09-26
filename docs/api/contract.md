@@ -24,7 +24,9 @@ changes one, it changes the other.
   routing, in order:
   1. `/api/v1/...` goes to the API routers.
   2. Any other `/api/...` path returns a **problem+json 404 `not_found`** (an existing path with the
-     wrong method returns 405 `method_not_allowed`). The API never returns HTML.
+     wrong method returns 405 `method_not_allowed`). The API never returns HTML. A path counts as
+     `/api/...` both as sent and once normalised (empty and `.` segments dropped, `..` resolved), so
+     `//api/v1/health` is a 404 too, never the app shell.
   3. `GET /.well-known/assetlinks.json` returns JSON built from env `ANDROID_CERT_SHA256`
      (comma-separated `AA:BB:…` fingerprints, e.g. release and debug keys), or problem+json 404
      when that variable is empty:
@@ -35,14 +37,17 @@ changes one, it changes the other.
                   "sha256_cert_fingerprints": ["<each ANDROID_CERT_SHA256 entry>"]}}]
      ```
   4. Other `GET`/`HEAD` requests are served from `WEB_DIR` (`/app/web` in the image) **only when
-     `WEB_DIR/index.html` exists**. An existing file is returned as is. Otherwise, if the last path
-     segment contains no `.`, `index.html` is returned with 200 (SPA fallback, e.g. `/join/ABCDEFGHJK`,
-     `/groups/<id>/backlog`). Otherwise the response is 404. With no web build (dev, tests), these
-     paths return 404.
+     `WEB_DIR/index.html` exists**. An existing file is returned as is. Otherwise, if the last
+     segment of the normalised path contains no `.`, `index.html` is returned with 200 (SPA fallback,
+     e.g. `/join/ABCDEFGHJK`, `/groups/<id>/backlog`). Otherwise the response is 404. With no web
+     build (dev, tests), these paths return 404.
   5. Other methods outside `/api/` return 405.
-- `Cache-Control: no-cache` on `index.html` (including every SPA-fallback response) and
-  `flutter_bootstrap.js`. Other static files use the StaticFiles defaults. API responses send
-  `Cache-Control: no-store`.
+- **Caching.** Every response served from `WEB_DIR` sends `Cache-Control: no-cache`: files,
+  SPA-fallback responses and their 304s, under any spelling of the path. They keep the StaticFiles
+  `ETag` and `Last-Modified`, so an unchanged file costs a 304. A Flutter web build names its files
+  without a content hash (`flutter_bootstrap.js` loads `main.dart.js`, `canvaskit/…` and
+  `assets/…` by fixed names), so without this a browser could keep a heuristically cached old
+  `main.dart.js` or CanvasKit after a release. API responses send `Cache-Control: no-store`.
 - Docs: OpenAPI at `/api/v1/openapi.json`, Swagger UI at `/api/v1/docs`. Both exist only when
   `DOCS_ENABLED=true` (the default in dev and test; false in prod). No ReDoc.
 - The OpenAPI `info.version` is the fixed string `"1"`. `APP_VERSION` never appears in the schema,

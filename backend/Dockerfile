@@ -2,6 +2,18 @@
 # Friends API image. Built natively for linux/arm64 in CI (Raspberry Pi 4/5); also builds on amd64.
 FROM ghcr.io/astral-sh/uv:0.12.19 AS uv
 
+# The Flutter web build, served at / from /app/web (contract section 1.1). CI replaces this stage
+# with the real build through a named context: `--build-context web=<app/build/web>`
+# (docker/build-push-action `build-contexts: web=./web-dist`). A named context overrides the stage
+# of the same name.
+# Without it (a plain `docker build`), /app/web gets only this marker file: there is no index.html,
+# so the image serves the API alone. The stage is deliberately not empty: it doesn't rely on how
+# BuildKit copies "/" out of a completely empty scratch stage.
+FROM scratch AS web
+COPY <<EOF /NO_WEB_BUILD.txt
+Built without the Flutter web app. CI passes it with --build-context web=<app/build/web>.
+EOF
+
 FROM python:3.14.7-slim-trixie AS builder
 COPY --from=uv /uv /uvx /bin/
 ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy UV_PYTHON_DOWNLOADS=0 UV_NO_DEV=1 \
@@ -40,6 +52,8 @@ COPY alembic ./alembic
 COPY friends_api ./friends_api
 COPY --chmod=0755 docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN python -m compileall -q friends_api alembic
+# Last, so a new web build only changes this layer. Root-owned and read-only for the app user.
+COPY --from=web / /app/web
 USER friends
 VOLUME ["/data"]
 EXPOSE 8000

@@ -55,6 +55,10 @@ On the Android emulator, run `adb reverse tcp:8000 tcp:8000` and keep `env/dev.j
 ## Checks (what CI runs)
 
 ```powershell
-cd backend; uv run ruff check .; uv run ruff format --check .; uv run mypy; uv run pytest
-cd app; flutter analyze --fatal-infos; dart format --output=none --set-exit-if-changed lib test; flutter test
+cd backend; uv run ruff check .; uv run ruff format --check .; uv run mypy; uv run pytest --cov
+cd ../app; flutter analyze --fatal-infos; flutter test
+dart format --output=none --set-exit-if-changed (git ls-files 'lib/*.dart' 'test/*.dart' ':!lib/core/api/generated')
 ```
+
+The full list (migrations, OpenAPI snapshot, generated client), the Git Bash variants and the
+branch → PR → squash-merge flow are in [CONTRIBUTING.md](CONTRIBUTING.md).

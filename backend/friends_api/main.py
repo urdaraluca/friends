@@ -13,6 +13,7 @@ from friends_api.core.logging import REQUEST_ID_HEADER, RequestContextMiddleware
 from friends_api.core.openapi import install_openapi
 from friends_api.core.ratelimit import RateLimits
 from friends_api.core.security import Passwords
+from friends_api.core.web import install_web
 from friends_api.features.auth.service import AuthContext
 
 
@@ -69,4 +70,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.add_middleware(RequestContextMiddleware, quiet_paths=frozenset({f"{API_PREFIX}/health"}))
 
     app.include_router(api_router)
+    # After the API: the web app, assetlinks.json and problem+json 404s for unknown /api paths.
+    install_web(app, settings)
     return app

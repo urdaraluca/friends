@@ -7,6 +7,7 @@ on:
       - "backend/openapi.json"
       - ".github/workflows/app-ci.yml"
       - ".github/actions/flutter-setup/**"
+      - "!**/*.md"
   push:
     branches: [main]
     paths:
@@ -14,6 +15,7 @@ on:
       - "backend/openapi.json"
       - ".github/workflows/app-ci.yml"
       - ".github/actions/flutter-setup/**"
+      - "!**/*.md"
   workflow_dispatch:
     inputs:
       build_ios:
@@ -29,7 +31,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  FLUTTER_VERSION: "3.47.5"
+  FLUTTER_VERSION: "3.47.5" # also used by backend-image.yml
 
 defaults:
   run:
@@ -44,6 +46,21 @@ jobs:
       - uses: ./.github/actions/flutter-setup
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
+          build-runner: "false" # the drift check below runs first
+      # Before build_runner, so only the committed swagger_parser output is compared
+      # (*.g.dart / *.freezed.dart are gitignored and don't exist yet). The directory is emptied
+      # first because swagger_parser never deletes files: a stale one then shows up as deleted.
+      - name: Generated API client matches backend/openapi.json
+        run: |
+          rm -rf lib/core/api/generated
+          dart run swagger_parser
+          if ! git diff --exit-code -- lib/core/api/generated \
+            || [ -n "$(git status --porcelain --untracked-files=all -- lib/core/api/generated)" ]; then
+            git status --short -- lib/core/api/generated
+            echo "::error::lib/core/api/generated is stale. Run in app/: dart run swagger_parser, then commit the result."
+            exit 1
+          fi
+      - run: dart run build_runner build --delete-conflicting-outputs
       - name: Format
         run: >
           dart format --output=none --set-exit-if-changed
@@ -82,6 +99,14 @@ jobs:
         with:
           distribution: temurin
           java-version: "17"
+          # Caches ~/.gradle/caches and ~/.gradle/wrapper. The key covers the Gradle build files,
+          # the wrapper version and pubspec.lock (Flutter plugins add Android dependencies).
+          cache: gradle
+          cache-dependency-path: |
+            app/android/*.gradle*
+            app/android/app/*.gradle*
+            app/android/gradle/wrapper/gradle-wrapper.properties
+            app/pubspec.lock
       - uses: ./.github/actions/flutter-setup
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}

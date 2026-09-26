@@ -2,8 +2,9 @@
 
 **Where things live**
 - GitHub Actions builds `ghcr.io/urdaraluca/friends-backend` for `linux/arm64` and the Pi pulls it.
-- The container serves the API under `/api/v1` and, once the web build is added, the Flutter web
-  app at `/`.
+- One container, one origin: it serves the API under `/api/v1`, the Flutter web app at `/` (deep
+  links such as invite links `/join/<code>` included) and `/.well-known/assetlinks.json`.
+  CI builds the web app into the image, so there is nothing else to deploy.
 - Data lives in the Docker volume `friends-data`, as `/data/friends.db` (SQLite, WAL mode).
 
 **Image tags**
@@ -64,9 +65,27 @@
    curl -fsS http://127.0.0.1:8000/api/v1/health
    ```
 
-7. **Proxy.** Point the existing reverse proxy / tunnel at `http://127.0.0.1:8000` (all paths).
+7. **Proxy.** Point the existing reverse proxy / tunnel at `http://127.0.0.1:8000` and forward
+   **every path** to it, unchanged: `/` and any deep link (`/join/…`, `/groups/…`), `/api/…` and
+   `/.well-known/…`. The container decides what each path is (contract section 1.1):
+   - don't limit the proxy to `/api`, and don't strip or rewrite path prefixes;
+   - don't serve your own error pages or an `index.html` fallback in front of it: unknown `/api/…`
+     paths must reach the app as a problem+json 404, never HTML;
+   - keep the `Cache-Control` headers the app sends: `no-cache` on everything from the web app,
+     `no-store` on the API. Don't add a cache lifetime of your own (e.g. a CDN's default browser
+     TTL for `.js` files): the Flutter build's file names (`main.dart.js`, `canvaskit/…`) don't
+     change between releases, so a new release shows up on the next reload only because browsers
+     revalidate every file (a cheap 304 when it hasn't changed);
+   - pass `X-Forwarded-For` / `X-Forwarded-Proto` (uvicorn trusts them, see `FORWARDED_ALLOW_IPS`).
+
    Then check from outside, e.g. from a phone on mobile data:
-   `https://<your-host>/api/v1/health`.
+   ```sh
+   curl -fsS https://<your-host>/api/v1/health
+   curl -fsS https://<your-host>/join/ABCDEFGHJK | grep -q flutter_bootstrap && echo "web app ok"
+   curl -s -o /dev/null -w "%{http_code}\n" https://<your-host>/api/v1/nope   # 404 (problem+json)
+   ```
+   Open `https://<your-host>/` in a browser: the web app talks to the API on the same origin, so
+   `CORS_ORIGINS` stays empty.
 
 8. **Nightly backups.** Add a cron entry (`crontab -e`):
    ```cron
@@ -74,6 +93,29 @@
    ```
    Backups are consistent even while the app is writing, integrity-checked and gzipped. They go to
    `BACKUP_HOST_DIR`, which should be a USB drive or NAS, not the SD card.
+
+## Android App Links (`ANDROID_CERT_SHA256`)
+
+Invite links open the Android app directly once Android can verify that the app and the host belong
+together. Android fetches `https://<your-host>/.well-known/assetlinks.json`, which the container
+builds from `ANDROID_CERT_SHA256` for the package `io.github.urdaraluca.friends`. This is used by the
+Android release milestone (M10); until then, leave it empty and the file is a 404.
+
+1. Get the SHA-256 fingerprint of each signing certificate, in the `AA:BB:…` form (32 pairs):
+   - a keystore you sign release APKs with yourself:
+     `keytool -list -v -keystore release.jks -alias <alias>`, line `SHA256:`;
+   - with Play App Signing, the **app signing key** fingerprint from Play Console → your app →
+     App integrity → App signing (installed apps are signed with that key, not the upload key);
+   - optionally the debug key, so debug builds verify too:
+     `keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android`.
+2. Put them in `.env`, comma-separated, then run `./update.sh`:
+   ```sh
+   ANDROID_CERT_SHA256=14:6D:E9:…:44:E5,AB:CD:…:89
+   ```
+3. Check it (it must be a 200 with `application/json`, and no redirect):
+   ```sh
+   curl -fsS https://<your-host>/.well-known/assetlinks.json
+   ```
 
 ## Updating
 

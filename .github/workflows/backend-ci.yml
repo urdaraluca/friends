@@ -5,11 +5,13 @@ on:
     paths:
       - "backend/**"
       - ".github/workflows/backend-ci.yml"
+      - "!**/*.md"
   push:
     branches: [main]
     paths:
       - "backend/**"
       - ".github/workflows/backend-ci.yml"
+      - "!**/*.md"
   workflow_call:
   workflow_dispatch:
 

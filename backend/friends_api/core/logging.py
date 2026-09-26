@@ -13,6 +13,7 @@ from starlette.datastructures import MutableHeaders
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from friends_api.core.config import LogFormat
+from friends_api.core.web import is_api_path
 
 request_id_var: ContextVar[str | None] = ContextVar("request_id", default=None)
 
@@ -75,7 +76,7 @@ class RequestContextMiddleware:
         incoming = dict(scope["headers"]).get(REQUEST_ID_HEADER.lower().encode(), b"").decode()
         request_id = incoming if _VALID_REQUEST_ID.match(incoming) else uuid.uuid4().hex
         token = request_id_var.set(request_id)
-        is_api = scope["path"].startswith("/api/")
+        is_api = is_api_path(scope["path"])
         started = time.perf_counter()
         status_code = 500
 
