@@ -10,6 +10,8 @@ import '../models/calendar_response.dart';
 import '../models/event_kind.dart';
 import '../models/me.dart';
 import '../models/me_update.dart';
+import '../models/my_availability.dart';
+import '../models/my_availability_update.dart';
 import '../models/password_change.dart';
 import '../models/token_pair.dart';
 
@@ -64,5 +66,27 @@ abstract class UsersClient {
     @Query('to') required DateTime to,
     @Query('tz') String? tz,
     @Query('kinds') List<EventKind>? kinds,
+  });
+
+  /// Get My Availability.
+  ///
+  /// My answers in ``[from, to)`` (at most 92 days), by date then slot. They show in every group.
+  /// I'm in.
+  ///
+  /// [from] - First day (inclusive).
+  ///
+  /// [to] - Last day (exclusive); at most 92 days after `from`.
+  @GET('/api/v1/me/availability')
+  Future<MyAvailability> getMyAvailability({
+    @Query('from') required DateTime from,
+    @Query('to') required DateTime to,
+  });
+
+  /// Update My Availability.
+  ///
+  /// Replaces my answers in ``[from_date, to_date)``: a slot left out becomes unknown.
+  @PUT('/api/v1/me/availability')
+  Future<MyAvailability> updateMyAvailability({
+    @Body() required MyAvailabilityUpdate body,
   });
 }

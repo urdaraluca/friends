@@ -91,6 +91,7 @@ MEMBER_LEVEL = {
     "add_poll_option",
     "set_my_vote",
     "get_group_calendar",
+    "get_group_availability",
     "create_event",
     "get_event",
 }
@@ -113,6 +114,7 @@ BODIES: dict[str, Callable[[World], dict[str, Any] | None]] = {
 # operationId -> query parameters the route requires.
 QUERIES: dict[str, dict[str, str]] = {
     "get_group_calendar": {"from": "2026-10-01", "to": "2026-11-01"},
+    "get_group_availability": {"from": "2026-10-01", "to": "2026-10-15"},
 }
 
 

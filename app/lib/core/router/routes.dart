@@ -86,6 +86,29 @@ abstract final class Routes {
   static String editEvent(String groupId, String eventId) =>
       '${event(groupId, eventId)}/edit';
 
+  /// Query parameter of the availability routes: a day (`YYYY-MM-DD`) of
+  /// the month to open on.
+  static const monthParam = 'month';
+
+  /// `/groups/<id>/calendar/availability`: the group's heatmap ("When can
+  /// everyone make it?"), opened on [month]'s month. "Plan it" links the
+  /// new event to [activityId].
+  static String groupAvailability(
+    String groupId, {
+    String? activityId,
+    String? month,
+  }) => _withQuery('${groupTab(groupId, GroupTab.calendar)}/availability', {
+    activityIdQuery: activityId,
+    monthParam: month,
+  });
+
+  /// My availability, for every group I'm in.
+  static const myAvailability = '/availability';
+
+  /// `/availability`, opened on [month]'s month (`YYYY-MM-DD`).
+  static String myAvailabilityFor({String? month}) =>
+      _withQuery(myAvailability, {monthParam: month});
+
   /// `/groups/<id>/wheel/history`: past spins.
   static String wheelHistory(String groupId) =>
       '${groupTab(groupId, GroupTab.wheel)}/history';

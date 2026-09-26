@@ -154,6 +154,21 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                 ref.read(calendarSpanSettingProvider.notifier).set(span),
               ),
             ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: OutlinedButton.icon(
+                onPressed: () => unawaited(
+                  context.push(
+                    Routes.groupAvailability(
+                      groupId,
+                      month: DateOnly.format(_focused),
+                    ),
+                  ),
+                ),
+                icon: const Icon(Icons.group_outlined),
+                label: const Text('When can everyone make it?'),
+              ),
+            ),
             const Divider(height: 1),
             if (calendar.hasError && !calendar.hasValue)
               ErrorView(

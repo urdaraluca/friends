@@ -1656,7 +1656,7 @@ own phone, and the history feeds the recap ("the wheel decided 14 times").
 - What the MVP already gets right for this: every mutation goes through the service layer (one hook
   point), `group_log` exists, recurrence is a pure function, and `users.timezone` exists.
 
-**Availability heatmap**
+**Availability heatmap** (built: section 13)
 - Table `availability(user_id, date, slot all_day|morning|afternoon|evening, status free|maybe|busy,
   updated_at)` with `UNIQUE(user_id, date, slot)`. It is per user, so it shows in every group the user
   belongs to.
@@ -1786,3 +1786,61 @@ swagger_parser:
 - The API stays `v1`. Changes are additive: new fields, and new enum values that old clients tolerate.
 - A breaking change would add `/api/v2`, served next to v1.
 - Release tags are `backend-vX.Y.Z` and `app-vX.Y.Z`. The schema version string stays `"1"`.
+
+---
+
+## 13. Availability (post-MVP, issue #16)
+
+Members say when they are free; each group gets a heatmap and its best days. Decisions:
+[ADR 0004](../adr/0004-availability.md).
+
+**Storage.** `availability(id, user_id -> users CASCADE, date, slot, status, created_at, updated_at)`,
+`UNIQUE (user_id, date, slot)`.
+- `slot`: `all_day | morning | afternoon | evening`.
+- `status`: `free | maybe | busy`.
+- It is **per user**, not per group: one answer shows in every group the user belongs to. Nothing
+  is deleted when a membership ends, because nothing belongs to the group.
+
+**Endpoints**
+
+| Endpoint | operationId | Auth | Request | Success | Extra errors |
+|---|---|---|---|---|---|
+| `GET /me/availability` | `get_my_availability` (tag `users`) | user | query `from`, `to` (`ApiDate`, `to` exclusive) | 200 `MyAvailability`: my entries by date, then slot | 422 `range_too_large` |
+| `PUT /me/availability` | `update_my_availability` (tag `users`) | user | `MyAvailabilityUpdate` | 200 `MyAvailability`. **Replaces** my entries with `from_date <= date < to_date`; a slot left out becomes unknown. | 422 `range_too_large`, `validation_error` (an entry outside the range: `entries.<i>.date`; a repeated date and slot: `entries.<i>`) |
+| `GET /groups/{group_id}/availability` | `get_group_availability` (tag `availability`) | member | query `from`, `to` | 200 `GroupAvailability` | 422 `range_too_large` |
+
+Ranges: `to <= from` → 422 `validation_error`; more than **92 days** → 422 `range_too_large`.
+
+**Resolving an answer** (only the group's *current* members count):
+- A part of the day (`morning`, `afternoon`, `evening`) is its own entry, else the date's `all_day`
+  entry, else unknown.
+- The whole day is the `all_day` entry. Without one, it comes from the three parts:
+  - free when all three are free;
+  - maybe when any is free or maybe;
+  - busy when all three are busy;
+  - unknown otherwise.
+
+**Score and best days**
+- A day's score is `free + 0.5 × maybe`, over the whole-day statuses.
+- `best_days` lists up to 10 days with a score above 0. The highest score comes first; ties go to
+  fewer busy, then the earlier date.
+
+**Privacy**
+- Counts are shown for every slot. Who is **free** or **maybe** is listed by name.
+- **Busy stays a count only**: nobody sees who said no.
+
+```
+AvailabilitySlot   = all_day | morning | afternoon | evening
+AvailabilityStatus = free | maybe | busy
+AvailabilityEntry      { date: date, slot: AvailabilitySlot, status: AvailabilityStatus }
+AvailabilityEntryWrite { date: date, slot: AvailabilitySlot, status: AvailabilityStatus }
+MyAvailability         { from_date: date, to_date: date (exclusive), entries: AvailabilityEntry[] }
+MyAvailabilityUpdate   { from_date: date, to_date: date (exclusive, <= 92 days),
+                         entries: AvailabilityEntryWrite[] = [] }
+SlotCounts        { slot, free: int, maybe: int, busy: int, unknown: int,
+                    free_users: UserPublic[], maybe_users: UserPublic[] }
+DayAvailability   { date: date, score: float, slots: SlotCounts[] (all_day, morning, afternoon, evening) }
+BestDay           { date: date, score: float, free: int, maybe: int, busy: int, unknown: int }
+GroupAvailability { from_date: date, to_date: date (exclusive), member_count: int,
+                    days: DayAvailability[] (every date of the range), best_days: BestDay[] (<= 10) }
+```

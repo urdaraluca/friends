@@ -584,6 +584,134 @@
         }
       }
     },
+    "/api/v1/me/availability": {
+      "get": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Get My Availability",
+        "description": "My answers in ``[from, to)`` (at most 92 days), by date then slot. They show in every group\nI'm in.",
+        "operationId": "get_my_availability",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "description": "First day (inclusive).",
+              "title": "From"
+            },
+            "description": "First day (inclusive)."
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "description": "Last day (exclusive); at most 92 days after `from`.",
+              "title": "To"
+            },
+            "description": "Last day (exclusive); at most 92 days after `from`."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyAvailability"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Error (RFC 9457 problem details)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (RFC 9457 problem details)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Update My Availability",
+        "description": "Replaces my answers in ``[from_date, to_date)``: a slot left out becomes unknown.",
+        "operationId": "update_my_availability",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MyAvailabilityUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyAvailability"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Error (RFC 9457 problem details)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (RFC 9457 problem details)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/groups": {
       "get": {
         "tags": [
@@ -3977,6 +4105,89 @@
           }
         }
       }
+    },
+    "/api/v1/groups/{group_id}/availability": {
+      "get": {
+        "tags": [
+          "availability"
+        ],
+        "summary": "Get Group Availability",
+        "description": "The current members' availability per day and slot in ``[from, to)``, and the best days\n(score = free + 0.5 * maybe, then fewer busy, then the earliest). Who is free or maybe is\nlisted by name; busy is a count only.",
+        "operationId": "get_group_availability",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "group_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Group Id"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "description": "First day (inclusive).",
+              "title": "From"
+            },
+            "description": "First day (inclusive)."
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "description": "Last day (exclusive); at most 92 days after `from`.",
+              "title": "To"
+            },
+            "description": "Last day (exclusive); at most 92 days after `from`."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupAvailability"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Error (RFC 9457 problem details)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (RFC 9457 problem details)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -4811,6 +5022,108 @@
         ],
         "title": "AuthSession"
       },
+      "AvailabilityEntry": {
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "title": "Date"
+          },
+          "slot": {
+            "$ref": "#/components/schemas/AvailabilitySlot"
+          },
+          "status": {
+            "$ref": "#/components/schemas/AvailabilityStatus"
+          }
+        },
+        "type": "object",
+        "required": [
+          "date",
+          "slot",
+          "status"
+        ],
+        "title": "AvailabilityEntry"
+      },
+      "AvailabilityEntryWrite": {
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "title": "Date"
+          },
+          "slot": {
+            "$ref": "#/components/schemas/AvailabilitySlot"
+          },
+          "status": {
+            "$ref": "#/components/schemas/AvailabilityStatus"
+          }
+        },
+        "type": "object",
+        "required": [
+          "date",
+          "slot",
+          "status"
+        ],
+        "title": "AvailabilityEntryWrite"
+      },
+      "AvailabilitySlot": {
+        "type": "string",
+        "enum": [
+          "all_day",
+          "morning",
+          "afternoon",
+          "evening"
+        ],
+        "title": "AvailabilitySlot"
+      },
+      "AvailabilityStatus": {
+        "type": "string",
+        "enum": [
+          "free",
+          "maybe",
+          "busy"
+        ],
+        "title": "AvailabilityStatus"
+      },
+      "BestDay": {
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "title": "Date"
+          },
+          "score": {
+            "type": "number",
+            "title": "Score"
+          },
+          "free": {
+            "type": "integer",
+            "title": "Free"
+          },
+          "maybe": {
+            "type": "integer",
+            "title": "Maybe"
+          },
+          "busy": {
+            "type": "integer",
+            "title": "Busy"
+          },
+          "unknown": {
+            "type": "integer",
+            "title": "Unknown"
+          }
+        },
+        "type": "object",
+        "required": [
+          "date",
+          "score",
+          "free",
+          "maybe",
+          "busy",
+          "unknown"
+        ],
+        "title": "BestDay"
+      },
       "Birthday": {
         "properties": {
           "month": {
@@ -5258,6 +5571,33 @@
           "name"
         ],
         "title": "CategoryWrite"
+      },
+      "DayAvailability": {
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "title": "Date"
+          },
+          "score": {
+            "type": "number",
+            "title": "Score"
+          },
+          "slots": {
+            "items": {
+              "$ref": "#/components/schemas/SlotCounts"
+            },
+            "type": "array",
+            "title": "Slots"
+          }
+        },
+        "type": "object",
+        "required": [
+          "date",
+          "score",
+          "slots"
+        ],
+        "title": "DayAvailability"
       },
       "Event": {
         "properties": {
@@ -6063,6 +6403,47 @@
         ],
         "title": "Group"
       },
+      "GroupAvailability": {
+        "properties": {
+          "from_date": {
+            "type": "string",
+            "format": "date",
+            "title": "From Date"
+          },
+          "to_date": {
+            "type": "string",
+            "format": "date",
+            "title": "To Date"
+          },
+          "member_count": {
+            "type": "integer",
+            "title": "Member Count"
+          },
+          "days": {
+            "items": {
+              "$ref": "#/components/schemas/DayAvailability"
+            },
+            "type": "array",
+            "title": "Days"
+          },
+          "best_days": {
+            "items": {
+              "$ref": "#/components/schemas/BestDay"
+            },
+            "type": "array",
+            "title": "Best Days"
+          }
+        },
+        "type": "object",
+        "required": [
+          "from_date",
+          "to_date",
+          "member_count",
+          "days",
+          "best_days"
+        ],
+        "title": "GroupAvailability"
+      },
       "GroupCreate": {
         "properties": {
           "name": {
@@ -6805,6 +7186,63 @@
         ],
         "title": "MemberSettingsUpdate"
       },
+      "MyAvailability": {
+        "properties": {
+          "from_date": {
+            "type": "string",
+            "format": "date",
+            "title": "From Date"
+          },
+          "to_date": {
+            "type": "string",
+            "format": "date",
+            "title": "To Date"
+          },
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/AvailabilityEntry"
+            },
+            "type": "array",
+            "title": "Entries"
+          }
+        },
+        "type": "object",
+        "required": [
+          "from_date",
+          "to_date",
+          "entries"
+        ],
+        "title": "MyAvailability"
+      },
+      "MyAvailabilityUpdate": {
+        "properties": {
+          "from_date": {
+            "type": "string",
+            "format": "date",
+            "title": "From Date"
+          },
+          "to_date": {
+            "type": "string",
+            "format": "date",
+            "title": "To Date"
+          },
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/AvailabilityEntryWrite"
+            },
+            "type": "array",
+            "maxItems": 368,
+            "title": "Entries"
+          }
+        },
+        "type": "object",
+        "required": [
+          "from_date",
+          "to_date"
+        ],
+        "title": "MyAvailabilityUpdate",
+        "description": "Replaces every entry of mine with ``from_date <= date < to_date`` by ``entries``; a slot\nleft out becomes unknown."
+      },
       "Occurrence": {
         "properties": {
           "occurrence_key": {
@@ -7458,6 +7896,55 @@
           "role"
         ],
         "title": "RoleUpdate"
+      },
+      "SlotCounts": {
+        "properties": {
+          "slot": {
+            "$ref": "#/components/schemas/AvailabilitySlot"
+          },
+          "free": {
+            "type": "integer",
+            "title": "Free"
+          },
+          "maybe": {
+            "type": "integer",
+            "title": "Maybe"
+          },
+          "busy": {
+            "type": "integer",
+            "title": "Busy"
+          },
+          "unknown": {
+            "type": "integer",
+            "title": "Unknown"
+          },
+          "free_users": {
+            "items": {
+              "$ref": "#/components/schemas/UserPublic"
+            },
+            "type": "array",
+            "title": "Free Users"
+          },
+          "maybe_users": {
+            "items": {
+              "$ref": "#/components/schemas/UserPublic"
+            },
+            "type": "array",
+            "title": "Maybe Users"
+          }
+        },
+        "type": "object",
+        "required": [
+          "slot",
+          "free",
+          "maybe",
+          "busy",
+          "unknown",
+          "free_users",
+          "maybe_users"
+        ],
+        "title": "SlotCounts",
+        "description": "How the group's current members answered for one slot of a day."
       },
       "SortOrder": {
         "type": "string",

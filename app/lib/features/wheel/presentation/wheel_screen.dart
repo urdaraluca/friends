@@ -369,6 +369,19 @@ class SpinResultCard extends ConsumerWidget {
                     ),
                     child: const Text('Open activity'),
                   ),
+                if (activityId != null)
+                  OutlinedButton.icon(
+                    onPressed: () => unawaited(
+                      context.push(
+                        Routes.groupAvailability(
+                          groupId,
+                          activityId: activityId,
+                        ),
+                      ),
+                    ),
+                    icon: const Icon(Icons.group_outlined),
+                    label: const Text('When can everyone make it?'),
+                  ),
               ],
             ),
           ],

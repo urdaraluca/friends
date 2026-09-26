@@ -84,3 +84,22 @@ def test_the_demo_calendar_is_served(
     titles = {o["title"] for o in occurrences}
     assert {"Game night", "Dinner club", "Anniversary picnic", "Grandma Elena"} <= titles
     assert len([o for o in occurrences if o["title"] == "Game night"]) > 50
+
+
+def test_seed_demo_gives_the_heatmap_best_days(
+    settings: Settings, client: TestClient, db_session: Session
+) -> None:
+    assert cli.main(["seed-demo"], settings) == 0
+    group_id = db_session.scalars(select(Group.id)).one()
+    headers = bearer(login(client, DEMO_EMAILS[0], DEMO_PASSWORD)["tokens"]["access_token"])
+    today = datetime.now(UTC).date()
+
+    response = client.get(
+        f"/api/v1/groups/{group_id}/availability",
+        headers=headers,
+        params={"from": today.isoformat(), "to": (today + timedelta(days=21)).isoformat()},
+    )
+
+    assert response.status_code == 200, response.text
+    assert response.json()["member_count"] == 3
+    assert response.json()["best_days"]

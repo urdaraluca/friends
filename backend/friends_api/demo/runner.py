@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from friends_api.core.db import utcnow
 from friends_api.demo.activities import add_interests, create_activities
+from friends_api.demo.availability import create_availability
 from friends_api.demo.base import create_base
 from friends_api.demo.categories import create_subcategories
 from friends_api.demo.context import DEMO_SEED, DemoContext
@@ -27,6 +28,8 @@ STEPS: list[Step] = [
     create_polls,
     # -- one step per line, so parallel additions don't touch the same lines --
     create_spins,
+    # -- one step per line --
+    create_availability,
 ]
 """Each step gets the session and the shared context; the runner flushes after each one."""
 

@@ -57,6 +57,16 @@ class ProfileScreen extends ConsumerWidget {
                       child: _DeleteAccount(),
                     ),
                     ListTile(
+                      leading: const Icon(Icons.edit_calendar_outlined),
+                      title: const Text('My availability'),
+                      subtitle: const Text(
+                        'When you are free, for all your groups',
+                      ),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () =>
+                          unawaited(context.push(Routes.myAvailability)),
+                    ),
+                    ListTile(
                       leading: const Icon(Icons.privacy_tip_outlined),
                       title: const Text('Privacy'),
                       subtitle: const Text('What Friends stores, and why'),

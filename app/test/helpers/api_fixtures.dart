@@ -217,6 +217,9 @@ abstract final class ApiPaths {
   static String event(String id) => '/api/v1/events/$id';
   static String occurrence(String eventId, String key) =>
       '${event(eventId)}/occurrences/$key';
+  static const myAvailability = '$me/availability';
+  static String groupAvailability(String groupId) =>
+      '${group(groupId)}/availability';
 }
 
 /// An access token shaped like the API's JWTs (contract section 4.1) for
@@ -643,3 +646,77 @@ String instantKey(DateTime instant) {
   return '${utc.year}${two(utc.month)}${two(utc.day)}'
       'T${two(utc.hour)}${two(utc.minute)}${two(utc.second)}Z';
 }
+
+Map<String, Object?> availabilityEntryJson(
+  String date, {
+  String slot = 'all_day',
+  String status = 'free',
+}) => {'date': date, 'slot': slot, 'status': status};
+
+Map<String, Object?> myAvailabilityJson(
+  List<Map<String, Object?>> entries, {
+  String from = '2026-09-28',
+  String to = '2026-11-02',
+}) => {'from_date': from, 'to_date': to, 'entries': entries};
+
+Map<String, Object?> slotCountsJson({
+  String slot = 'all_day',
+  List<Map<String, Object?>> free = const [],
+  List<Map<String, Object?>> maybe = const [],
+  int busy = 0,
+  int unknown = 0,
+}) => {
+  'slot': slot,
+  'free': free.length,
+  'maybe': maybe.length,
+  'busy': busy,
+  'unknown': unknown,
+  'free_users': free,
+  'maybe_users': maybe,
+};
+
+/// A day whose four slots all have the same answers.
+Map<String, Object?> dayAvailabilityJson(
+  String date, {
+  List<Map<String, Object?>> free = const [],
+  List<Map<String, Object?>> maybe = const [],
+  int busy = 0,
+  int unknown = 0,
+}) => {
+  'date': date,
+  'score': free.length + 0.5 * maybe.length,
+  'slots': [
+    for (final slot in ['all_day', 'morning', 'afternoon', 'evening'])
+      slotCountsJson(
+        slot: slot,
+        free: free,
+        maybe: maybe,
+        busy: busy,
+        unknown: unknown,
+      ),
+  ],
+};
+
+Map<String, Object?> groupAvailabilityJson(
+  List<Map<String, Object?>> days, {
+  int memberCount = 3,
+  String from = '2026-09-28',
+  String to = '2026-11-02',
+}) => {
+  'from_date': from,
+  'to_date': to,
+  'member_count': memberCount,
+  'days': days,
+  'best_days': [
+    for (final day in days)
+      if ((day['score']! as num) > 0)
+        {
+          'date': day['date'],
+          'score': day['score'],
+          'free': ((day['slots']! as List).first as Map)['free'],
+          'maybe': ((day['slots']! as List).first as Map)['maybe'],
+          'busy': ((day['slots']! as List).first as Map)['busy'],
+          'unknown': ((day['slots']! as List).first as Map)['unknown'],
+        },
+  ]..sort((a, b) => (b['score']! as num).compareTo(a['score']! as num)),
+};

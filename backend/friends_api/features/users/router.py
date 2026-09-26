@@ -3,6 +3,9 @@ from fastapi import APIRouter, status
 from friends_api.deps import Auth, CurrentPrincipal, CurrentUser, DbSession
 from friends_api.features.auth import service as auth_service
 from friends_api.features.auth.schemas import AccountDeletion, PasswordChange, TokenPair
+from friends_api.features.availability import service as availability_service
+from friends_api.features.availability.router import AvailabilityFrom, AvailabilityTo
+from friends_api.features.availability.schemas import MyAvailability, MyAvailabilityUpdate
 from friends_api.features.events import calendar
 from friends_api.features.events.params import FromParam, KindsParam, ToParam, TzParam
 from friends_api.features.events.schemas import CalendarResponse
@@ -58,3 +61,20 @@ def get_my_calendar(
     person (``group_id`` null) if they show them in at least one group you share."""
     query = calendar.CalendarQuery(from_date=from_, to_date=to, tz=tz, kinds=kinds)
     return calendar.my_calendar(db, user, query)
+
+
+@router.get("/availability")
+def get_my_availability(
+    db: DbSession, user: CurrentUser, from_: AvailabilityFrom, to: AvailabilityTo
+) -> MyAvailability:
+    """My answers in ``[from, to)`` (at most 92 days), by date then slot. They show in every group
+    I'm in."""
+    return availability_service.my_availability(db, user, from_, to)
+
+
+@router.put("/availability")
+def update_my_availability(
+    body: MyAvailabilityUpdate, db: DbSession, user: CurrentUser
+) -> MyAvailability:
+    """Replaces my answers in ``[from_date, to_date)``: a slot left out becomes unknown."""
+    return availability_service.update_my_availability(db, user, body)

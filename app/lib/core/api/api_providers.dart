@@ -83,3 +83,8 @@ PollsClient pollsClient(Ref ref) => ref.watch(friendsApiProvider).polls;
 /// Events and the calendar.
 @Riverpod(keepAlive: true)
 EventsClient eventsClient(Ref ref) => ref.watch(friendsApiProvider).events;
+
+/// The group availability heatmap (`/me/availability` is on [usersClient]).
+@Riverpod(keepAlive: true)
+AvailabilityClient availabilityClient(Ref ref) =>
+    ref.watch(friendsApiProvider).availability;

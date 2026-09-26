@@ -4,6 +4,8 @@ import 'package:friends/core/router/routes.dart';
 import 'package:friends/features/auth/presentation/login_screen.dart';
 import 'package:friends/features/auth/presentation/register_screen.dart';
 import 'package:friends/features/auth/presentation/splash_screen.dart';
+import 'package:friends/features/availability/presentation/group_availability_screen.dart';
+import 'package:friends/features/availability/presentation/my_availability_screen.dart';
 import 'package:friends/features/backlog/presentation/activity_detail_screen.dart';
 import 'package:friends/features/backlog/presentation/activity_form_screen.dart';
 import 'package:friends/features/backlog/presentation/backlog_screen.dart';
@@ -116,6 +118,12 @@ GoRouter router(Ref ref) {
         builder: (context, state) => const ProfileScreen(),
       ),
       GoRoute(
+        path: Routes.myAvailability,
+        builder: (context, state) => MyAvailabilityScreen(
+          initialMonth: _dateQuery(state, Routes.monthParam),
+        ),
+      ),
+      GoRoute(
         path: Routes.health,
         builder: (context, state) => const HealthScreen(),
       ),
@@ -192,6 +200,15 @@ GoRouter router(Ref ref) {
               ),
             ),
             routes: [
+              GoRoute(
+                path: 'availability',
+                parentNavigatorKey: rootNavigatorKey,
+                builder: (context, state) => GroupAvailabilityScreen(
+                  groupId: _groupId(state),
+                  activityId: state.uri.queryParameters[Routes.activityIdQuery],
+                  initialMonth: _dateQuery(state, Routes.monthParam),
+                ),
+              ),
               GoRoute(
                 path: 'events/new',
                 parentNavigatorKey: rootNavigatorKey,
