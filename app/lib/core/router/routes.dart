@@ -38,6 +38,27 @@ abstract final class Routes {
   /// `/groups/<id>/edit`.
   static String editGroup(String groupId) => '${group(groupId)}/edit';
 
+  /// Path parameter holding an activity's ID.
+  static const activityIdParam = 'activityId';
+
+  /// `/groups/<id>/backlog/new`: the new-activity form.
+  static String newActivity(String groupId) => '${groupBacklog(groupId)}/new';
+
+  /// `/groups/<id>/backlog/<activityId>`: an activity's detail.
+  static String activity(String groupId, String activityId) =>
+      '${groupBacklog(groupId)}/${Uri.encodeComponent(activityId)}';
+
+  /// `/groups/<id>/backlog/<activityId>/edit`.
+  static String editActivity(String groupId, String activityId) =>
+      '${activity(groupId, activityId)}/edit';
+
+  /// `/groups/<id>/settings/categories`: categories and their fields.
+  static String groupCategories(String groupId) =>
+      '${group(groupId)}/settings/categories';
+
+  /// Route pattern of [groupCategories].
+  static const groupCategoriesPattern = '$groupPattern/settings/categories';
+
   /// Shown while the session is restored, with Retry when that fails.
   static const splash = '/splash';
 

@@ -150,6 +150,28 @@ class TestBackend {
             ],
       )
       ..onJson('GET', ApiPaths.invites(id), invites);
+    stubBacklog(groupId: id, categories: const []);
+  }
+
+  /// The group's categories (`categoryNodeJson`s, default: Movie night and
+  /// Games) and one page of activities (`activitySummaryJson`s).
+  void stubBacklog({
+    String groupId = Ids.groupId,
+    List<Map<String, Object?>>? categories,
+    List<Map<String, Object?>> activities = const [],
+    String? nextCursor,
+  }) {
+    adapter
+      ..onJson(
+        'GET',
+        ApiPaths.categories(groupId),
+        categories ?? categoryTreeJson(),
+      )
+      ..onJson(
+        'GET',
+        ApiPaths.activities(groupId),
+        activityPageJson(activities, nextCursor: nextCursor),
+      );
   }
 
   /// Number of `POST /auth/refresh` calls so far.

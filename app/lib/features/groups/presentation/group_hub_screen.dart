@@ -296,6 +296,15 @@ class _GroupActionsState extends ConsumerState<GroupActions> {
     final colors = Theme.of(context).colorScheme;
     return Column(
       children: [
+        ListTile(
+          contentPadding: EdgeInsets.zero,
+          leading: const Icon(Icons.category_outlined),
+          title: const Text('Categories'),
+          subtitle: const Text('And their custom fields'),
+          enabled: !_busy,
+          onTap: () =>
+              unawaited(context.push(Routes.groupCategories(_group.id))),
+        ),
         if (widget.permissions.canEditGroup)
           ListTile(
             contentPadding: EdgeInsets.zero,

@@ -52,6 +52,10 @@ abstract final class Ids {
   static const groupId = '0190c3a5-0000-7000-8000-0000000000aa';
   static const otherGroupId = '0190c3a5-0000-7000-8000-0000000000bb';
   static const inviteId = '0190c3a5-0000-7000-8000-0000000000c1';
+  static const movieCategoryId = '0190c3a5-0000-7000-8000-0000000000d1';
+  static const gamesCategoryId = '0190c3a5-0000-7000-8000-0000000000d2';
+  static const activityId = '0190c3a5-0000-7000-8000-0000000000e1';
+  static const otherActivityId = '0190c3a5-0000-7000-8000-0000000000e2';
 }
 
 Map<String, Object?> groupSummaryJson({
@@ -191,6 +195,12 @@ abstract final class ApiPaths {
       '${invites(groupId)}/$inviteId';
   static String invitePreview(String code) => '/api/v1/invites/$code';
   static String acceptInvite(String code) => '${invitePreview(code)}/accept';
+  static String categories(String groupId) => '${group(groupId)}/categories';
+  static String category(String id) => '/api/v1/categories/$id';
+  static String activities(String groupId) => '${group(groupId)}/activities';
+  static String activity(String id) => '/api/v1/activities/$id';
+  static String activityStatus(String id) => '${activity(id)}/status';
+  static String interest(String id) => '${activity(id)}/interest';
 }
 
 /// An access token shaped like the API's JWTs (contract section 4.1) for
@@ -205,3 +215,201 @@ String fakeJwt({required String sub, String nonce = ''}) {
     'signature',
   ].join('.');
 }
+
+/// The seeded "Movie night" field definitions (contract section 6.5).
+List<Map<String, Object?>> movieFieldDefsJson() => [
+  {
+    'key': 'genre',
+    'label': 'Genre',
+    'type': 'select',
+    'options': ['Action', 'Comedy', 'Drama'],
+    'min': null,
+    'max': null,
+    'show_on_card': false,
+  },
+  {
+    'key': 'imdb_rating',
+    'label': 'IMDb rating',
+    'type': 'rating',
+    'options': null,
+    'min': 0,
+    'max': 10,
+    'show_on_card': true,
+  },
+  {
+    'key': 'imdb_url',
+    'label': 'IMDb link',
+    'type': 'url',
+    'options': null,
+    'min': null,
+    'max': null,
+    'show_on_card': false,
+  },
+  {
+    'key': 'year',
+    'label': 'Year',
+    'type': 'year',
+    'options': null,
+    'min': null,
+    'max': null,
+    'show_on_card': false,
+  },
+  {
+    'key': 'runtime_min',
+    'label': 'Runtime (min)',
+    'type': 'number',
+    'options': null,
+    'min': 1,
+    'max': 600,
+    'show_on_card': false,
+  },
+];
+
+Map<String, Object?> categoryJson({
+  String id = Ids.movieCategoryId,
+  String groupId = Ids.groupId,
+  String? parentId,
+  String name = 'Movie night',
+  String? color = '#7E57C2',
+  String? effectiveColor,
+  String? icon = 'movie',
+  int position = 0,
+  List<Map<String, Object?>>? fieldDefs,
+  List<Map<String, Object?>>? effectiveFieldDefs,
+  bool canEdit = true,
+}) {
+  final own = fieldDefs ?? const [];
+  return {
+    'id': id,
+    'group_id': groupId,
+    'parent_id': parentId,
+    'name': name,
+    'color': color,
+    'effective_color': effectiveColor ?? color,
+    'icon': icon,
+    'position': position,
+    'field_defs': own,
+    'effective_field_defs': effectiveFieldDefs ?? own,
+    'created_by': userPublicJson(),
+    'can_edit': canEdit,
+    'can_delete': canEdit,
+    'created_at': '2026-09-01T10:00:00Z',
+    'updated_at': '2026-09-01T10:00:00Z',
+  };
+}
+
+Map<String, Object?> categoryNodeJson({
+  List<Map<String, Object?>> subcategories = const [],
+  String id = Ids.movieCategoryId,
+  String name = 'Movie night',
+  String? color = '#7E57C2',
+  String? icon = 'movie',
+  List<Map<String, Object?>>? fieldDefs,
+  bool canEdit = true,
+}) => {
+  ...categoryJson(
+    id: id,
+    name: name,
+    color: color,
+    icon: icon,
+    fieldDefs: fieldDefs,
+    canEdit: canEdit,
+  ),
+  'subcategories': subcategories,
+};
+
+/// The default "Movie night" category with its fields, and "Games".
+List<Map<String, Object?>> categoryTreeJson() => [
+  categoryNodeJson(fieldDefs: movieFieldDefsJson()),
+  categoryNodeJson(
+    id: Ids.gamesCategoryId,
+    name: 'Games',
+    color: '#1565C0',
+    icon: 'games',
+  ),
+];
+
+Map<String, Object?> activitySummaryJson({
+  String id = Ids.activityId,
+  String groupId = Ids.groupId,
+  String title = 'Dune',
+  String status = 'idea',
+  String? categoryId = Ids.movieCategoryId,
+  Map<String, Object?>? owner,
+  String? dueDate,
+  int? estimatedCost,
+  String? currency,
+  bool costPerPerson = true,
+  int interestCount = 1,
+  bool iAmInterested = true,
+  int myUnvotedPollCount = 0,
+  List<Map<String, Object?>> cardAttributes = const [],
+  Map<String, Object?>? nextOccurrence,
+  bool canDelete = true,
+}) => {
+  'id': id,
+  'group_id': groupId,
+  'title': title,
+  'status': status,
+  'category_id': categoryId,
+  'owner': owner,
+  'due_date': dueDate,
+  'estimated_cost': estimatedCost,
+  'currency': currency ?? (estimatedCost == null ? null : 'EUR'),
+  'cost_per_person': costPerPerson,
+  'interest_count': interestCount,
+  'i_am_interested': iAmInterested,
+  'poll_count': myUnvotedPollCount,
+  'open_poll_count': myUnvotedPollCount,
+  'my_unvoted_poll_count': myUnvotedPollCount,
+  'card_attributes': cardAttributes,
+  'next_occurrence': nextOccurrence,
+  'can_edit': true,
+  'can_delete': canDelete,
+  'created_at': '2026-09-20T10:00:00Z',
+  'updated_at': '2026-09-20T10:00:00Z',
+};
+
+Map<String, Object?> activityJson({
+  String id = Ids.activityId,
+  String title = 'Dune',
+  String status = 'idea',
+  String? categoryId = Ids.movieCategoryId,
+  Map<String, Object?>? owner,
+  Map<String, Object?> attributes = const {},
+  List<Map<String, Object?>> links = const [],
+  List<Map<String, Object?>> interestedUsers = const [],
+  int version = 1,
+  bool canDelete = true,
+  String? description,
+  int? estimatedCost,
+}) => {
+  ...activitySummaryJson(
+    id: id,
+    title: title,
+    status: status,
+    categoryId: categoryId,
+    owner: owner,
+    canDelete: canDelete,
+    estimatedCost: estimatedCost,
+    interestCount: interestedUsers.length,
+    iAmInterested: interestedUsers.any((u) => u['id'] == Ids.anaId),
+  ),
+  'description': description,
+  'notes': null,
+  'location_name': null,
+  'address': null,
+  'links': links,
+  'attributes': attributes,
+  'interested_users': interestedUsers,
+  'created_by': userPublicJson(),
+  'status_changed_at': '2026-09-20T10:00:00Z',
+  'completed_at': null,
+  'version': version,
+  'events': <Object?>[],
+};
+
+Map<String, Object?> activityPageJson(
+  List<Map<String, Object?>> items, {
+  String? nextCursor,
+}) => {'items': items, 'next_cursor': nextCursor};

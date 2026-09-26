@@ -2,7 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:friends/core/api/error_codes.dart';
 import 'package:friends/core/router/routes.dart';
 import 'package:friends/features/auth/presentation/register_screen.dart';
-import 'package:friends/features/backlog/presentation/backlog_placeholder_screen.dart';
+import 'package:friends/features/backlog/presentation/backlog_screen.dart';
 import 'package:friends/features/groups/presentation/group_shell.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -122,7 +122,7 @@ void main() {
         'invite_code': 'ABCDEFGH1K',
       });
       expect(currentLocation(container), '/groups/${Ids.groupId}/backlog');
-      expect(find.byType(BacklogPlaceholderScreen), findsOneWidget);
+      expect(find.byType(BacklogScreen), findsOneWidget);
       expect(find.byType(GroupShell), findsOneWidget);
     });
 

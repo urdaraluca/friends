@@ -61,3 +61,25 @@ InvitesClient invitesClient(Ref ref) => ref.watch(friendsApiProvider).invites;
 @Riverpod(keepAlive: true)
 InvitesClient publicInvitesClient(Ref ref) =>
     ref.watch(publicApiProvider).invites;
+
+/// Categories and their custom fields.
+@Riverpod(keepAlive: true)
+CategoriesClient categoriesClient(Ref ref) =>
+    ref.watch(friendsApiProvider).categories;
+
+/// The backlog: activities, their status and interests.
+@Riverpod(keepAlive: true)
+ActivitiesClient activitiesClient(Ref ref) =>
+    ref.watch(friendsApiProvider).activities;
+
+/// The "What should we do?" wheel.
+@Riverpod(keepAlive: true)
+WheelClient wheelClient(Ref ref) => ref.watch(friendsApiProvider).wheel;
+
+/// Polls inside activities.
+@Riverpod(keepAlive: true)
+PollsClient pollsClient(Ref ref) => ref.watch(friendsApiProvider).polls;
+
+/// Events and the calendar.
+@Riverpod(keepAlive: true)
+EventsClient eventsClient(Ref ref) => ref.watch(friendsApiProvider).events;

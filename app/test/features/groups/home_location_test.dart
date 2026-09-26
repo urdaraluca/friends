@@ -2,7 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:friends/core/api/generated/export.dart';
 import 'package:friends/core/auth/auth_controller.dart';
-import 'package:friends/features/backlog/presentation/backlog_placeholder_screen.dart';
+import 'package:friends/features/backlog/presentation/backlog_screen.dart';
 import 'package:friends/features/groups/data/home_location.dart';
 import 'package:friends/features/groups/presentation/groups_list_screen.dart';
 
@@ -65,7 +65,7 @@ void main() {
       final container = await openHome(tester);
 
       expect(currentLocation(container), '/groups/${Ids.groupId}/backlog');
-      expect(find.byType(BacklogPlaceholderScreen), findsOneWidget);
+      expect(find.byType(BacklogScreen), findsOneWidget);
     });
 
     testWidgets('goes to the groups list when I left the last group', (

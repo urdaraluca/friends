@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:friends/core/api/error_codes.dart';
 import 'package:friends/core/auth/auth_controller.dart';
 import 'package:friends/core/router/routes.dart';
-import 'package:friends/features/backlog/presentation/backlog_placeholder_screen.dart';
+import 'package:friends/features/backlog/presentation/backlog_screen.dart';
 import 'package:friends/features/calendar/presentation/calendar_placeholder_screen.dart';
 import 'package:friends/features/groups/presentation/group_hub_screen.dart';
 import 'package:friends/features/groups/presentation/group_shell.dart';
@@ -40,7 +40,7 @@ void main() {
 
       expect(currentLocation(container), '/groups/${Ids.groupId}/backlog');
       expect(find.byType(GroupShell), findsOneWidget);
-      expect(find.byType(BacklogPlaceholderScreen), findsOneWidget);
+      expect(find.byType(BacklogScreen), findsOneWidget);
       // The switcher shows the group; the avatar opens the profile.
       expect(find.text('Movie night'), findsOneWidget);
       expect(find.byTooltip('Profile'), findsOneWidget);
@@ -56,7 +56,7 @@ void main() {
         ('Calendar', 'calendar', CalendarPlaceholderScreen),
         ('Wheel', 'wheel', WheelPlaceholderScreen),
         ('Group', 'group', GroupHubScreen),
-        ('Backlog', 'backlog', BacklogPlaceholderScreen),
+        ('Backlog', 'backlog', BacklogScreen),
       ]) {
         await tester.tap(
           find.descendant(
@@ -85,7 +85,7 @@ void main() {
       backend.stubGroup(group: groupJson(color: '#43A047'));
       await open(tester, Routes.groupBacklog(Ids.groupId));
 
-      final context = tester.element(find.byType(BacklogPlaceholderScreen));
+      final context = tester.element(find.byType(BacklogScreen));
       expect(
         Theme.of(context).colorScheme.primary,
         ColorScheme.fromSeed(seedColor: const Color(0xFF43A047)).primary,
@@ -200,7 +200,7 @@ void main() {
       await tester.tap(find.text('Retry'));
       await tester.pumpAndSettle();
 
-      expect(find.byType(BacklogPlaceholderScreen), findsOneWidget);
+      expect(find.byType(BacklogScreen), findsOneWidget);
     });
   });
 }

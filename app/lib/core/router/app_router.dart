@@ -3,7 +3,10 @@ import 'package:friends/core/router/routes.dart';
 import 'package:friends/features/auth/presentation/login_screen.dart';
 import 'package:friends/features/auth/presentation/register_screen.dart';
 import 'package:friends/features/auth/presentation/splash_screen.dart';
-import 'package:friends/features/backlog/presentation/backlog_placeholder_screen.dart';
+import 'package:friends/features/backlog/presentation/activity_detail_screen.dart';
+import 'package:friends/features/backlog/presentation/activity_form_screen.dart';
+import 'package:friends/features/backlog/presentation/backlog_screen.dart';
+import 'package:friends/features/backlog/presentation/categories_screen.dart';
 import 'package:friends/features/calendar/presentation/calendar_placeholder_screen.dart';
 import 'package:friends/features/groups/data/home_location.dart';
 import 'package:friends/features/groups/presentation/group_form_screen.dart';
@@ -63,12 +66,16 @@ String? authRedirect(AuthState auth, Uri uri) {
 /// changes (`refreshListenable`), without being rebuilt itself.
 @Riverpod(keepAlive: true)
 GoRouter router(Ref ref) {
+  // The root navigator: pages above the group shell (an activity, forms)
+  // cover its app bar and bottom navigation.
+  final rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
   final auth = ValueNotifier<AuthState>(ref.read(authControllerProvider));
   ref
     ..listen(authControllerProvider, (_, next) => auth.value = next)
     ..onDispose(auth.dispose);
 
   final router = GoRouter(
+    navigatorKey: rootNavigatorKey,
     refreshListenable: auth,
     redirect: (context, state) => authRedirect(auth.value, state.uri),
     errorBuilder: (context, state) => const NotFoundScreen(),
@@ -122,6 +129,10 @@ GoRouter router(Ref ref) {
             GroupFormScreen.edit(groupId: _groupId(state)),
       ),
       GoRoute(
+        path: Routes.groupCategoriesPattern,
+        builder: (context, state) => CategoriesScreen(groupId: _groupId(state)),
+      ),
+      GoRoute(
         path: Routes.groupPattern,
         redirect: (context, state) => Routes.groupBacklog(_groupId(state)),
       ),
@@ -138,8 +149,35 @@ GoRouter router(Ref ref) {
           GoRoute(
             path: GroupTab.backlog.pattern,
             pageBuilder: (context, state) => NoTransitionPage(
-              child: BacklogPlaceholderScreen(groupId: _groupId(state)),
+              child: BacklogScreen(groupId: _groupId(state)),
             ),
+            // Above the shell: full-screen pages with their own app bar.
+            routes: [
+              GoRoute(
+                path: 'new',
+                parentNavigatorKey: rootNavigatorKey,
+                builder: (context, state) =>
+                    ActivityFormScreen.create(groupId: _groupId(state)),
+              ),
+              GoRoute(
+                path: ':${Routes.activityIdParam}',
+                parentNavigatorKey: rootNavigatorKey,
+                builder: (context, state) => ActivityDetailScreen(
+                  groupId: _groupId(state),
+                  activityId: _activityId(state),
+                ),
+                routes: [
+                  GoRoute(
+                    path: 'edit',
+                    parentNavigatorKey: rootNavigatorKey,
+                    builder: (context, state) => ActivityFormScreen.edit(
+                      groupId: _groupId(state),
+                      activityId: _activityId(state),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
           GoRoute(
             path: GroupTab.calendar.pattern,
@@ -169,6 +207,9 @@ GoRouter router(Ref ref) {
 
 String _groupId(GoRouterState state) =>
     state.pathParameters[Routes.groupIdParam]!;
+
+String _activityId(GoRouterState state) =>
+    state.pathParameters[Routes.activityIdParam]!;
 
 /// Unknown locations.
 class NotFoundScreen extends StatelessWidget {

@@ -5,7 +5,7 @@ import 'package:friends/core/api/generated/export.dart';
 import 'package:friends/core/auth/auth_controller.dart';
 import 'package:friends/features/auth/presentation/login_screen.dart';
 import 'package:friends/features/auth/presentation/register_screen.dart';
-import 'package:friends/features/backlog/presentation/backlog_placeholder_screen.dart';
+import 'package:friends/features/backlog/presentation/backlog_screen.dart';
 import 'package:friends/features/invites/presentation/invite_labels.dart';
 import 'package:friends/features/invites/presentation/join_screen.dart';
 import 'package:material_ui/material_ui.dart';
@@ -94,7 +94,7 @@ void main() {
         hasLength(1),
       );
       expect(currentLocation(container), '/groups/${Ids.groupId}/backlog');
-      expect(find.byType(BacklogPlaceholderScreen), findsOneWidget);
+      expect(find.byType(BacklogScreen), findsOneWidget);
     });
 
     testWidgets('signed in: a failed Join explains why and reloads the '
