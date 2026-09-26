@@ -212,4 +212,4 @@ class _DeleteAccount extends StatelessWidget {
 
 /// The privacy page, served by the backend next to the web app
 /// (`app/web/privacy.html`).
-Uri privacyPolicyUrl() => Uri.parse(Env.apiBaseUrl).resolve('/privacy.html');
+Uri privacyPolicyUrl() => Uri.parse('${Env.apiBaseUrl}/privacy.html');

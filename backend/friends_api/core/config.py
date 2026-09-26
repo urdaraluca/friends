@@ -2,6 +2,7 @@ from enum import StrEnum
 from functools import lru_cache
 from pathlib import Path
 from typing import Annotated
+from urllib.parse import urlsplit
 
 from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
@@ -58,7 +59,8 @@ class Settings(BaseSettings):
 
     registration_mode: RegistrationMode = RegistrationMode.INVITE_ONLY
     public_app_url: str = "http://localhost:5000"
-    """Base of invite links: {PUBLIC_APP_URL}/join/{code}. No trailing slash."""
+    """Base of invite links: {PUBLIC_APP_URL}/join/{code}. No trailing slash. A path in it (e.g.
+    ``https://example.com/friends``) is the subpath the web app is served under."""
     rate_limit_enabled: bool = True
 
     web_dir: Path = Path("/app/web")
@@ -99,6 +101,11 @@ class Settings(BaseSettings):
     @property
     def is_dev(self) -> bool:
         return self.app_env is AppEnv.DEV
+
+    @property
+    def web_base_path(self) -> str:
+        """The path of ``PUBLIC_APP_URL`` with a trailing slash: the web app's ``<base href>``."""
+        return urlsplit(self.public_app_url).path.rstrip("/") + "/"
 
     @property
     def show_docs(self) -> bool:

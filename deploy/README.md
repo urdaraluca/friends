@@ -97,6 +97,35 @@
    Backups are consistent even while the app is writing, integrity-checked and gzipped. They go to
    `BACKUP_HOST_DIR`, which should be a USB drive or NAS, not the SD card.
 
+## Serving under a subpath
+
+To serve the app at e.g. `https://example.com/friends/` next to other sites on that host:
+
+1. Set `PUBLIC_APP_URL=https://example.com/friends` in `.env` and run `./update.sh`. The container
+   then sends `index.html` with `<base href="/friends/">`, and the web app calls the API under
+   `/friends/api/v1`. The image's web build works as is.
+2. In the proxy, **strip the prefix**: `/friends/<rest>` goes to `http://127.0.0.1:8000/<rest>`,
+   and `/friends` redirects to `/friends/`. Everything else in step 7 above still applies to the
+   paths after the prefix. For example, with nginx:
+   ```nginx
+   location = /friends { return 301 /friends/; }
+   location ^~ /friends/ {
+       proxy_set_header Host $host;
+       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+       proxy_set_header X-Forwarded-Proto $scheme;
+       proxy_pass http://127.0.0.1:8000/;   # the trailing slash strips /friends/
+   }
+   ```
+3. Check it:
+   ```sh
+   curl -fsS https://example.com/friends/api/v1/health
+   curl -fsS https://example.com/friends/join/ABCDEFGHJK | grep -q 'base href="/friends/"' && echo "web app ok"
+   ```
+
+Android only looks for `assetlinks.json` at the root of the host
+(`https://example.com/.well-known/assetlinks.json`). For App Links under a subpath, route that one
+path to the container as well.
+
 ## Android App Links (`ANDROID_CERT_SHA256`)
 
 Invite links open the Android app directly once Android can verify that the app and the host belong
