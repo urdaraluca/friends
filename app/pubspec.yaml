@@ -29,6 +29,7 @@ dependencies:
 
 dev_dependencies:
   build_runner: ^2.16.1
+  flutter_launcher_icons: ^0.14.4
   flutter_test:
     sdk: flutter
   freezed: ^4.0.2
@@ -40,3 +41,18 @@ dev_dependencies:
   very_good_analysis: ^11.0.0
 flutter:
   uses-material-design: true
+
+# App icons for Android (adaptive too), iOS and web, from assets/icon/.
+# Redraw with tool/make_icon.py, then run: dart run flutter_launcher_icons
+flutter_launcher_icons:
+  image_path: assets/icon/icon.png
+  android: true
+  adaptive_icon_background: "#FF7A59"
+  adaptive_icon_foreground: assets/icon/foreground.png
+  ios: true
+  remove_alpha_ios: true
+  web:
+    generate: true
+    image_path: assets/icon/icon.png
+    background_color: "#FF7A59"
+    theme_color: "#FF7A59"

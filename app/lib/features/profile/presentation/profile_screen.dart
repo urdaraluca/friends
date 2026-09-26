@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:friends/core/api/api_error_messages.dart';
 import 'package:friends/core/api/api_exception.dart';
 import 'package:friends/core/auth/auth_controller.dart';
+import 'package:friends/core/config/env.dart';
+import 'package:friends/core/links/open_link.dart';
 import 'package:friends/core/router/routes.dart';
 import 'package:friends/core/widgets/async_value_view.dart';
 import 'package:friends/features/profile/presentation/widgets/change_password_form.dart';
@@ -53,6 +55,14 @@ class ProfileScreen extends ConsumerWidget {
                     const _Section(
                       title: 'Delete account',
                       child: _DeleteAccount(),
+                    ),
+                    ListTile(
+                      leading: const Icon(Icons.privacy_tip_outlined),
+                      title: const Text('Privacy'),
+                      subtitle: const Text('What Friends stores, and why'),
+                      trailing: const Icon(Icons.open_in_new, size: 18),
+                      onTap: () =>
+                          unawaited(openLink(context, ref, privacyPolicyUrl())),
                     ),
                   ],
                 ),
@@ -189,3 +199,7 @@ class _DeleteAccount extends StatelessWidget {
     );
   }
 }
+
+/// The privacy page, served by the backend next to the web app
+/// (`app/web/privacy.html`).
+Uri privacyPolicyUrl() => Uri.parse(Env.apiBaseUrl).resolve('/privacy.html');

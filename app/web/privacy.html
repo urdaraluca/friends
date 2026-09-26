@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Friends · Privacy</title>
+  <meta name="theme-color" content="#FF7A59">
+  <link rel="icon" type="image/png" href="favicon.png">
+  <style>
+    :root { color-scheme: light dark; --accent: #FF7A59; }
+    body {
+      margin: 0 auto; padding: 24px 16px 48px; max-width: 720px;
+      font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    }
+    header { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+    header img { width: 40px; height: 40px; border-radius: 10px; }
+    h1 { font-size: 1.6rem; margin: 0; }
+    h2 { font-size: 1.15rem; margin-top: 2rem; }
+    a { color: var(--accent); }
+    .muted { opacity: 0.7; font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <img src="icons/Icon-192.png" alt="">
+    <h1>Privacy</h1>
+  </header>
+  <p class="muted">Last updated: 26 September 2026</p>
+
+  <p>
+    Friends is a small app for planning things to do with your friend groups. This instance is
+    run by a private person on their own server. It isn't a company product: there are no ads,
+    no tracking and no analytics, and nothing is sold or shared with anyone.
+  </p>
+
+  <h2>What is stored</h2>
+  <ul>
+    <li>
+      <strong>Your account:</strong> your email address, display name and password (stored only
+      as an Argon2 hash), and your timezone. Optionally, a picture link and your birthday: day
+      and month, plus a year that only you ever see.
+    </li>
+    <li>
+      <strong>What you and your groups create:</strong> groups and invites, ideas in the backlog
+      and their details, categories, polls and votes, "interested" marks, calendar events, and
+      wheel spins. Each group also keeps a history of changes (who did what, and when), for the
+      group's own recaps.
+    </li>
+    <li>
+      <strong>Sessions:</strong> sign-in tokens (stored hashed), the kind of device ("android",
+      "ios" or "web") and your last sign-in time.
+    </li>
+    <li>
+      <strong>Server logs:</strong> for each request, the address it came from, your user ID and
+      the path requested. Passwords and tokens are never logged.
+    </li>
+  </ul>
+
+  <h2>Who sees it</h2>
+  <ul>
+    <li>
+      Members of a group see that group's content, and each other's names and pictures.
+    </li>
+    <li>
+      Your birthday (day and month only) shows in the calendar of each group you're in. You
+      can turn that off per group, in the group's "Group" tab.
+    </li>
+    <li>
+      The person running the server can technically access the database, as with any
+      self-hosted service.
+    </li>
+  </ul>
+
+  <h2>Where it is kept</h2>
+  <p>
+    On the server behind this address, with nightly backups kept for about two weeks. Opening
+    a link or an address in Friends hands it to your browser or maps app, which follow their own
+    policies.
+  </p>
+
+  <h2>Deleting your data</h2>
+  <p>
+    Go to <em>Profile → Delete account</em> in the app. Your account is anonymised right away:
+    your email address, name, picture and birthday are removed, and so are your votes and
+    "interested" marks. You are signed out everywhere, and any group you owned passes to
+    another member. What you created in a group, such as ideas, events and polls, stays there
+    for the others, shown as "Deleted user". Backups age out within about two weeks.
+  </p>
+
+  <h2>Contact</h2>
+  <p>
+    Questions or requests: <!-- TODO(owner): your contact address --> ask the person who
+    invited you, or the owner of this instance.
+  </p>
+</body>
+</html>

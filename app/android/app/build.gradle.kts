@@ -1,8 +1,31 @@
+import java.io.FileInputStream
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
+
+// Release signing (docs/release.md): android/key.properties locally, or the ANDROID_*
+// environment variables in CI. Neither file nor secrets are ever committed.
+val keystoreProperties = Properties().apply {
+    val file = rootProject.file("key.properties")
+    if (file.exists()) FileInputStream(file).use { load(it) }
+}
+
+fun signingValue(property: String, environment: String): String? =
+    keystoreProperties.getProperty(property) ?: System.getenv(environment)
+
+val releaseStoreFile = signingValue("storeFile", "ANDROID_KEYSTORE_PATH")
+
+// The host whose https://<host>/join/<code> invite links open the app (App Links). Set it
+// with -PappLinkHost=... or APP_LINK_HOST; the backend serves the matching
+// /.well-known/assetlinks.json from ANDROID_CERT_SHA256.
+val appLinkHost: String =
+    (project.findProperty("appLinkHost") as String?)
+        ?: System.getenv("APP_LINK_HOST")
+        ?: "friends.invalid"
 
 android {
     namespace = "io.github.urdaraluca.friends"
@@ -15,25 +38,37 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
+        // Fixed for good once the app is in a store.
         applicationId = "io.github.urdaraluca.friends"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
-        // Uses the version code from pubspec.yaml. When using split APKs, 1000 * ABI_VERSION
-        // is added automatically by Flutter. (https://developer.android.com/studio/build/configure-apk-splits#configure-APK-versions)
-        // You can force using the value of versionCode by specifying the `-P force-version-code-ignoring-abi=true`
-        // flag during build.
+        // From pubspec.yaml's version (name+code).
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        manifestPlaceholders["appLinkHost"] = appLinkHost
+    }
+
+    signingConfigs {
+        if (releaseStoreFile != null) {
+            create("release") {
+                storeFile = file(releaseStoreFile)
+                storePassword = signingValue("storePassword", "ANDROID_KEYSTORE_PASSWORD")
+                keyAlias = signingValue("keyAlias", "ANDROID_KEY_ALIAS")
+                keyPassword = signingValue("keyPassword", "ANDROID_KEY_PASSWORD")
+            }
+        }
     }
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = if (releaseStoreFile != null) {
+                signingConfigs.getByName("release")
+            } else {
+                // No keystore configured: debug keys, so `flutter run --release` still works.
+                // Such an APK can't update one signed with the release key.
+                logger.warn("Release build signed with DEBUG keys: no key.properties or ANDROID_KEYSTORE_PATH.")
+                signingConfigs.getByName("debug")
+            }
         }
     }
 }

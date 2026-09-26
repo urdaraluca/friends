@@ -27,6 +27,23 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+            <!-- App Links: https://<host>/join/<code> invite links open the app, and
+                 go_router shows the join screen. The host comes from the build
+                 (appLinkHost in android/app/build.gradle.kts); Android verifies it
+                 against https://<host>/.well-known/assetlinks.json. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data
+                    android:scheme="https"
+                    android:host="${appLinkHost}"
+                    android:pathPrefix="/join/"/>
+            </intent-filter>
+            <!-- Hands incoming links to Flutter's router. -->
+            <meta-data
+                android:name="flutter_deeplinking_enabled"
+                android:value="true"/>
         </activity>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->

@@ -1,0 +1,112 @@
+name: app-release
+
+# Builds the signed release APK (docs/release.md). Run it by hand, or push a tag
+# app-vX.Y.Z to also publish a GitHub Release with the APK attached.
+#
+# Needs, set by the owner:
+# - secrets ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS,
+#   ANDROID_KEY_PASSWORD (the upload/release keystore; never committed);
+# - variable API_BASE_URL, e.g. https://friends.example.com (the Pi's public origin; the
+#   invite links' App Links host is taken from it unless APP_LINK_HOST is set).
+on:
+  workflow_dispatch:
+  push:
+    tags: ["app-v*"]
+
+permissions:
+  contents: write # the GitHub Release on tags
+
+concurrency:
+  group: app-release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  FLUTTER_VERSION: "3.47.5" # keep in sync with app-ci.yml
+
+defaults:
+  run:
+    working-directory: app
+
+jobs:
+  android:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+          cache-dependency-path: |
+            app/android/*.gradle*
+            app/android/app/*.gradle*
+            app/android/gradle/wrapper/gradle-wrapper.properties
+            app/pubspec.lock
+      - uses: ./.github/actions/flutter-setup
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+
+      - name: Keystore from secrets
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$ANDROID_KEYSTORE_BASE64" ]; then
+            echo "::error::The ANDROID_KEYSTORE_BASE64 secret is missing (docs/release.md, 'Signing')."
+            exit 1
+          fi
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/release.jks"
+          echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+
+      - name: Production config for mobile builds
+        env:
+          API_BASE_URL: ${{ vars.API_BASE_URL }}
+          APP_LINK_HOST: ${{ vars.APP_LINK_HOST }}
+        run: |
+          case "$API_BASE_URL" in
+            https://*) ;;
+            *) echo "::error::Set the API_BASE_URL repository variable to the public https:// origin."; exit 1 ;;
+          esac
+          host="${APP_LINK_HOST:-$(echo "$API_BASE_URL" | sed -E 's#^https://([^/:]+).*#\1#')}"
+          echo "APP_LINK_HOST=$host" >> "$GITHUB_ENV"
+          # The web build keeps env/prod.json (same origin); mobile needs the origin.
+          printf '{"APP_ENV":"prod","API_BASE_URL":"%s"}\n' "${API_BASE_URL%/}" > env/prod.mobile.json
+          echo "API $API_BASE_URL, invite links https://$host/join/..."
+
+      - name: Build the release APK
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: flutter build apk --release --dart-define-from-file=env/prod.mobile.json
+
+      - name: Signing certificate (for ANDROID_CERT_SHA256 on the Pi)
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          keytool -list -v -keystore "$ANDROID_KEYSTORE_PATH" -storepass "$ANDROID_KEYSTORE_PASSWORD" \
+            -alias "$ANDROID_KEY_ALIAS" | grep -E 'SHA256:' | sed 's/^/Signing certificate /'
+
+      - name: Name the APK after the version
+        id: apk
+        run: |
+          version="$(grep -E '^version:' pubspec.yaml | sed -E 's/version: *([^+]+).*/\1/')"
+          name="friends-$version.apk"
+          cp build/app/outputs/flutter-apk/app-release.apk "build/$name"
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: app-release-apk
+          path: app/build/${{ steps.apk.outputs.name }}
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: GitHub Release (tags only)
+        if: startsWith(github.ref, 'refs/tags/app-v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" "build/${{ steps.apk.outputs.name }}" \
+            --title "Friends ${GITHUB_REF_NAME#app-v} (Android beta)" \
+            --notes-file ../docs/release-notes-android.md
