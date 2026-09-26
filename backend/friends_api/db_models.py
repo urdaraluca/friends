@@ -10,6 +10,7 @@ from friends_api.features.categories import models as categories_models
 from friends_api.features.group_log import models as group_log_models
 from friends_api.features.groups import models as groups_models
 from friends_api.features.invites import models as invites_models
+from friends_api.features.wheel import models as wheel_models
 
 __all__ = [
     "Base",
@@ -19,4 +20,5 @@ __all__ = [
     "group_log_models",
     "groups_models",
     "invites_models",
+    "wheel_models",
 ]

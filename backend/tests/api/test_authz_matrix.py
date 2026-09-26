@@ -67,6 +67,10 @@ MEMBER_LEVEL = {
     "set_activity_status",
     "add_interest",
     "remove_interest",
+    "list_wheel_candidates",
+    "create_spin",
+    "list_spins",
+    "accept_spin",
 }
 
 BODIES: dict[str, Callable[[World], dict[str, Any] | None]] = {
@@ -77,6 +81,7 @@ BODIES: dict[str, Callable[[World], dict[str, Any] | None]] = {
     "create_activity": lambda w: {"title": "Picnic"},
     "update_activity": lambda w: {"title": "Picnic", "version": 1},
     "set_activity_status": lambda w: {"status": "planning"},
+    "create_spin": lambda w: {"filters": {}},
 }
 
 
@@ -90,6 +95,15 @@ def world(client: TestClient) -> World:
     # Created by the owner: the plain member is neither its creator nor its owner.
     category = list_categories(client, owner, group["id"])[0]
     activity = create_activity(client, owner, group["id"], title="Owned by the owner")
+    # Spun by the owner over two activities (#8).
+    spin = client.post(
+        f"/api/v1/groups/{group['id']}/wheel/spins",
+        headers=owner.headers,
+        json={
+            "filters": {},
+            "activity_ids": [activity["id"], create_activity(client, owner, group["id"])["id"]],
+        },
+    ).json()
     return World(
         owner=owner,
         member=member,
@@ -102,6 +116,7 @@ def world(client: TestClient) -> World:
             "invite_id": invite["id"],
             "category_id": category["id"],
             "activity_id": activity["id"],
+            "spin_id": spin["id"],
         },
     )
 
