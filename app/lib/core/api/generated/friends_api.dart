@@ -13,6 +13,7 @@ import 'clients/categories_client.dart';
 import 'clients/activities_client.dart';
 import 'clients/wheel_client.dart';
 import 'clients/polls_client.dart';
+import 'clients/events_client.dart';
 
 /// Friends API `v1`
 class FriendsApi {
@@ -36,6 +37,7 @@ class FriendsApi {
   ActivitiesClient? _activities;
   WheelClient? _wheel;
   PollsClient? _polls;
+  EventsClient? _events;
 
   HealthClient get health => _health ??= HealthClient(_dio, baseUrl: _baseUrl);
 
@@ -54,4 +56,6 @@ class FriendsApi {
   WheelClient get wheel => _wheel ??= WheelClient(_dio, baseUrl: _baseUrl);
 
   PollsClient get polls => _polls ??= PollsClient(_dio, baseUrl: _baseUrl);
+
+  EventsClient get events => _events ??= EventsClient(_dio, baseUrl: _baseUrl);
 }

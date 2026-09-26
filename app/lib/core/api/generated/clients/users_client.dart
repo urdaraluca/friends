@@ -6,6 +6,8 @@ import 'package:dio/dio.dart';
 import 'package:retrofit/retrofit.dart';
 
 import '../models/account_deletion.dart';
+import '../models/calendar_response.dart';
+import '../models/event_kind.dart';
 import '../models/me.dart';
 import '../models/me_update.dart';
 import '../models/password_change.dart';
@@ -42,5 +44,25 @@ abstract class UsersClient {
   @POST('/api/v1/me/deletion')
   Future<void> deleteAccount({
     @Body() required AccountDeletion body,
+  });
+
+  /// Get My Calendar.
+  ///
+  /// Occurrences across all your groups in ``[from, to)``. Member birthdays appear once per.
+  /// person (``group_id`` null) if they show them in at least one group you share.
+  ///
+  /// [from] - First day (inclusive).
+  ///
+  /// [to] - Last day (exclusive); at most 400 days after `from`.
+  ///
+  /// [tz] - IANA timezone for the range and the order; missing or invalid means your own (the response's `tz` says which was used).
+  ///
+  /// [kinds] - Repeat the key for several. Omitted: every kind. `birthday` also covers member birthdays.
+  @GET('/api/v1/me/calendar')
+  Future<CalendarResponse> getMyCalendar({
+    @Query('from') required DateTime from,
+    @Query('to') required DateTime to,
+    @Query('tz') String? tz,
+    @Query('kinds') List<EventKind>? kinds,
   });
 }
