@@ -47,7 +47,7 @@ properly signed one.
 | secret | `ANDROID_KEY_ALIAS` | `friends` |
 | secret | `ANDROID_KEY_PASSWORD` | the key password |
 | variable | `API_BASE_URL` | `https://<host>` |
-| variable | `APP_LINK_HOST` | optional; defaults to the host of `API_BASE_URL` |
+| variable | `APP_LINK_HOST` | optional; defaults to the host of `API_BASE_URL`. Invite links are matched under the path of `API_BASE_URL` (e.g. `/friends/join/…`) |
 
 ## 3. App Links (invite links open the app)
 

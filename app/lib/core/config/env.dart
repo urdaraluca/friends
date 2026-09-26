@@ -27,6 +27,14 @@ abstract final class Env {
     );
   }
 
+  /// Path of `API_BASE_URL` without a trailing slash (e.g. `/friends`), for
+  /// mobile builds whose backend is served under a subpath: App Links then
+  /// arrive as `/friends/join/<code>`. Empty on web, where the browser strips
+  /// the `<base href>` itself, and without `API_BASE_URL`.
+  static String get appLinkBasePath => kIsWeb || _apiBaseUrl.isEmpty
+      ? ''
+      : Uri.parse(_apiBaseUrl).path.replaceFirst(RegExp(r'/+$'), '');
+
   /// The directory of [base], without a trailing slash.
   @visibleForTesting
   static String webBaseUrl(Uri base) {

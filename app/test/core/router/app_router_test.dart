@@ -23,6 +23,22 @@ void main() {
   String? redirect(AuthState auth, String location) =>
       authRedirect(auth, Uri.parse(location));
 
+  group('stripAppLinkBase', () {
+    String? strip(String location, String base) =>
+        stripAppLinkBase(Uri.parse(location), base);
+
+    test('removes the subpath from App Links under it', () {
+      expect(strip('/friends/join/ABC', '/friends'), '/join/ABC');
+      expect(strip('/a/b/join/ABC?x=1', '/a/b'), '/join/ABC?x=1');
+    });
+
+    test('leaves other locations alone', () {
+      expect(strip('/join/ABC', ''), isNull);
+      expect(strip('/join/ABC', '/friends'), isNull);
+      expect(strip('/friendship', '/friends'), isNull);
+    });
+  });
+
   group('authRedirect', () {
     test('signed out: /profile goes to /login?from=%2Fprofile', () {
       expect(redirect(signedOut, '/profile'), '/login?from=%2Fprofile');

@@ -124,7 +124,12 @@ To serve the app at e.g. `https://example.com/friends/` next to other sites on t
 
 Android only looks for `assetlinks.json` at the root of the host
 (`https://example.com/.well-known/assetlinks.json`). For App Links under a subpath, route that one
-path to the container as well.
+path to the container as well, unchanged:
+```nginx
+location = /.well-known/assetlinks.json { proxy_pass http://127.0.0.1:8000; }
+```
+The Android build takes the subpath from the `API_BASE_URL` repository variable
+(`https://example.com/friends`), so its intent filter matches `/friends/join/…`.
 
 ## Android App Links (`ANDROID_CERT_SHA256`)
 

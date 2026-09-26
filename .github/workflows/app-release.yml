@@ -69,9 +69,12 @@ jobs:
           esac
           host="${APP_LINK_HOST:-$(echo "$API_BASE_URL" | sed -E 's#^https://([^/:]+).*#\1#')}"
           echo "APP_LINK_HOST=$host" >> "$GITHUB_ENV"
+          # A backend under a subpath (https://host/friends) has its invite links there too.
+          path="$(echo "${API_BASE_URL%/}" | sed -E 's#^https://[^/]+##')"
+          echo "APP_LINK_PATH=$path" >> "$GITHUB_ENV"
           # The web build keeps env/prod.json (same origin); mobile needs the origin.
           printf '{"APP_ENV":"prod","API_BASE_URL":"%s"}\n' "${API_BASE_URL%/}" > env/prod.mobile.json
-          echo "API $API_BASE_URL, invite links https://$host/join/..."
+          echo "API $API_BASE_URL, invite links https://$host$path/join/..."
 
       - name: Build the release APK
         env:

@@ -27,6 +27,12 @@ val appLinkHost: String =
         ?: System.getenv("APP_LINK_HOST")
         ?: "friends.invalid"
 
+// The path the backend is served under, e.g. "/friends" for https://<host>/friends/join/<code>
+// (-PappLinkPath=... or APP_LINK_PATH). Empty when it is at the root of the host.
+val appLinkPath: String =
+    ((project.findProperty("appLinkPath") as String?) ?: System.getenv("APP_LINK_PATH") ?: "")
+        .trimEnd('/')
+
 android {
     namespace = "io.github.urdaraluca.friends"
     compileSdk = flutter.compileSdkVersion
@@ -46,6 +52,7 @@ android {
         versionCode = flutter.versionCode
         versionName = flutter.versionName
         manifestPlaceholders["appLinkHost"] = appLinkHost
+        manifestPlaceholders["appLinkPath"] = appLinkPath
     }
 
     signingConfigs {
