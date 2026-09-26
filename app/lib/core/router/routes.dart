@@ -1,8 +1,42 @@
 /// Route paths and location builders. Navigate with these, never with string
 /// literals: `context.go(Routes.loginWith(from: Routes.profile))`.
 abstract final class Routes {
-  /// Signed-in home. A placeholder until M5 (groups).
+  /// Signed-in home. Redirects to the last opened group's backlog while that
+  /// group is still in my list, else to [groups] (`homeLocation`).
   static const home = '/';
+
+  /// My groups.
+  static const groups = '/groups';
+
+  /// Create a group.
+  static const newGroup = '/groups/new';
+
+  /// Path parameter holding a group's ID.
+  static const groupIdParam = 'groupId';
+
+  /// Route pattern of a group (redirects to its backlog).
+  static const groupPattern = '/groups/:$groupIdParam';
+
+  /// Route pattern of the group edit form.
+  static const editGroupPattern = '$groupPattern/edit';
+
+  /// `/groups/<id>` (redirects to the backlog tab).
+  static String group(String groupId) =>
+      '/groups/${Uri.encodeComponent(groupId)}';
+
+  /// `/groups/<id>/<tab>`: one of the group's bottom tabs.
+  static String groupTab(String groupId, GroupTab tab) =>
+      '${group(groupId)}/${tab.segment}';
+
+  /// `/groups/<id>/backlog`, the default tab.
+  static String groupBacklog(String groupId) =>
+      groupTab(groupId, GroupTab.backlog);
+
+  /// `/groups/<id>/group`: members, invites and settings.
+  static String groupHub(String groupId) => groupTab(groupId, GroupTab.group);
+
+  /// `/groups/<id>/edit`.
+  static String editGroup(String groupId) => '${group(groupId)}/edit';
 
   /// Shown while the session is restored, with Retry when that fails.
   static const splash = '/splash';
@@ -118,5 +152,31 @@ abstract final class Routes {
     return params.isEmpty
         ? path
         : Uri(path: path, queryParameters: params).toString();
+  }
+}
+
+/// The bottom tabs of a group (`GroupShell`), in their order.
+enum GroupTab {
+  backlog('backlog'),
+  calendar('calendar'),
+  wheel('wheel'),
+  group('group');
+
+  new(this.segment);
+
+  /// The last path segment: `/groups/<id>/<segment>`.
+  final String segment;
+
+  /// Route pattern of this tab inside the group shell.
+  String get pattern => '${Routes.groupPattern}/$segment';
+
+  /// The tab showing [path] (`/groups/<id>/<segment>/…`), or null.
+  static GroupTab? fromPath(String path) {
+    final segments = Uri.parse(path).pathSegments;
+    if (segments.length < 3 || segments.first != 'groups') return null;
+    for (final tab in values) {
+      if (tab.segment == segments[2]) return tab;
+    }
+    return null;
   }
 }

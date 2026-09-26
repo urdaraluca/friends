@@ -50,6 +50,21 @@ class AsyncValueView<T> extends StatelessWidget {
   }
 }
 
+/// Waits for every one of [futures], ignoring their errors. For
+/// `RefreshIndicator.onRefresh` with `ref.refresh(provider.future)`, when
+/// the screen shows the errors itself (an [AsyncValueView]):
+///
+/// ```dart
+/// RefreshIndicator(
+///   onRefresh: () => settled([ref.refresh(groupsProvider.future)]),
+///   child: ...,
+/// )
+/// ```
+Future<void> settled(Iterable<Future<Object?>> futures) => Future.wait([
+  for (final future in futures)
+    future.then<void>((_) {}, onError: (Object _) {}),
+]);
+
 /// A centered spinner.
 class LoadingView extends StatelessWidget {
   const new({super.key});

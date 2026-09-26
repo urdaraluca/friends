@@ -1,9 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart';
+import 'package:friends/core/api/generated/export.dart';
 import 'package:friends/core/auth/token_holder.dart';
 import 'package:friends/core/auth/token_store.dart';
 import 'package:friends/core/device/device_info.dart';
 import 'package:friends/core/network/dio_provider.dart';
+import 'package:friends/features/groups/data/last_group_store.dart';
+import 'package:friends/features/invites/data/invite_sharer.dart';
+import 'package:material_ui/material_ui.dart' show Rect;
 
 import 'api_fixtures.dart';
 import 'fake_http_adapter.dart';
@@ -23,6 +27,36 @@ class InMemoryTokenStore implements TokenStore {
 
   @override
   Future<void> clear() async => refreshToken = null;
+}
+
+/// A [LastGroupStore] in memory.
+class InMemoryLastGroupStore implements LastGroupStore {
+  new([this.groupId]);
+
+  String? groupId;
+
+  @override
+  Future<String?> read() async => groupId;
+
+  @override
+  Future<void> write(String groupId) async => this.groupId = groupId;
+
+  @override
+  Future<void> forget(String groupId) async {
+    if (this.groupId == groupId) this.groupId = null;
+  }
+}
+
+/// An [InviteSharer] that records what would have been shared.
+class FakeInviteSharer extends InviteSharer {
+  final List<String> shared = [];
+
+  @override
+  Future<void> share(
+    Invite invite, {
+    required String groupName,
+    Rect? origin,
+  }) async => shared.add(InviteSharer.message(invite, groupName));
 }
 
 /// A clock tests move by hand.
@@ -57,6 +91,12 @@ class TestBackend {
   final clock = FakeClock();
   late final holder = TokenHolder(clock: clock.call);
 
+  /// The last opened group (`/` goes back to it).
+  final lastGroup = InMemoryLastGroupStore();
+
+  /// What the share buttons shared.
+  final sharer = FakeInviteSharer();
+
   /// Overrides for a `ProviderScope` or `ProviderContainer`.
   List<Override> get overrides => [
     apiBaseUrlProvider.overrideWithValue('http://api.test'),
@@ -65,16 +105,51 @@ class TestBackend {
     tokenHolderProvider.overrideWithValue(holder),
     deviceLabelProvider.overrideWithValue('web'),
     deviceTimezoneProvider.overrideWith((ref) async => 'Europe/Bucharest'),
+    lastGroupStoreProvider.overrideWithValue(lastGroup),
+    inviteSharerProvider.overrideWithValue(sharer),
   ];
 
   /// A container disposed at the end of the test.
   ProviderContainer container() => ProviderContainer.test(overrides: overrides);
 
-  /// `POST /auth/refresh` answers with a new pair, `GET /me` with [me].
+  /// `POST /auth/refresh` answers with a new pair, `GET /me` with [me], and
+  /// `GET /groups` with no groups.
   void stubRestore({Map<String, Object?>? me}) {
     adapter
       ..onJson('POST', ApiPaths.refresh, tokenPairJson())
-      ..onJson('GET', ApiPaths.me, me ?? meJson());
+      ..onJson('GET', ApiPaths.me, me ?? meJson())
+      ..onJson('GET', ApiPaths.groups, <Object?>[]);
+  }
+
+  /// `GET /groups` answers with [groups] (`groupSummaryJson`s).
+  void stubGroups(List<Map<String, Object?>> groups) =>
+      adapter.onJson('GET', ApiPaths.groups, groups);
+
+  /// A group I'm in: `GET /groups` (also listing it), `GET /groups/{id}`,
+  /// its members and its invites.
+  void stubGroup({
+    Map<String, Object?>? group,
+    List<Map<String, Object?>>? members,
+    List<Map<String, Object?>> invites = const [],
+  }) {
+    final details = group ?? groupJson();
+    final id = details['id']! as String;
+    final summary = {
+      for (final key in groupSummaryJson().keys) key: details[key],
+    };
+    adapter
+      ..onJson('GET', ApiPaths.groups, [summary])
+      ..onJson('GET', ApiPaths.group(id), details)
+      ..onJson(
+        'GET',
+        ApiPaths.members(id),
+        members ??
+            [
+              memberJson(role: details['my_role']! as String),
+              memberJson(userId: Ids.beaId, displayName: 'Bea'),
+            ],
+      )
+      ..onJson('GET', ApiPaths.invites(id), invites);
   }
 
   /// Number of `POST /auth/refresh` calls so far.

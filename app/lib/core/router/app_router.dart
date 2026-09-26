@@ -3,10 +3,17 @@ import 'package:friends/core/router/routes.dart';
 import 'package:friends/features/auth/presentation/login_screen.dart';
 import 'package:friends/features/auth/presentation/register_screen.dart';
 import 'package:friends/features/auth/presentation/splash_screen.dart';
+import 'package:friends/features/backlog/presentation/backlog_placeholder_screen.dart';
+import 'package:friends/features/calendar/presentation/calendar_placeholder_screen.dart';
+import 'package:friends/features/groups/data/home_location.dart';
+import 'package:friends/features/groups/presentation/group_form_screen.dart';
+import 'package:friends/features/groups/presentation/group_hub_screen.dart';
+import 'package:friends/features/groups/presentation/group_shell.dart';
+import 'package:friends/features/groups/presentation/groups_list_screen.dart';
 import 'package:friends/features/health/presentation/health_screen.dart';
-import 'package:friends/features/home/presentation/home_screen.dart';
 import 'package:friends/features/invites/presentation/join_screen.dart';
 import 'package:friends/features/profile/presentation/profile_screen.dart';
+import 'package:friends/features/wheel/presentation/wheel_placeholder_screen.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -68,7 +75,9 @@ GoRouter router(Ref ref) {
     routes: [
       GoRoute(
         path: Routes.home,
-        builder: (context, state) => const HomeScreen(),
+        // The last opened group, or the groups list (`resolveHomeLocation`).
+        // Runs after [authRedirect], so only when signed in.
+        redirect: (context, state) => resolveHomeLocation(ref),
       ),
       GoRoute(
         path: Routes.splash,
@@ -99,11 +108,67 @@ GoRouter router(Ref ref) {
         path: Routes.health,
         builder: (context, state) => const HealthScreen(),
       ),
+      GoRoute(
+        path: Routes.groups,
+        builder: (context, state) => const GroupsListScreen(),
+      ),
+      GoRoute(
+        path: Routes.newGroup,
+        builder: (context, state) => const GroupFormScreen.create(),
+      ),
+      GoRoute(
+        path: Routes.editGroupPattern,
+        builder: (context, state) =>
+            GroupFormScreen.edit(groupId: _groupId(state)),
+      ),
+      GoRoute(
+        path: Routes.groupPattern,
+        redirect: (context, state) => Routes.groupBacklog(_groupId(state)),
+      ),
+      // A plain ShellRoute: StatefulShellRoute can't have a parameterised
+      // default route (flutter/flutter#163876). Each tab is its own route;
+      // later milestones replace the placeholder builders.
+      ShellRoute(
+        builder: (context, state, child) => GroupShell(
+          groupId: _groupId(state),
+          location: state.uri.path,
+          child: child,
+        ),
+        routes: [
+          GoRoute(
+            path: GroupTab.backlog.pattern,
+            pageBuilder: (context, state) => NoTransitionPage(
+              child: BacklogPlaceholderScreen(groupId: _groupId(state)),
+            ),
+          ),
+          GoRoute(
+            path: GroupTab.calendar.pattern,
+            pageBuilder: (context, state) => NoTransitionPage(
+              child: CalendarPlaceholderScreen(groupId: _groupId(state)),
+            ),
+          ),
+          GoRoute(
+            path: GroupTab.wheel.pattern,
+            pageBuilder: (context, state) => NoTransitionPage(
+              child: WheelPlaceholderScreen(groupId: _groupId(state)),
+            ),
+          ),
+          GoRoute(
+            path: GroupTab.group.pattern,
+            pageBuilder: (context, state) => NoTransitionPage(
+              child: GroupHubScreen(groupId: _groupId(state)),
+            ),
+          ),
+        ],
+      ),
     ],
   );
   ref.onDispose(router.dispose);
   return router;
 }
+
+String _groupId(GoRouterState state) =>
+    state.pathParameters[Routes.groupIdParam]!;
 
 /// Unknown locations.
 class NotFoundScreen extends StatelessWidget {

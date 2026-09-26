@@ -15,6 +15,25 @@ abstract final class Validators {
         return null;
       };
 
+  /// An optional value of at most [max] characters after trimming.
+  static String? Function(String?) optional({required int max}) => (value) {
+    final length = (value ?? '').trim().runes.length;
+    return length > max ? 'Use at most $max characters.' : null;
+  };
+
+  /// A currency code: 3 letters (contract section 1.4). Lowercase letters
+  /// are accepted here; send the value through [normalizeCurrency].
+  static String? currency(String? value) {
+    final code = normalizeCurrency(value ?? '');
+    if (code.isEmpty) return 'Enter a currency.';
+    return RegExp(r'^[A-Z]{3}$').hasMatch(code)
+        ? null
+        : 'Use a 3-letter currency code, e.g. EUR.';
+  }
+
+  /// [value] trimmed and uppercased, as the server expects currencies.
+  static String normalizeCurrency(String value) => value.trim().toUpperCase();
+
   /// A plausible email address (the server does the real check).
   static String? email(String? value) {
     final email = (value ?? '').trim();

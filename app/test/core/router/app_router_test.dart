@@ -6,10 +6,11 @@ import 'package:friends/core/router/app_router.dart';
 import 'package:friends/core/router/routes.dart';
 import 'package:friends/features/auth/presentation/login_screen.dart';
 import 'package:friends/features/auth/presentation/register_screen.dart';
-import 'package:friends/features/home/presentation/home_screen.dart';
+import 'package:friends/features/groups/presentation/groups_list_screen.dart';
 import 'package:friends/features/invites/presentation/join_screen.dart';
 import 'package:friends/features/profile/presentation/profile_screen.dart';
 
+import '../../helpers/api_fixtures.dart';
 import '../../helpers/fake_auth_controller.dart';
 import '../../helpers/pump_app.dart';
 import '../../helpers/test_backend.dart';
@@ -207,8 +208,15 @@ void main() {
     });
 
     testWidgets('/join/:code stays public', (tester) async {
+      final backend = TestBackend();
+      backend.adapter.onJson(
+        'GET',
+        ApiPaths.invitePreview('ABCDEFGHJK'),
+        invitePreviewJson(),
+      );
       final container = await tester.pumpFriendsApp(
         overrides: [
+          ...backend.overrides,
           authControllerProvider.overrideWith(
             () => FakeAuthController(signedOut),
           ),
@@ -221,9 +229,13 @@ void main() {
       expect(find.text('ABCDE-FGHJK'), findsOneWidget);
     });
 
-    testWidgets('signed in, /login goes home', (tester) async {
+    testWidgets('signed in, /login goes home (the groups list)', (
+      tester,
+    ) async {
+      final backend = TestBackend()..stubGroups([]);
       final container = await tester.pumpFriendsApp(
         overrides: [
+          ...backend.overrides,
           authControllerProvider.overrideWith(
             () => FakeAuthController(signedInState),
           ),
@@ -231,9 +243,8 @@ void main() {
         location: Routes.login,
       );
 
-      expect(currentLocation(container), '/');
-      expect(find.byType(HomeScreen), findsOneWidget);
-      expect(find.text('Hi, Ana!'), findsOneWidget);
+      expect(currentLocation(container), '/groups');
+      expect(find.byType(GroupsListScreen), findsOneWidget);
     });
 
     testWidgets('follows auth state changes (refreshListenable)', (

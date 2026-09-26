@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:friends/core/auth/auth_controller.dart';
 import 'package:friends/features/auth/presentation/splash_screen.dart';
-import 'package:friends/features/home/presentation/home_screen.dart';
+import 'package:friends/features/groups/presentation/groups_list_screen.dart';
 import 'package:friends/features/profile/presentation/profile_screen.dart';
 
 import '../../helpers/api_fixtures.dart';
@@ -52,9 +52,9 @@ void main() {
       await tester.tap(find.text('Retry'));
       await tester.pumpAndSettle();
 
-      expect(currentLocation(container), '/');
-      expect(find.byType(HomeScreen), findsOneWidget);
-      expect(find.text('Hi, Ana!'), findsOneWidget);
+      expect(currentLocation(container), '/groups');
+      expect(find.byType(GroupsListScreen), findsOneWidget);
+      expect(find.text('No groups yet'), findsOneWidget);
     });
 
     testWidgets('shows a spinner while restoring', (tester) async {
@@ -63,7 +63,9 @@ void main() {
         await Future<void>.delayed(const Duration(seconds: 1));
         return FakeReply.json(tokenPairJson());
       });
-      backend.adapter.onJson('GET', ApiPaths.me, meJson());
+      backend.adapter
+        ..onJson('GET', ApiPaths.me, meJson())
+        ..onJson('GET', ApiPaths.groups, <Object?>[]);
 
       await tester.pumpFriendsApp(overrides: backend.overrides, settle: false);
 
@@ -72,7 +74,7 @@ void main() {
 
       await tester.pump(const Duration(seconds: 1));
       await tester.pumpAndSettle();
-      expect(find.byType(HomeScreen), findsOneWidget);
+      expect(find.byType(GroupsListScreen), findsOneWidget);
     });
   });
 }

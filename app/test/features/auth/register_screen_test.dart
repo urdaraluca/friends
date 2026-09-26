@@ -1,7 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:friends/core/api/error_codes.dart';
+import 'package:friends/core/router/routes.dart';
 import 'package:friends/features/auth/presentation/register_screen.dart';
-import 'package:friends/features/home/presentation/home_screen.dart';
+import 'package:friends/features/backlog/presentation/backlog_placeholder_screen.dart';
+import 'package:friends/features/groups/presentation/group_shell.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../helpers/api_fixtures.dart';
@@ -91,15 +93,16 @@ void main() {
       expect(registerBodies(), isEmpty);
     });
 
-    testWidgets('normalizes the invite code and accepts a pasted link', (
-      tester,
-    ) async {
-      backend.adapter.onJson(
-        'POST',
-        ApiPaths.register,
-        authSessionJson(joinedGroup: groupSummaryJson()),
-        status: 201,
-      );
+    testWidgets('normalizes the invite code, accepts a pasted link, and '
+        'opens the group the invite joined', (tester) async {
+      backend
+        ..adapter.onJson(
+          'POST',
+          ApiPaths.register,
+          authSessionJson(joinedGroup: groupSummaryJson()),
+          status: 201,
+        )
+        ..stubGroup();
       final container = await tester.pumpFriendsApp(
         overrides: backend.overrides,
         location: '/register',
@@ -118,8 +121,35 @@ void main() {
         'device_label': 'web',
         'invite_code': 'ABCDEFGH1K',
       });
-      expect(currentLocation(container), '/');
-      expect(find.byType(HomeScreen), findsOneWidget);
+      expect(currentLocation(container), '/groups/${Ids.groupId}/backlog');
+      expect(find.byType(BacklogPlaceholderScreen), findsOneWidget);
+      expect(find.byType(GroupShell), findsOneWidget);
+    });
+
+    testWidgets('without a joined group, goes back to from', (tester) async {
+      backend.adapter.onJson(
+        'POST',
+        ApiPaths.register,
+        authSessionJson(),
+        status: 201,
+      );
+      backend.adapter.onJson(
+        'GET',
+        ApiPaths.invitePreview('ABCDEFGHJK'),
+        invitePreviewJson(),
+      );
+      final container = await tester.pumpFriendsApp(
+        overrides: backend.overrides,
+        location: Routes.registerWith(from: Routes.join('ABCDEFGHJK')),
+      );
+
+      // The code comes from `from`, and is pre-filled.
+      expect(fieldText(tester, 'Invite code'), 'ABCDE-FGHJK');
+      await tester.enterText(field('Invite code'), '');
+      await fillAndSubmit(tester);
+
+      expect(registerBodies().single['invite_code'], isNull);
+      expect(currentLocation(container), '/join/ABCDEFGHJK');
     });
 
     testWidgets('pre-fills the invite code from the link', (tester) async {

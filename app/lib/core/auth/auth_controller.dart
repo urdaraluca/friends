@@ -90,8 +90,8 @@ class AuthController extends _$AuthController {
   ///
   /// [inviteCode] may be in any spelling or a pasted `…/join/<code>` link;
   /// it is normalized as in contract section 4.7. When the invite put the
-  /// user in a group, the returned session's `joinedGroup` names it (M5
-  /// navigates into that group).
+  /// user in a group, the returned session's `joinedGroup` names it, and
+  /// the register screen opens that group.
   Future<AuthSession> register({
     required String displayName,
     required String email,

@@ -80,10 +80,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
     clearFormError();
     if (!_formKey.currentState!.validate()) return;
     setState(() => _submitting = true);
+    // Captured now: once signed in, the router leaves this screen.
+    final router = GoRouter.of(context);
     try {
-      // Once signed in, the router moves on to `from` (or `/`).
-      // M5: when the returned session.joinedGroup is set, open that group.
-      await ref
+      // Once signed in, the router moves on to `from` (or `/`)...
+      final session = await ref
           .read(authControllerProvider.notifier)
           .register(
             displayName: _displayName.text,
@@ -91,6 +92,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
             password: _password.text,
             inviteCode: _inviteCode.text,
           );
+      // ...unless the invite put me in a group: then open that group. The
+      // later navigation wins over the router's own redirect.
+      if (session.joinedGroup case final group?) {
+        router.go(Routes.groupBacklog(group.id));
+      }
     } on ApiException catch (e) {
       if (mounted) {
         showServerError(

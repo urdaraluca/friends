@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:friends/core/api/error_codes.dart';
 import 'package:friends/core/auth/auth_controller.dart';
 import 'package:friends/features/auth/presentation/login_screen.dart';
-import 'package:friends/features/home/presentation/home_screen.dart';
+import 'package:friends/features/groups/presentation/groups_list_screen.dart';
 import 'package:friends/features/profile/presentation/profile_screen.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -210,8 +210,8 @@ void main() {
       await tester.tap(find.byTooltip('Home'));
       await tester.pumpAndSettle();
 
-      expect(currentLocation(container), '/');
-      expect(find.byType(HomeScreen), findsOneWidget);
+      expect(currentLocation(container), '/groups');
+      expect(find.byType(GroupsListScreen), findsOneWidget);
 
       // Pushed from home, it has a back button instead.
       await tester.tap(find.byTooltip('Profile'));
