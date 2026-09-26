@@ -1,5 +1,5 @@
 import uuid
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from typing import Any
 
@@ -14,6 +14,7 @@ from friends_api.core.errors import (
     Unprocessable,
 )
 from friends_api.features.auth.models import User
+from friends_api.features.categories.defaults import seed_default_categories
 from friends_api.features.group_log.service import log_event
 from friends_api.features.groups import policies
 from friends_api.features.groups.models import Group, Membership, Role
@@ -184,6 +185,8 @@ def create_group(db: Session, user: User, body: GroupCreate) -> GroupAccess:
         data={"via": "create", "invite_id": None},
     )
     db.flush()
+    if body.seed_default_categories:
+        seed_default_categories(db, group.id, user.id)  # logs a category.created row each
     return GroupAccess(group=group, membership=membership)
 
 
@@ -364,9 +367,9 @@ def end_membership(
     db.flush()
 
 
-MEMBERSHIP_END_CLEANUPS: list[Any] = []
+MEMBERSHIP_END_CLEANUPS: list[Callable[[Session, uuid.UUID, uuid.UUID], None]] = []
 """Callables ``(db, group_id, user_id) -> None`` registered by features that store per-member
-data (interests, votes, activity ownership)."""
+data (activities: interests and ownership; polls: votes)."""
 
 
 def transfer_or_delete_owned_groups(db: Session, user: User) -> None:

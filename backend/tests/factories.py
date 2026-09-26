@@ -99,3 +99,60 @@ def add_member(client: TestClient, owner: Account, group_id: str) -> Account:
     account = register(client)
     join(client, account, invite["code"])
     return account
+
+
+def list_categories(client: TestClient, account: Account, group_id: str) -> list[dict[str, Any]]:
+    response = client.get(f"/api/v1/groups/{group_id}/categories", headers=account.headers)
+    assert response.status_code == 200, response.text
+    body: list[dict[str, Any]] = response.json()
+    return body
+
+
+def create_category(
+    client: TestClient, account: Account, group_id: str, **fields: Any
+) -> dict[str, Any]:
+    payload = {"name": f"Category {next(_sequence)}", **fields}
+    if payload.get("parent_id") is None:
+        payload.setdefault("color", "#336699")
+    response = client.post(
+        f"/api/v1/groups/{group_id}/categories", headers=account.headers, json=payload
+    )
+    assert response.status_code == 201, response.text
+    body: dict[str, Any] = response.json()
+    return body
+
+
+def create_activity(
+    client: TestClient, account: Account, group_id: str, **fields: Any
+) -> dict[str, Any]:
+    payload = {"title": f"Activity {next(_sequence)}", **fields}
+    response = client.post(
+        f"/api/v1/groups/{group_id}/activities", headers=account.headers, json=payload
+    )
+    assert response.status_code == 201, response.text
+    body: dict[str, Any] = response.json()
+    return body
+
+
+ACTIVITY_WRITE_FIELDS = (
+    "title",
+    "description",
+    "notes",
+    "category_id",
+    "due_date",
+    "estimated_cost",
+    "currency",
+    "cost_per_person",
+    "location_name",
+    "address",
+    "links",
+    "attributes",
+)
+
+
+def activity_update(activity: dict[str, Any], **changes: Any) -> dict[str, Any]:
+    """A complete PUT body built from an ``Activity`` response, with ``changes`` applied."""
+    body = {field: activity[field] for field in ACTIVITY_WRITE_FIELDS}
+    body["owner_id"] = activity["owner"]["id"] if activity["owner"] else None
+    body["version"] = activity["version"]
+    return {**body, **changes}

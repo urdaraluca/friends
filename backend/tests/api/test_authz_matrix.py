@@ -16,7 +16,15 @@ from fastapi import FastAPI
 from fastapi.routing import APIRoute, RouteContext, iter_route_contexts
 from fastapi.testclient import TestClient
 
-from tests.factories import Account, add_member, create_group, create_invite, register
+from tests.factories import (
+    Account,
+    add_member,
+    create_activity,
+    create_group,
+    create_invite,
+    list_categories,
+    register,
+)
 
 
 @dataclass
@@ -28,6 +36,7 @@ class World:
 
 
 GROUP_UPDATE = {"name": "G", "currency": "EUR", "timezone": "UTC", "members_can_invite": True}
+CATEGORY_WRITE = {"name": "Board games", "color": "#123456"}
 
 # operationId -> request body. A plain member (not creator/owner) must get 403.
 RESTRICTED: dict[str, Callable[[World], dict[str, Any] | None]] = {
@@ -37,6 +46,9 @@ RESTRICTED: dict[str, Callable[[World], dict[str, Any] | None]] = {
     "update_member_role": lambda w: {"role": "admin"},
     "remove_member": lambda w: None,
     "revoke_invite": lambda w: None,
+    "update_category": lambda w: CATEGORY_WRITE,
+    "delete_category": lambda w: None,
+    "delete_activity": lambda w: None,
 }
 
 # Routes any member may use (non-members still get 404).
@@ -46,12 +58,25 @@ MEMBER_LEVEL = {
     "update_my_member_settings",
     "list_invites",
     "create_invite",
+    "list_categories",
+    "create_category",
+    "list_activities",
+    "create_activity",
+    "get_activity",
+    "update_activity",
+    "set_activity_status",
+    "add_interest",
+    "remove_interest",
 }
 
 BODIES: dict[str, Callable[[World], dict[str, Any] | None]] = {
     **RESTRICTED,
     "update_my_member_settings": lambda w: {"show_birthday": False},
     "create_invite": lambda w: {},
+    "create_category": lambda w: CATEGORY_WRITE,
+    "create_activity": lambda w: {"title": "Picnic"},
+    "update_activity": lambda w: {"title": "Picnic", "version": 1},
+    "set_activity_status": lambda w: {"status": "planning"},
 }
 
 
@@ -62,6 +87,9 @@ def world(client: TestClient) -> World:
     member = add_member(client, owner, group["id"])
     other = add_member(client, owner, group["id"])
     invite = create_invite(client, owner, group["id"])
+    # Created by the owner: the plain member is neither its creator nor its owner.
+    category = list_categories(client, owner, group["id"])[0]
+    activity = create_activity(client, owner, group["id"], title="Owned by the owner")
     return World(
         owner=owner,
         member=member,
@@ -72,6 +100,8 @@ def world(client: TestClient) -> World:
             "user_id": other.id,
             "other_member_id": other.id,
             "invite_id": invite["id"],
+            "category_id": category["id"],
+            "activity_id": activity["id"],
         },
     )
 
@@ -119,3 +149,14 @@ def test_plain_members_get_403_on_restricted_routes(
         response = call(client, route, method, world, world.member)
         assert response.status_code == 403, (method, route.path, response.text)
         assert response.json()["code"] == "forbidden"
+
+
+def test_member_level_routes_accept_a_plain_member(
+    app: FastAPI, client: TestClient, world: World
+) -> None:
+    """The bodies above are valid, so the 403s in the previous test come from the rules."""
+    for route, method in uuid_routes(app):
+        if route.name not in MEMBER_LEVEL or method != "GET":
+            continue
+        response = call(client, route, method, world, world.member)
+        assert response.status_code == 200, (method, route.path, response.text)

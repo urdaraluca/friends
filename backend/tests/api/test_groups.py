@@ -33,6 +33,16 @@ def test_create_group_makes_the_caller_owner(client: TestClient) -> None:
     assert group["description"] is None
 
 
+def test_blank_optional_group_fields_mean_null(client: TestClient) -> None:
+    """Contract 1.4: blank optional strings are null, even when they have a format."""
+    owner = register(client, timezone="Europe/Bucharest")
+
+    group = create_group(client, owner, color="", emoji=" ", timezone="", description="\n")
+
+    assert group["color"] is group["emoji"] is group["description"] is None
+    assert group["timezone"] == "Europe/Bucharest"  # null: the creator's timezone
+
+
 def test_list_groups_returns_only_mine_sorted_by_name(client: TestClient) -> None:
     me, other = register(client), register(client)
     create_group(client, me, name="zebra")
@@ -235,6 +245,7 @@ def test_group_changes_are_logged(client: TestClient, db_session: Session) -> No
     assert actions == [
         "group.created",
         "member.joined",
+        *["category.created"] * 7,  # the default categories
         "invite.created",
         "member.joined",
         "group.updated",

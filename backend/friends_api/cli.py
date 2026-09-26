@@ -4,6 +4,7 @@
 - ``backup``: consistent online backup (safe while the app is running), gzip, rotate.
 - ``export-openapi``: write the OpenAPI schema used to generate the Dart client.
 - ``create-user`` / ``reset-password``: account administration (there is no email sending).
+- ``seed-demo``: demo users, a group and its data for development (refused in prod).
 """
 
 import argparse
@@ -25,10 +26,13 @@ from alembic.script import ScriptDirectory
 from sqlalchemy import delete, select
 from sqlalchemy.engine import make_url
 
-from friends_api.core.config import Settings, get_settings
+from friends_api.core.config import AppEnv, Settings, get_settings
 from friends_api.core.db import create_db_engine, create_session_factories
 from friends_api.core.errors import AppError
 from friends_api.core.security import Passwords
+from friends_api.demo.base import demo_users_exist
+from friends_api.demo.context import DEMO_EMAILS, DEMO_PASSWORD
+from friends_api.demo.runner import seed_demo
 from friends_api.features.auth import service as auth_service
 from friends_api.features.auth.models import RefreshToken, User
 from friends_api.features.auth.service import AuthContext
@@ -196,6 +200,32 @@ def cmd_reset_password(settings: Settings, args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_seed_demo(settings: Settings, _args: argparse.Namespace) -> int:
+    if settings.app_env is AppEnv.PROD:
+        print("seed-demo is disabled when APP_ENV=prod.", file=sys.stderr)
+        return 2
+    ctx = AuthContext(settings=settings, passwords=Passwords(settings))
+    engine = create_db_engine(settings.database_url)
+    _, write = create_session_factories(engine)
+    try:
+        with write() as db:
+            if demo_users_exist(db):
+                print("The demo users already exist; nothing was changed.", file=sys.stderr)
+                return 1
+            demo = seed_demo(db, ctx)
+            db.commit()
+            summary = (
+                f"Created group '{demo.group.name}' with {len(demo.categories)} categories "
+                f"and {len(demo.activities)} activities."
+            )
+    finally:
+        engine.dispose()
+    print(summary)
+    print(f"Demo users: {', '.join(DEMO_EMAILS)}")
+    print(f"Password: {DEMO_PASSWORD}")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="python -m friends_api.cli")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -219,6 +249,8 @@ def build_parser() -> argparse.ArgumentParser:
     reset = sub.add_parser("reset-password", help="set a new password and sign out all sessions")
     reset.add_argument("email")
     reset.add_argument("--password-stdin", action="store_true", help="read the password from stdin")
+
+    sub.add_parser("seed-demo", help="create demo users and a group full of data (not in prod)")
     return parser
 
 
@@ -228,6 +260,7 @@ COMMANDS = {
     "export-openapi": cmd_export_openapi,
     "create-user": cmd_create_user,
     "reset-password": cmd_reset_password,
+    "seed-demo": cmd_seed_demo,
 }
 
 

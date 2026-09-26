@@ -113,7 +113,9 @@ changes one, it changes the other.
 - **No request field gives "omitted" and "null" different meanings.** The generated Dart client
   can't tell them apart.
 - **Strings** are trimmed (`str_strip_whitespace=True`).
-  - An optional string that is empty after trimming is stored as `null`.
+  - An optional string that is empty after trimming is stored as `null`. This happens before any
+    format check, so `""` (or only whitespace) for an optional `Color`, `currency`, date or ID also
+    means `null`.
   - A required string that is empty after trimming gets 422.
   - Lengths are counted in Unicode code points, after trimming.
 - **Formats**
@@ -211,6 +213,7 @@ FieldError { field: str, message: str, type: str }
 | Categories per group (including subcategories) | 100 | 422 `limit_reached` |
 | Category depth | 2 (category > subcategory) | 422 `category_depth_exceeded` |
 | Field definitions per category (its own) | 12, so at most 24 effective on a subcategory | 422 `validation_error` |
+| Category `position` | 0..1,000,000 | 422 `validation_error` |
 | Links per activity | 10 | 422 `validation_error` |
 | Invites returned by `list_invites` | the newest 100 (older ones, almost always expired, are left out) | – |
 | Polls per activity | 10 | 422 `limit_reached` |
@@ -1114,7 +1117,8 @@ never contains nulls.
 
 ### 6.5 Default categories (seeded when a group is created with `seed_default_categories=true`)
 
-All are top-level. `created_by` is the group creator, and positions are 0..6 in this order:
+All are top-level. `created_by` is the group creator, and positions are 0..6 in this order. Each one
+is logged as `category.created` by the creator, after `group.created` and `member.joined`:
 
 | position | name | color | icon | field_defs |
 |---|---|---|---|---|
@@ -1309,7 +1313,8 @@ The Docker HEALTHCHECK calls `http://127.0.0.1:8000/api/v1/health`.
 Rules for categories:
 - **Deleting a subcategory:** its activities and events move to the parent (`version + 1` each).
 - **Deleting a top-level category:** its subcategories are deleted too. Activities and events in it or
-  in its subcategories become uncategorized (`version + 1`).
+  in its subcategories become uncategorized (`version + 1`). Each deleted category, subcategories
+  included, gets its own `category.deleted` row.
 - **Moving with `parent_id` in a PUT:**
   - a category that has subcategories can't get a parent (`category_depth_exceeded`);
   - the parent must be top-level and in the same group;
@@ -1487,7 +1492,8 @@ Category          { id: uuid, group_id: uuid, parent_id: uuid?, name: str,
                     created_at: datetime, updated_at: datetime }
 CategoryNode      { ...all Category fields, subcategories: Category[] }
 CategoryWrite     { name: str (1..40), parent_id: uuid?, color: Color? (required when parent_id is null),
-                    icon: str? (<=40), position: int? (null: append on create / keep on update),
+                    icon: str? (<=40),
+                    position: int? (0..1000000; null: append on create / keep on update),
                     field_defs: FieldDef[] = [] (<=12) }
 
 # ---- activities ----
