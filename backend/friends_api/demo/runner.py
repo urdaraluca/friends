@@ -11,6 +11,7 @@ from friends_api.demo.activities import add_interests, create_activities
 from friends_api.demo.base import create_base
 from friends_api.demo.categories import create_subcategories
 from friends_api.demo.context import DEMO_SEED, DemoContext
+from friends_api.demo.events import create_events
 from friends_api.demo.polls import create_polls
 from friends_api.demo.wheel import create_spins
 from friends_api.features.auth.service import AuthContext
@@ -21,7 +22,7 @@ STEPS: list[Step] = [
     create_subcategories,
     create_activities,
     add_interests,
-    # TODO(#12): create_events (one-time, weekly, monthly, yearly, birthdays, profile birthdays)
+    create_events,
     # -- one step per line, so parallel additions don't touch the same lines --
     create_polls,
     # -- one step per line, so parallel additions don't touch the same lines --

@@ -134,6 +134,22 @@ def create_activity(
     return body
 
 
+def create_event(
+    client: TestClient, account: Account, group_id: str, **fields: Any
+) -> dict[str, Any]:
+    """A one-time all-day event on 2026-10-03 unless ``fields`` say otherwise."""
+    payload: dict[str, Any] = {"kind": "one_time", "title": f"Event {next(_sequence)}"}
+    if fields.get("all_day", True):
+        payload.update(all_day=True, start_date="2026-10-03")
+    payload.update(fields)
+    response = client.post(
+        f"/api/v1/groups/{group_id}/events", headers=account.headers, json=payload
+    )
+    assert response.status_code == 201, response.text
+    body: dict[str, Any] = response.json()
+    return body
+
+
 ACTIVITY_WRITE_FIELDS = (
     "title",
     "description",

@@ -7,6 +7,7 @@ from friends_api.core.db import Base
 from friends_api.features.activities import models as activities_models
 from friends_api.features.auth import models as auth_models
 from friends_api.features.categories import models as categories_models
+from friends_api.features.events import models as events_models
 from friends_api.features.group_log import models as group_log_models
 from friends_api.features.groups import models as groups_models
 from friends_api.features.invites import models as invites_models
@@ -18,6 +19,7 @@ __all__ = [
     "activities_models",
     "auth_models",
     "categories_models",
+    "events_models",
     "group_log_models",
     "groups_models",
     "invites_models",

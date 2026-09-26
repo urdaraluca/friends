@@ -20,6 +20,7 @@ from tests.factories import (
     Account,
     add_member,
     create_activity,
+    create_event,
     create_group,
     create_invite,
     create_poll,
@@ -39,6 +40,7 @@ class World:
 GROUP_UPDATE = {"name": "G", "currency": "EUR", "timezone": "UTC", "members_can_invite": True}
 CATEGORY_WRITE = {"name": "Board games", "color": "#123456"}
 POLL_UPDATE = {"question": "Which one?", "closes_at": None}
+EVENT_WRITE = {"kind": "one_time", "title": "Picnic", "all_day": True, "start_date": "2026-10-03"}
 
 # operationId -> request body. A plain member (not creator/owner) must get 403.
 RESTRICTED: dict[str, Callable[[World], dict[str, Any] | None]] = {
@@ -57,6 +59,10 @@ RESTRICTED: dict[str, Callable[[World], dict[str, Any] | None]] = {
     "reopen_poll": lambda w: None,
     # A plain member who neither added the option nor manages the poll.
     "delete_poll_option": lambda w: None,
+    "update_event": lambda w: {**EVENT_WRITE, "version": 1},
+    "delete_event": lambda w: None,
+    "cancel_occurrence": lambda w: None,
+    "restore_occurrence": lambda w: None,
 }
 
 # Routes any member may use (non-members still get 404).
@@ -84,6 +90,9 @@ MEMBER_LEVEL = {
     "get_poll",
     "add_poll_option",
     "set_my_vote",
+    "get_group_calendar",
+    "create_event",
+    "get_event",
 }
 
 BODIES: dict[str, Callable[[World], dict[str, Any] | None]] = {
@@ -98,6 +107,12 @@ BODIES: dict[str, Callable[[World], dict[str, Any] | None]] = {
     "create_poll": lambda w: {"question": "When?", "options": [{"label": "A"}, {"label": "B"}]},
     "add_poll_option": lambda w: {"label": "Another one"},
     "set_my_vote": lambda w: {"option_ids": [w.ids["option_id"]]},
+    "create_event": lambda w: EVENT_WRITE,
+}
+
+# operationId -> query parameters the route requires.
+QUERIES: dict[str, dict[str, str]] = {
+    "get_group_calendar": {"from": "2026-10-01", "to": "2026-11-01"},
 }
 
 
@@ -123,6 +138,16 @@ def world(client: TestClient) -> World:
     # Created by the owner on the owner's activity: the plain member doesn't manage it, and
     # its options were added by the owner.
     poll = create_poll(client, owner, activity["id"])
+    event = create_event(
+        client,
+        owner,
+        group["id"],
+        kind="recurring",
+        all_day=False,
+        starts_at="2026-10-01T16:00:00Z",
+        ends_at="2026-10-01T19:00:00Z",
+        rrule="FREQ=WEEKLY;BYDAY=TH",
+    )
     return World(
         owner=owner,
         member=member,
@@ -138,6 +163,9 @@ def world(client: TestClient) -> World:
             "spin_id": spin["id"],
             "poll_id": poll["id"],
             "option_id": poll["options"][0]["id"],
+            "event_id": event["id"],
+            # Not a UUID: the cancel and restore routes also take a (valid) occurrence key.
+            "occurrence_key": "20261008T160000Z",
         },
     )
 
@@ -159,7 +187,8 @@ def call(
     path = (route.path or "").format(**world.ids)
     body_factory = BODIES.get(route.name or "")
     body = body_factory(world) if body_factory else None
-    return client.request(method, path, headers=account.headers, json=body)
+    params = QUERIES.get(route.name or "")
+    return client.request(method, path, headers=account.headers, json=body, params=params)
 
 
 def test_every_uuid_route_is_classified(app: FastAPI) -> None:

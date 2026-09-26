@@ -3,6 +3,9 @@ from fastapi import APIRouter, status
 from friends_api.deps import Auth, CurrentPrincipal, CurrentUser, DbSession
 from friends_api.features.auth import service as auth_service
 from friends_api.features.auth.schemas import AccountDeletion, PasswordChange, TokenPair
+from friends_api.features.events import calendar
+from friends_api.features.events.params import FromParam, KindsParam, ToParam, TzParam
+from friends_api.features.events.schemas import CalendarResponse
 from friends_api.features.users import service
 from friends_api.features.users.schemas import Me, MeUpdate
 
@@ -40,3 +43,18 @@ def delete_account(body: AccountDeletion, db: DbSession, auth: Auth, user: Curre
     """Deletes the account: owned groups go to the oldest admin (or member), or are deleted if
     you are alone in them; you leave every group; your profile is anonymized."""
     service.delete_account(db, auth, user, body.password)
+
+
+@router.get("/calendar")
+def get_my_calendar(
+    db: DbSession,
+    user: CurrentUser,
+    from_: FromParam,
+    to: ToParam,
+    tz: TzParam = None,
+    kinds: KindsParam = None,
+) -> CalendarResponse:
+    """Occurrences across all your groups in ``[from, to)``. Member birthdays appear once per
+    person (``group_id`` null) if they show them in at least one group you share."""
+    query = calendar.CalendarQuery(from_date=from_, to_date=to, tz=tz, kinds=kinds)
+    return calendar.my_calendar(db, user, query)
