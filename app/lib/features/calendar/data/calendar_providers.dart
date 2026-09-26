@@ -75,6 +75,29 @@ Future<CalendarResponse> calendar(
   );
 }
 
+/// My occurrences across all my groups for [query] (`GET /me/calendar`,
+/// contract section 5.5), in the device's timezone. A birthday shared by
+/// several groups comes once, without a group.
+@riverpod
+Future<CalendarResponse> myCalendar(Ref ref, CalendarQuery query) async {
+  ref.watch(currentUserIdProvider);
+  final tz = await ref.watch(deviceTimezoneProvider.future);
+  final client = ref.watch(usersClientProvider);
+  return await apiCall(
+    () => client.getMyCalendar(
+      from: query.from,
+      to: query.to,
+      tz: tz,
+      kinds: query.kinds.isEmpty
+          ? null
+          : [
+              for (final kind in EventKind.$valuesDefined)
+                if (query.kinds.contains(kind)) kind,
+            ],
+    ),
+  );
+}
+
 /// One event series (`GET /events/{id}`).
 @riverpod
 Future<Event> event(Ref ref, String eventId) {

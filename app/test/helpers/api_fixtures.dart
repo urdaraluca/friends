@@ -218,6 +218,7 @@ abstract final class ApiPaths {
   static String occurrence(String eventId, String key) =>
       '${event(eventId)}/occurrences/$key';
   static const myAvailability = '$me/availability';
+  static const myCalendar = '$me/calendar';
   static String recap(String groupId) => '${group(groupId)}/recap';
   static String feed(String groupId) => '${group(groupId)}/feed';
   static String groupAvailability(String groupId) =>

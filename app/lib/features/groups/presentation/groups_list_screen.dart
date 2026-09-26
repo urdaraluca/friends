@@ -23,6 +23,11 @@ class GroupsListScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Your groups'),
         actions: [
+          IconButton(
+            tooltip: 'My calendar',
+            icon: const Icon(Icons.calendar_month_outlined),
+            onPressed: () => unawaited(context.push(Routes.myCalendar)),
+          ),
           PopupMenuButton<VoidCallback>(
             tooltip: 'More',
             onSelected: (action) => action(),

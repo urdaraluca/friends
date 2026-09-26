@@ -1293,7 +1293,7 @@ The Docker HEALTHCHECK calls `http://127.0.0.1:8000/api/v1/health`.
 | `PUT /me` | `update_me` | user | `MeUpdate` | 200 `Me` | – |
 | `POST /me/password` | `change_password` | user | `PasswordChange` | 200 `TokenPair` (section 4.6) | 422 `wrong_password`, `weak_password` |
 | `POST /me/deletion` | `delete_account` | user | `AccountDeletion` | 204 (section 4.8) | 422 `wrong_password` |
-| `GET /me/calendar` | `get_my_calendar` | user | query `from`, `to`, `tz?`, `kinds*` | 200 `CalendarResponse` across all my groups (section 5.5); endpoint only, no MVP UI | 422 `range_too_large` |
+| `GET /me/calendar` | `get_my_calendar` | user | query `from`, `to`, `tz?`, `kinds*` | 200 `CalendarResponse` across all my groups (section 5.5); the app shows it at `/calendar` (issue #18) | 422 `range_too_large` |
 
 ### 8.4 groups (tag `groups`)
 
@@ -1708,7 +1708,7 @@ own phone, and the history feeds the recap ("the wheel decided 14 times").
 - TMDB/OMDb auto-fill of `attributes` (needs an API key).
 - Backlog and wheel filters on attributes (`json_extract`, or generated columns).
 - A group feed UI (`GET /groups/{id}/feed` over `group_log`). Built: section 15.
-- A personal calendar UI over `/me/calendar`.
+- A personal calendar UI over `/me/calendar`. Built (`/calendar` in the app).
 - Single-occurrence edits through `override_*` columns on `event_exceptions`.
 - Email verification and password reset, once SMTP exists.
 - A Postgres move. UUIDs, UTC instants and plain SQL keep it cheap; `COLLATE NOCASE` becomes `citext`

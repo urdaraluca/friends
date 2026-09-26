@@ -14,6 +14,7 @@ import 'package:friends/features/backlog/presentation/categories_screen.dart';
 import 'package:friends/features/calendar/presentation/calendar_screen.dart';
 import 'package:friends/features/calendar/presentation/event_detail_screen.dart';
 import 'package:friends/features/calendar/presentation/event_form_screen.dart';
+import 'package:friends/features/calendar/presentation/my_calendar_screen.dart';
 import 'package:friends/features/feed/presentation/feed_screen.dart';
 import 'package:friends/features/groups/data/home_location.dart';
 import 'package:friends/features/groups/presentation/group_form_screen.dart';
@@ -119,6 +120,11 @@ GoRouter router(Ref ref) {
       GoRoute(
         path: Routes.profile,
         builder: (context, state) => const ProfileScreen(),
+      ),
+      GoRoute(
+        path: Routes.myCalendar,
+        builder: (context, state) =>
+            MyCalendarScreen(initialDay: _dateQuery(state, Routes.dayParam)),
       ),
       GoRoute(
         path: Routes.myAvailability,

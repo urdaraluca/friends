@@ -102,6 +102,9 @@ abstract final class Routes {
     monthParam: month,
   });
 
+  /// My calendar: every group's events and birthdays in one view.
+  static const myCalendar = '/calendar';
+
   /// My availability, for every group I'm in.
   static const myAvailability = '/availability';
 
