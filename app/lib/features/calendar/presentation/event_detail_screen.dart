@@ -16,6 +16,7 @@ import 'package:friends/features/calendar/data/calendar_providers.dart';
 import 'package:friends/features/calendar/domain/rrule_spec.dart';
 import 'package:friends/features/calendar/presentation/occurrence_edit_page.dart';
 import 'package:friends/features/groups/presentation/widgets/group_themed.dart';
+import 'package:friends/l10n/l10n.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:material_ui/material_ui.dart';
@@ -47,12 +48,14 @@ class EventDetailScreen extends ConsumerWidget {
       child: Scaffold(
         appBar: AppBar(
           title: Text(
-            loaded == null ? 'Event' : occurrenceTitle(loaded, occurrenceKey),
+            loaded == null
+                ? context.l10n.eventLabel
+                : occurrenceTitle(loaded, occurrenceKey),
           ),
           actions: [
             if (loaded != null && loaded.canEdit)
               IconButton(
-                tooltip: 'Edit',
+                tooltip: context.l10n.edit,
                 icon: const Icon(Icons.edit_outlined),
                 onPressed: () => unawaited(
                   context.push(Routes.editEvent(groupId, loaded.id)),
@@ -60,7 +63,7 @@ class EventDetailScreen extends ConsumerWidget {
               ),
             if (loaded != null && loaded.canDelete)
               IconButton(
-                tooltip: 'Delete',
+                tooltip: context.l10n.delete,
                 icon: const Icon(Icons.delete_outline),
                 onPressed: () => unawaited(_delete(context, ref, loaded)),
               ),
@@ -82,14 +85,14 @@ class EventDetailScreen extends ConsumerWidget {
   Future<void> _delete(BuildContext context, WidgetRef ref, Event event) async {
     final router = GoRouter.of(context);
     final messenger = ScaffoldMessenger.of(context);
+    final l10n = context.l10n;
     final confirmed = await showConfirmDialog(
       context,
-      title: 'Delete "${event.title}"?',
+      title: l10n.deleteNamedTitle(event.title),
       message: event.kind == EventKind.oneTime
-          ? 'It disappears from the calendar.'
-          : 'Every occurrence goes. To skip just one, cancel that occurrence '
-                'instead.',
-      confirmLabel: 'Delete',
+          ? l10n.deleteEventOnce
+          : l10n.deleteEventSeries,
+      confirmLabel: l10n.delete,
       destructive: true,
     );
     if (!confirmed) return;
@@ -198,8 +201,9 @@ DateTime? _keyDate(String key) {
 String? recurrenceSummary(Event event) {
   final rule = event.rrule;
   if (rule == null) return null;
-  if (event.kind == EventKind.birthday) return 'Every year';
-  return RecurrenceSpec.tryParse(rule)?.describe() ?? 'Repeats ($rule)';
+  if (event.kind == EventKind.birthday) return currentL10n.everyYear;
+  return RecurrenceSpec.tryParse(rule)?.describe() ??
+      currentL10n.repeatsRule(rule);
 }
 
 class _EventBody extends ConsumerStatefulWidget {
@@ -276,8 +280,10 @@ class _EventBodyState extends ConsumerState<_EventBody> {
       final endDate = times.endDate;
       if (startDate == null) return '';
       return endDate == null || DateOnly.isSameDay(startDate, endDate)
-          ? '${day.format(startDate)} · All day'
-          : '${day.format(startDate)} –\n${day.format(endDate)} · All day';
+          ? currentL10n.dayAllDay(day.format(startDate))
+          : currentL10n.dayAllDay(
+              '${day.format(startDate)} –\n${day.format(endDate)}',
+            );
     }
 
     return ListView(
@@ -306,8 +312,8 @@ class _EventBodyState extends ConsumerState<_EventBody> {
           ListTile(
             contentPadding: EdgeInsets.zero,
             leading: const Icon(Icons.lightbulb_outline),
-            title: Text(activity?.title ?? 'The linked idea'),
-            subtitle: const Text('From the backlog'),
+            title: Text(activity?.title ?? context.l10n.linkedIdea),
+            subtitle: Text(context.l10n.fromBacklog),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => unawaited(
               context.push(Routes.activity(widget.groupId, activityId)),
@@ -340,9 +346,9 @@ class _EventBodyState extends ConsumerState<_EventBody> {
           ListTile(
             contentPadding: EdgeInsets.zero,
             leading: const Icon(Icons.edit_calendar_outlined),
-            title: const Text('Changed for this time only'),
+            title: Text(context.l10n.changedThisTimeOnly),
             subtitle: Text(
-              'The series: ${event.title}, ${_keyLabel(event, key!)}',
+              context.l10n.theSeries(event.title, _keyLabel(event, key!)),
             ),
             trailing: event.canEdit
                 ? TextButton(
@@ -351,10 +357,10 @@ class _EventBodyState extends ConsumerState<_EventBody> {
                         : () => unawaited(
                             _run(
                               () => controller.restoreOccurrence(event, key),
-                              'Back to the series',
+                              context.l10n.backToSeries,
                             ),
                           ),
-                    child: const Text('Undo'),
+                    child: Text(context.l10n.undo),
                   )
                 : null,
           ),
@@ -373,7 +379,7 @@ class _EventBodyState extends ConsumerState<_EventBody> {
                       ),
                     ),
               icon: const Icon(Icons.edit_calendar),
-              label: const Text('Change this occurrence'),
+              label: Text(context.l10n.changeThisOccurrence),
             ),
           ),
         if (canCancel)
@@ -385,16 +391,19 @@ class _EventBodyState extends ConsumerState<_EventBody> {
                   : () => unawaited(
                       _run(
                         () => controller.cancelOccurrence(event, key),
-                        'This occurrence is cancelled',
+                        context.l10n.occurrenceCancelled,
                       ),
                     ),
               icon: const Icon(Icons.event_busy),
-              label: const Text('Cancel this occurrence'),
+              label: Text(context.l10n.cancelThisOccurrence),
             ),
           ),
         if (cancelled.isNotEmpty) ...[
           const Divider(height: 32),
-          Text('Cancelled', style: Theme.of(context).textTheme.titleSmall),
+          Text(
+            context.l10n.cancelled,
+            style: Theme.of(context).textTheme.titleSmall,
+          ),
           for (final cancelledKey in cancelled)
             ListTile(
               contentPadding: EdgeInsets.zero,
@@ -410,10 +419,10 @@ class _EventBodyState extends ConsumerState<_EventBody> {
                                   event,
                                   cancelledKey,
                                 ),
-                                'Restored',
+                                context.l10n.restored,
                               ),
                             ),
-                      child: const Text('Restore'),
+                      child: Text(context.l10n.restore),
                     )
                   : null,
             ),

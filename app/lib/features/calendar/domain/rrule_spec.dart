@@ -1,3 +1,5 @@
+import 'package:friends/l10n/l10n.dart';
+import 'package:intl/intl.dart';
 import 'package:material_ui/material_ui.dart' show immutable;
 
 /// The restricted RRULE subset of the API (contract section 5), mirrored on
@@ -281,20 +283,19 @@ DateTime? _date(RegExpMatch match) {
 }
 
 /// Human messages for the `invalid_rrule` reasons (contract section 5.2).
-String rruleReasonMessage(String reason) => switch (reason) {
-  'monthly_day_over_28' =>
-    'This month-day doesn\'t exist in every month. Pick "last day" or a '
-        'weekday such as "last Friday".',
-  'yearly_feb29' =>
-    "A yearly plan can't start on 29 February. Start on 28 February or "
-        '1 March.',
-  'until_before_start' => 'The end date is before the start.',
-  'count_out_of_range' => 'Repeat between 1 and $maxCount times.',
-  'interval_out_of_range' => 'Repeat every 1 to $maxInterval periods.',
-  'count_and_until' => 'End on a date or after a number of times, not both.',
-  'byday_invalid' => 'Pick the days again.',
-  _ => "This repeat pattern isn't supported.",
-};
+String rruleReasonMessage(String reason) {
+  final l10n = currentL10n;
+  return switch (reason) {
+    'monthly_day_over_28' => l10n.rruleMonthDayOver28,
+    'yearly_feb29' => l10n.rruleYearlyFeb29,
+    'until_before_start' => l10n.rruleUntilBeforeStart,
+    'count_out_of_range' => l10n.rruleCountRange(maxCount),
+    'interval_out_of_range' => l10n.rruleIntervalRange(maxInterval),
+    'count_and_until' => l10n.rruleCountAndUntil,
+    'byday_invalid' => l10n.rruleBydayInvalid,
+    _ => l10n.rruleUnsupported,
+  };
+}
 
 // --- the picker model ---
 
@@ -527,35 +528,42 @@ class RecurrenceSpec {
   /// "Every week on Thursday", "Every 2 months on the last Friday", "Every
   /// year, 5 times".
   String describe() {
+    final l10n = currentL10n;
     final sortedDays = weekdays.toList()..sort();
-    final unit = switch (frequency) {
-      RepeatFrequency.daily => ('day', 'days'),
-      RepeatFrequency.weekly => ('week', 'weeks'),
-      RepeatFrequency.monthly => ('month', 'months'),
-      RepeatFrequency.yearly => ('year', 'years'),
-    };
+    final names = weekdayNames;
     final every = interval == 1
-        ? 'Every ${unit.$1}'
-        : 'Every $interval ${unit.$2}';
+        ? switch (frequency) {
+            RepeatFrequency.daily => l10n.everyDay,
+            RepeatFrequency.weekly => l10n.everyWeek,
+            RepeatFrequency.monthly => l10n.everyMonth,
+            RepeatFrequency.yearly => l10n.everyYear,
+          }
+        : '${l10n.every} $interval ${repeatUnit(frequency, interval)}';
     final on = switch (frequency) {
-      RepeatFrequency.weekly when weekdays.isNotEmpty =>
-        ' on ${_list([for (final d in sortedDays) weekdayNames[d - 1]])}',
+      RepeatFrequency.weekly when weekdays.isNotEmpty => l10n.rruleOnDays(
+        every,
+        _list([for (final d in sortedDays) names[d - 1]]),
+      ),
       RepeatFrequency.monthly => switch (monthlyDay) {
-        MonthlyByDate(:final day) => ' on day $day',
-        MonthlyLastDay() => ' on the last day',
-        MonthlyByWeekday(:final ordinal, :final weekday) =>
-          ' on the ${ordinalNames[ordinal]} ${weekdayNames[weekday - 1]}',
-        null => '',
+        MonthlyByDate(:final day) => l10n.rruleOnMonthDay(every, day),
+        MonthlyLastDay() => l10n.rruleOnLastDay(every),
+        MonthlyByWeekday(:final ordinal, :final weekday) => l10n.rruleOnWeekday(
+          every,
+          ordinalNames[ordinal]!,
+          names[weekday - 1],
+        ),
+        null => every,
       },
-      _ => '',
+      _ => every,
     };
-    final until = switch (end) {
-      RepeatForever() => '',
-      RepeatCount(:final count) => ', $count ${count == 1 ? 'time' : 'times'}',
-      RepeatUntil(:final date) =>
-        ', until ${date.day} ${monthNames[date.month - 1]} ${date.year}',
+    return switch (end) {
+      RepeatForever() => on,
+      RepeatCount(:final count) => l10n.rruleTimes(count, on),
+      RepeatUntil(:final date) => l10n.rruleUntil(
+        on,
+        DateFormat('d MMM y').format(date),
+      ),
     };
-    return '$every$on$until';
   }
 
   @override
@@ -571,38 +579,36 @@ class RecurrenceSpec {
 
   static String _list(List<String> items) => items.length <= 1
       ? items.join()
-      : '${items.sublist(0, items.length - 1).join(', ')} and ${items.last}';
+      : currentL10n.listAnd(
+          items.sublist(0, items.length - 1).join(', '),
+          items.last,
+        );
 }
 
-const weekdayNames = [
-  'Monday',
-  'Tuesday',
-  'Wednesday',
-  'Thursday',
-  'Friday',
-  'Saturday',
-  'Sunday',
-];
-
-const ordinalNames = {
-  1: 'first',
-  2: 'second',
-  3: 'third',
-  4: 'fourth',
-  -1: 'last',
+/// "days", "weeks", "months" or "years" for [count] of [frequency]'s unit,
+/// in the app's language.
+String repeatUnit(RepeatFrequency frequency, int count) => switch (frequency) {
+  RepeatFrequency.daily => currentL10n.unitDays(count),
+  RepeatFrequency.weekly => currentL10n.unitWeeks(count),
+  RepeatFrequency.monthly => currentL10n.unitMonths(count),
+  RepeatFrequency.yearly => currentL10n.unitYears(count),
 };
 
-const monthNames = [
-  'Jan',
-  'Feb',
-  'Mar',
-  'Apr',
-  'May',
-  'Jun',
-  'Jul',
-  'Aug',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dec',
-];
+/// Monday to Sunday, in the app's language.
+List<String> get weekdayNames {
+  // intl's lists start on Sunday.
+  final days = DateFormat.EEEE().dateSymbols.STANDALONEWEEKDAYS;
+  return [...days.sublist(1), days.first];
+}
+
+/// "first" to "fourth", and "last" for -1, in the app's language.
+Map<int, String> get ordinalNames {
+  final l10n = currentL10n;
+  return {
+    1: l10n.ordinalFirst,
+    2: l10n.ordinalSecond,
+    3: l10n.ordinalThird,
+    4: l10n.ordinalFourth,
+    -1: l10n.ordinalLast,
+  };
+}

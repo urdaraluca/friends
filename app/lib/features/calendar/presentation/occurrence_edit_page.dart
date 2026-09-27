@@ -11,6 +11,7 @@ import 'package:friends/core/widgets/form_widgets.dart';
 import 'package:friends/features/calendar/data/calendar_providers.dart';
 import 'package:friends/features/calendar/presentation/event_detail_screen.dart';
 import 'package:friends/features/groups/presentation/widgets/group_themed.dart';
+import 'package:friends/l10n/l10n.dart';
 import 'package:intl/intl.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -151,7 +152,7 @@ class _OccurrenceEditPageState extends ConsumerState<OccurrenceEditPage> {
     final event = widget.event;
     final title = _title.text.trim();
     if (title.isEmpty) {
-      setState(() => _error = 'Enter a title.');
+      setState(() => _error = context.l10n.enterTitleShort);
       return;
     }
     final newTitle = title == event.title ? null : title;
@@ -160,7 +161,7 @@ class _OccurrenceEditPageState extends ConsumerState<OccurrenceEditPage> {
     if (_start case final start?) {
       final end = _end!;
       if (!end.isAfter(start)) {
-        setState(() => _error = 'The end must be after the start.');
+        setState(() => _error = context.l10n.endAfterStart);
         return;
       }
       moved =
@@ -175,7 +176,7 @@ class _OccurrenceEditPageState extends ConsumerState<OccurrenceEditPage> {
       final first = DateOnly.from(_firstDay!);
       final last = DateOnly.from(_lastDay!);
       if (DateOnly.compare(last, first) < 0) {
-        setState(() => _error = 'The last day is before the first.');
+        setState(() => _error = context.l10n.lastDayBeforeFirst);
         return;
       }
       moved =
@@ -190,6 +191,7 @@ class _OccurrenceEditPageState extends ConsumerState<OccurrenceEditPage> {
     final controller = ref.read(eventsControllerProvider.notifier);
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
+    final changed = context.l10n.changedThisTimeOnly;
     final edited = occurrenceEdit(event, widget.occurrenceKey) != null;
     setState(() {
       _saving = true;
@@ -205,9 +207,7 @@ class _OccurrenceEditPageState extends ConsumerState<OccurrenceEditPage> {
         await controller.editOccurrence(event, widget.occurrenceKey, body);
       }
       navigator.pop();
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Changed for this time only')),
-      );
+      messenger.showSnackBar(SnackBar(content: Text(changed)));
     } on ApiException catch (error) {
       if (!mounted) return;
       setState(() {
@@ -225,11 +225,11 @@ class _OccurrenceEditPageState extends ConsumerState<OccurrenceEditPage> {
     final end = _end;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Change this occurrence'),
+        title: Text(context.l10n.changeThisOccurrence),
         actions: [
           TextButton(
             onPressed: _saving ? null : () => unawaited(_save()),
-            child: const Text('Save'),
+            child: Text(context.l10n.save),
           ),
         ],
       ),
@@ -238,26 +238,25 @@ class _OccurrenceEditPageState extends ConsumerState<OccurrenceEditPage> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              'Only this time changes; the rest of the series stays as it '
-              'is.',
+              context.l10n.onlyThisTime,
               style: Theme.of(context).textTheme.bodyMedium,
             ),
             const SizedBox(height: 16),
             TextField(
               controller: _title,
               inputFormatters: [LengthLimitingTextInputFormatter(120)],
-              decoration: const InputDecoration(labelText: 'Title'),
+              decoration: InputDecoration(labelText: context.l10n.titleLabel),
             ),
             const SizedBox(height: 16),
             if (start != null && end != null) ...[
               _PickerTile(
-                label: 'Starts',
+                label: context.l10n.starts,
                 text: '${dayFormat.format(start)}, ${timeFormat.format(start)}',
                 onTap: () => unawaited(_pickStart()),
               ),
               const SizedBox(height: 12),
               _PickerTile(
-                label: 'Ends',
+                label: context.l10n.ends,
                 text: DateUtils.isSameDay(start, end)
                     ? timeFormat.format(end)
                     : '${dayFormat.format(end)}, ${timeFormat.format(end)}',
@@ -265,13 +264,13 @@ class _OccurrenceEditPageState extends ConsumerState<OccurrenceEditPage> {
               ),
             ] else ...[
               _PickerTile(
-                label: 'First day',
+                label: context.l10n.firstDay,
                 text: dayFormat.format(_firstDay!),
                 onTap: () => unawaited(_pickFirstDay()),
               ),
               const SizedBox(height: 12),
               _PickerTile(
-                label: 'Last day',
+                label: context.l10n.lastDay,
                 text: dayFormat.format(_lastDay!),
                 onTap: () => unawaited(_pickLastDay()),
               ),

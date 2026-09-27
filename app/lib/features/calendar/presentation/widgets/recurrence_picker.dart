@@ -1,5 +1,6 @@
 import 'package:flutter/services.dart';
 import 'package:friends/features/calendar/domain/rrule_spec.dart';
+import 'package:friends/l10n/l10n.dart';
 import 'package:intl/intl.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -36,22 +37,17 @@ class RecurrencePicker extends StatelessWidget {
   /// A human message for an invalid rule, shown under the picker.
   final String? error;
 
-  static const List<(RepeatFrequency, String)> _frequencies = [
-    (RepeatFrequency.weekly, 'Weekly'),
-    (RepeatFrequency.monthly, 'Monthly'),
-    (RepeatFrequency.yearly, 'Yearly'),
-    (RepeatFrequency.daily, 'Daily'),
+  static List<(RepeatFrequency, String)> get _frequencies => [
+    (RepeatFrequency.weekly, currentL10n.weekly),
+    (RepeatFrequency.monthly, currentL10n.monthly),
+    (RepeatFrequency.yearly, currentL10n.yearly),
+    (RepeatFrequency.daily, currentL10n.daily),
   ];
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final unit = switch (spec.frequency) {
-      RepeatFrequency.daily => 'days',
-      RepeatFrequency.weekly => 'weeks',
-      RepeatFrequency.monthly => 'months',
-      RepeatFrequency.yearly => 'years',
-    };
+    final names = weekdayNames;
     final ordinal = weekdayOrdinal(start);
     final dayNumberAllowed = start.day <= 28;
 
@@ -75,7 +71,7 @@ class RecurrencePicker extends StatelessWidget {
         const SizedBox(height: 8),
         Row(
           children: [
-            const Text('Every'),
+            Text(context.l10n.every),
             const SizedBox(width: 8),
             SizedBox(
               width: 56,
@@ -98,9 +94,7 @@ class RecurrencePicker extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-            Text(
-              spec.interval == 1 ? unit.substring(0, unit.length - 1) : unit,
-            ),
+            Text(repeatUnit(spec.frequency, spec.interval)),
           ],
         ),
         if (spec.frequency == RepeatFrequency.weekly) ...[
@@ -110,7 +104,7 @@ class RecurrencePicker extends StatelessWidget {
             children: [
               for (var day = 1; day <= 7; day++)
                 FilterChip(
-                  label: Text(weekdayNames[day - 1].substring(0, 3)),
+                  label: Text(names[day - 1].substring(0, 3)),
                   selected: spec.weekdays.contains(day),
                   onSelected: (on) {
                     final days = {...spec.weekdays};
@@ -149,22 +143,24 @@ class RecurrencePicker extends StatelessWidget {
                   contentPadding: EdgeInsets.zero,
                   value: 'date',
                   enabled: dayNumberAllowed,
-                  title: Text('On day ${start.day}'),
+                  title: Text(context.l10n.onDay(start.day)),
                   subtitle: dayNumberAllowed
                       ? null
-                      : const Text('Not every month has this day'),
+                      : Text(context.l10n.notEveryMonth),
                 ),
-                const RadioListTile<String>(
+                RadioListTile<String>(
                   contentPadding: EdgeInsets.zero,
                   value: 'last',
-                  title: Text('On the last day'),
+                  title: Text(context.l10n.onLastDay),
                 ),
                 RadioListTile<String>(
                   contentPadding: EdgeInsets.zero,
                   value: 'weekday',
                   title: Text(
-                    'On the ${ordinalNames[ordinal]} '
-                    '${weekdayNames[start.weekday - 1]}',
+                    context.l10n.onOrdinalWeekday(
+                      ordinalNames[ordinal]!,
+                      names[start.weekday - 1],
+                    ),
                   ),
                 ),
               ],
@@ -172,7 +168,7 @@ class RecurrencePicker extends StatelessWidget {
           ),
         ],
         const SizedBox(height: 8),
-        Text('Ends', style: textTheme.labelLarge),
+        Text(context.l10n.ends, style: textTheme.labelLarge),
         RadioGroup<String>(
           groupValue: switch (spec.end) {
             RepeatForever() => 'never',
@@ -192,17 +188,17 @@ class RecurrencePicker extends StatelessWidget {
           ),
           child: Column(
             children: [
-              const RadioListTile<String>(
+              RadioListTile<String>(
                 contentPadding: EdgeInsets.zero,
                 value: 'never',
-                title: Text('Never'),
+                title: Text(context.l10n.never),
               ),
               RadioListTile<String>(
                 contentPadding: EdgeInsets.zero,
                 value: 'until',
                 title: Row(
                   children: [
-                    const Text('On '),
+                    Text(context.l10n.onPrefix),
                     TextButton(
                       onPressed: spec.end is RepeatUntil
                           ? () async {
@@ -224,7 +220,7 @@ class RecurrencePicker extends StatelessWidget {
                         RepeatUntil(:final date) => DateFormat.yMMMd().format(
                           date,
                         ),
-                        _ => 'a date',
+                        _ => context.l10n.aDate,
                       }),
                     ),
                   ],
@@ -235,7 +231,7 @@ class RecurrencePicker extends StatelessWidget {
                 value: 'count',
                 title: Row(
                   children: [
-                    const Text('After '),
+                    Text(context.l10n.afterPrefix),
                     SizedBox(
                       width: 56,
                       child: TextFormField(
@@ -260,7 +256,7 @@ class RecurrencePicker extends StatelessWidget {
                         },
                       ),
                     ),
-                    const Text(' times'),
+                    Text(context.l10n.timesSuffix),
                   ],
                 ),
               ),

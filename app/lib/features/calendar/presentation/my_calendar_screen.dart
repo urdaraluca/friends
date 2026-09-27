@@ -10,6 +10,7 @@ import 'package:friends/features/calendar/domain/occurrence_index.dart';
 import 'package:friends/features/calendar/presentation/calendar_screen.dart';
 import 'package:friends/features/calendar/presentation/widgets/calendar_view.dart';
 import 'package:friends/features/groups/data/group_providers.dart';
+import 'package:friends/l10n/l10n.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:material_ui/material_ui.dart';
@@ -62,11 +63,11 @@ class _MyCalendarScreenState extends ConsumerState<MyCalendarScreen> {
         leading: context.canPop()
             ? null
             : IconButton(
-                tooltip: 'Home',
+                tooltip: context.l10n.home,
                 icon: const Icon(Icons.home_outlined),
                 onPressed: () => context.go(Routes.home),
               ),
-        title: const Text('My calendar'),
+        title: Text(context.l10n.myCalendar),
       ),
       body: RefreshIndicator(
         onRefresh: () =>
@@ -108,7 +109,7 @@ class _MyCalendarScreenState extends ConsumerState<MyCalendarScreen> {
               Padding(
                 padding: const EdgeInsets.all(16),
                 child: Text(
-                  'Nothing planned in any of your groups.',
+                  context.l10n.nothingPlannedAnywhere,
                   style: textTheme.bodyMedium?.copyWith(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
@@ -152,7 +153,9 @@ class _MyAgendaTile extends StatelessWidget {
               ),
             ),
       title: Text(
-        memberBirthday ? "${occurrence.title}'s birthday" : occurrence.title,
+        memberBirthday
+            ? context.l10n.birthdayOf(occurrence.title)
+            : occurrence.title,
       ),
       subtitle: Text([?groupName, AgendaTile.when(occurrence)].join(' · ')),
       trailing: occurrence.isRecurring && !memberBirthday

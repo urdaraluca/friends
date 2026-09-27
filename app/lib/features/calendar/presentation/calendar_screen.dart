@@ -11,6 +11,7 @@ import 'package:friends/features/backlog/presentation/widgets/category_picker.da
 import 'package:friends/features/calendar/data/calendar_providers.dart';
 import 'package:friends/features/calendar/domain/occurrence_index.dart';
 import 'package:friends/features/calendar/presentation/widgets/calendar_view.dart';
+import 'package:friends/l10n/l10n.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:material_ui/material_ui.dart';
@@ -85,7 +86,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
           ),
         ),
         icon: const Icon(Icons.add),
-        label: const Text('New event'),
+        label: Text(context.l10n.newEvent),
       ),
       body: RefreshIndicator(
         onRefresh: () =>
@@ -98,10 +99,10 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
               padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
               child: Row(
                 children: [
-                  for (final (kind, label) in const [
-                    (EventKind.birthday, 'Birthdays'),
-                    (EventKind.oneTime, 'One-time'),
-                    (EventKind.recurring, 'Recurring'),
+                  for (final (kind, label) in [
+                    (EventKind.birthday, context.l10n.birthdays),
+                    (EventKind.oneTime, context.l10n.oneTime),
+                    (EventKind.recurring, context.l10n.recurring),
                   ]) ...[
                     FilterChip(
                       label: Text(label),
@@ -113,7 +114,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                   InputChip(
                     avatar: const Icon(Icons.category_outlined, size: 18),
                     label: Text(
-                      categories.name(filters.categoryId) ?? 'Category',
+                      categories.name(filters.categoryId) ??
+                          context.l10n.categoryLabel,
                     ),
                     selected: filters.categoryId != null,
                     showCheckmark: false,
@@ -122,7 +124,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                         context,
                         index: categories,
                         selectedId: filters.categoryId,
-                        noneLabel: 'All categories',
+                        noneLabel: context.l10n.allCategories,
                       );
                       if (choice is PickedCategory) {
                         ref
@@ -166,7 +168,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                   ),
                 ),
                 icon: const Icon(Icons.group_outlined),
-                label: const Text('When can everyone make it?'),
+                label: Text(context.l10n.whenCanEveryone),
               ),
             ),
             const Divider(height: 1),
@@ -226,7 +228,7 @@ class DayAgenda extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.all(16),
               child: Text(
-                'Nothing planned.',
+                context.l10n.nothingPlanned,
                 style: textTheme.bodyMedium?.copyWith(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
@@ -253,8 +255,10 @@ class AgendaTile extends StatelessWidget {
     if (occurrence.allDay || occurrence.startsAt == null) {
       final start = occurrence.startDate;
       final end = occurrence.endDate;
-      if (start == null) return 'All day';
-      if (end == null || DateOnly.isSameDay(start, end)) return 'All day';
+      if (start == null) return currentL10n.allDay;
+      if (end == null || DateOnly.isSameDay(start, end)) {
+        return currentL10n.allDay;
+      }
       final format = DateFormat('d MMM');
       return '${format.format(start)} – ${format.format(end)}';
     }
@@ -283,14 +287,16 @@ class AgendaTile extends StatelessWidget {
               ),
             ),
       title: Text(
-        memberBirthday ? "${occurrence.title}'s birthday" : occurrence.title,
+        memberBirthday
+            ? context.l10n.birthdayOf(occurrence.title)
+            : occurrence.title,
       ),
       subtitle: Text(when(occurrence)),
       trailing: occurrence.edited
-          ? const Icon(
+          ? Icon(
               Icons.edit_calendar_outlined,
               size: 18,
-              semanticLabel: 'Changed for this time only',
+              semanticLabel: context.l10n.changedThisTimeOnly,
             )
           : occurrence.isRecurring && !memberBirthday
           ? const Icon(Icons.repeat, size: 18)

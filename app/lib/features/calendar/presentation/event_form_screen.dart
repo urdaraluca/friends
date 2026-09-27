@@ -84,7 +84,9 @@ class EventFormScreen extends ConsumerWidget {
       groupId: groupId,
       child: Scaffold(
         appBar: AppBar(
-          title: Text(eventId == null ? 'New event' : 'Edit event'),
+          title: Text(
+            eventId == null ? context.l10n.newEvent : context.l10n.editEvent,
+          ),
         ),
         body: AsyncValueView(
           value: all,
@@ -307,13 +309,13 @@ class _EventFormState extends ConsumerState<EventForm> with ServerErrorsMixin {
     if (!_formKey.currentState!.validate()) return;
     if (!_isAllDay && !_end.isAfter(_start)) {
       showServerError(
-        const ProblemException(
+        ProblemException(
           status: 422,
           code: ErrorCodes.validationError,
           errors: [
             FieldError(
               field: 'ends_at',
-              message: 'The end must be after the start.',
+              message: context.l10n.endAfterStart,
               type: 'value_error',
             ),
           ],
@@ -331,19 +333,16 @@ class _EventFormState extends ConsumerState<EventForm> with ServerErrorsMixin {
       final go = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text('Restore cancelled dates?'),
-          content: Text(
-            'Changing the time or the repeat pattern brings back the '
-            '$count cancelled ${count == 1 ? 'occurrence' : 'occurrences'}.',
-          ),
+          title: Text(context.l10n.restoreCancelledTitle),
+          content: Text(context.l10n.restoreCancelledMessage(count)),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancel'),
+              child: Text(context.l10n.cancel),
             ),
             FilledButton(
               onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Save anyway'),
+              child: Text(context.l10n.saveAnyway),
             ),
           ],
         ),
@@ -424,21 +423,21 @@ class _EventFormState extends ConsumerState<EventForm> with ServerErrorsMixin {
             const SizedBox(height: 16),
           ],
           SegmentedButton<EventKind>(
-            segments: const [
+            segments: [
               ButtonSegment(
                 value: EventKind.oneTime,
-                label: Text('Once'),
-                icon: Icon(Icons.event),
+                label: Text(context.l10n.once),
+                icon: const Icon(Icons.event),
               ),
               ButtonSegment(
                 value: EventKind.recurring,
-                label: Text('Repeats'),
-                icon: Icon(Icons.repeat),
+                label: Text(context.l10n.repeats),
+                icon: const Icon(Icons.repeat),
               ),
               ButtonSegment(
                 value: EventKind.birthday,
-                label: Text('Birthday'),
-                icon: Icon(Icons.cake_outlined),
+                label: Text(context.l10n.birthday),
+                icon: const Icon(Icons.cake_outlined),
               ),
             ],
             selected: {_kind},
@@ -446,18 +445,17 @@ class _EventFormState extends ConsumerState<EventForm> with ServerErrorsMixin {
                 setState(() => _kind = selection.single),
           ),
           if (birthday)
-            const Padding(
-              padding: EdgeInsets.only(top: 8),
-              child: Text(
-                "For someone who isn't on Friends. Members' own birthdays "
-                'come from their profiles.',
-              ),
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(context.l10n.birthdayEventHelp),
             ),
           const SizedBox(height: 8),
           TextFormField(
             controller: _title,
             decoration: InputDecoration(
-              labelText: birthday ? 'Whose birthday' : 'Title',
+              labelText: birthday
+                  ? context.l10n.whoseBirthday
+                  : context.l10n.titleLabel,
             ),
             maxLength: 120,
             textCapitalization: TextCapitalization.sentences,
@@ -471,7 +469,7 @@ class _EventFormState extends ConsumerState<EventForm> with ServerErrorsMixin {
           if (!birthday)
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
-              title: const Text('All day'),
+              title: Text(context.l10n.allDay),
               value: _allDay,
               onChanged: (value) => setState(() {
                 _allDay = value;
@@ -486,7 +484,7 @@ class _EventFormState extends ConsumerState<EventForm> with ServerErrorsMixin {
               }),
             ),
           _DateTile(
-            label: birthday ? 'Born on' : 'Starts',
+            label: birthday ? context.l10n.bornOn : context.l10n.starts,
             text: _isAllDay
                 ? dayFormat.format(_start)
                 : timeFormat.format(_start),
@@ -514,7 +512,7 @@ class _EventFormState extends ConsumerState<EventForm> with ServerErrorsMixin {
           ),
           if (!birthday)
             _DateTile(
-              label: 'Ends',
+              label: context.l10n.ends,
               text: _isAllDay
                   ? dayFormat.format(_end)
                   : timeFormat.format(_end),
@@ -532,18 +530,19 @@ class _EventFormState extends ConsumerState<EventForm> with ServerErrorsMixin {
           if (!_isAllDay)
             TextFormField(
               controller: _timezone,
-              decoration: const InputDecoration(
-                labelText: 'Timezone',
-                helperText:
-                    "The time zone it repeats in (the group's by "
-                    'default)',
+              decoration: InputDecoration(
+                labelText: context.l10n.timezoneLabel,
+                helperText: context.l10n.eventTimezoneHelper,
               ),
               forceErrorText: serverError('timezone'),
               onChanged: (_) => clearServerError('timezone'),
             ),
           if (_kind == EventKind.recurring) ...[
             const SizedBox(height: 16),
-            Text('Repeats', style: Theme.of(context).textTheme.titleSmall),
+            Text(
+              context.l10n.repeats,
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
             const SizedBox(height: 8),
             RecurrencePicker(
               spec: _spec,
@@ -559,7 +558,7 @@ class _EventFormState extends ConsumerState<EventForm> with ServerErrorsMixin {
           const SizedBox(height: 8),
           InputDecorator(
             decoration: InputDecoration(
-              labelText: 'Category',
+              labelText: context.l10n.categoryLabel,
               errorText: serverError('category_id'),
               border: InputBorder.none,
               contentPadding: EdgeInsets.zero,
@@ -576,7 +575,7 @@ class _EventFormState extends ConsumerState<EventForm> with ServerErrorsMixin {
                   context,
                   index: widget.categories,
                   selectedId: _categoryId,
-                  noneLabel: 'No category',
+                  noneLabel: context.l10n.noCategory,
                 );
                 if (choice is PickedCategory) {
                   setState(() => _categoryId = choice.id);
@@ -588,33 +587,35 @@ class _EventFormState extends ConsumerState<EventForm> with ServerErrorsMixin {
             ListTile(
               contentPadding: EdgeInsets.zero,
               leading: const Icon(Icons.lightbulb_outline),
-              title: Text(widget.activity?.title ?? 'A backlog idea'),
+              title: Text(widget.activity?.title ?? context.l10n.aBacklogIdea),
               subtitle: Text(
                 _creating
-                    ? 'Scheduling this idea marks it as scheduled'
-                    : 'Linked idea',
+                    ? context.l10n.schedulingMarks
+                    : context.l10n.linkedIdeaLabel,
               ),
               trailing: IconButton(
-                tooltip: 'Unlink the idea',
+                tooltip: context.l10n.unlinkIdea,
                 icon: const Icon(Icons.link_off),
                 onPressed: () => setState(() => _activityId = null),
               ),
             ),
           TextFormField(
             controller: _location,
-            decoration: const InputDecoration(labelText: 'Place'),
+            decoration: InputDecoration(labelText: context.l10n.placeLabel),
             maxLength: 120,
             forceErrorText: serverError('location_name'),
           ),
           TextFormField(
             controller: _address,
-            decoration: const InputDecoration(labelText: 'Address'),
+            decoration: InputDecoration(labelText: context.l10n.addressLabel),
             maxLength: 300,
             forceErrorText: serverError('address'),
           ),
           TextFormField(
             controller: _description,
-            decoration: const InputDecoration(labelText: 'Description'),
+            decoration: InputDecoration(
+              labelText: context.l10n.descriptionLabel,
+            ),
             minLines: 2,
             maxLines: 6,
             maxLength: 5000,
@@ -622,7 +623,7 @@ class _EventFormState extends ConsumerState<EventForm> with ServerErrorsMixin {
           ),
           const SizedBox(height: 16),
           SubmitButton(
-            label: _creating ? 'Add to calendar' : 'Save',
+            label: _creating ? context.l10n.addToCalendar : context.l10n.save,
             busy: _saving,
             onPressed: _save,
           ),

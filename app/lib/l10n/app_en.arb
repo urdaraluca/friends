@@ -1143,5 +1143,263 @@
     }
   },
   "accepted": "Accepted",
-  "onTheWheel": "On the wheel"
+  "onTheWheel": "On the wheel",
+  "rruleMonthDayOver28": "This month-day doesn't exist in every month. Pick \"last day\" or a weekday such as \"last Friday\".",
+  "rruleYearlyFeb29": "A yearly plan can't start on 29 February. Start on 28 February or 1 March.",
+  "rruleUntilBeforeStart": "The end date is before the start.",
+  "rruleCountRange": "{max, plural, other{Repeat between 1 and {max} times.}}",
+  "@rruleCountRange": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "rruleIntervalRange": "{max, plural, other{Repeat every 1 to {max} periods.}}",
+  "@rruleIntervalRange": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "rruleCountAndUntil": "End on a date or after a number of times, not both.",
+  "rruleBydayInvalid": "Pick the days again.",
+  "rruleUnsupported": "This repeat pattern isn't supported.",
+  "everyDay": "Every day",
+  "everyWeek": "Every week",
+  "everyMonth": "Every month",
+  "everyYear": "Every year",
+  "every": "Every",
+  "unitDays": "{count, plural, =1{day} other{days}}",
+  "@unitDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "unitWeeks": "{count, plural, =1{week} other{weeks}}",
+  "@unitWeeks": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "unitMonths": "{count, plural, =1{month} other{months}}",
+  "@unitMonths": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "unitYears": "{count, plural, =1{year} other{years}}",
+  "@unitYears": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "rruleOnDays": "{rule} on {days}",
+  "@rruleOnDays": {
+    "placeholders": {
+      "rule": {
+        "type": "String"
+      },
+      "days": {
+        "type": "String"
+      }
+    }
+  },
+  "rruleOnMonthDay": "{rule} on day {day}",
+  "@rruleOnMonthDay": {
+    "placeholders": {
+      "rule": {
+        "type": "String"
+      },
+      "day": {
+        "type": "int"
+      }
+    }
+  },
+  "rruleOnLastDay": "{rule} on the last day",
+  "@rruleOnLastDay": {
+    "placeholders": {
+      "rule": {
+        "type": "String"
+      }
+    }
+  },
+  "rruleOnWeekday": "{rule} on the {ordinal} {weekday}",
+  "@rruleOnWeekday": {
+    "placeholders": {
+      "rule": {
+        "type": "String"
+      },
+      "ordinal": {
+        "type": "String"
+      },
+      "weekday": {
+        "type": "String"
+      }
+    }
+  },
+  "rruleTimes": "{count, plural, =1{{rule}, 1 time} other{{rule}, {count} times}}",
+  "@rruleTimes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "rule": {
+        "type": "String"
+      }
+    }
+  },
+  "rruleUntil": "{rule}, until {date}",
+  "@rruleUntil": {
+    "placeholders": {
+      "rule": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "listAnd": "{items} and {last}",
+  "@listAnd": {
+    "placeholders": {
+      "items": {
+        "type": "String"
+      },
+      "last": {
+        "type": "String"
+      }
+    }
+  },
+  "ordinalFirst": "first",
+  "ordinalSecond": "second",
+  "ordinalThird": "third",
+  "ordinalFourth": "fourth",
+  "ordinalLast": "last",
+  "newEvent": "New event",
+  "birthdays": "Birthdays",
+  "oneTime": "One-time",
+  "recurring": "Recurring",
+  "nothingPlanned": "Nothing planned.",
+  "allDay": "All day",
+  "birthdayOf": "{name}'s birthday",
+  "@birthdayOf": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "changedThisTimeOnly": "Changed for this time only",
+  "eventLabel": "Event",
+  "deleteEventOnce": "It disappears from the calendar.",
+  "deleteEventSeries": "Every occurrence goes. To skip just one, cancel that occurrence instead.",
+  "repeatsRule": "Repeats ({rule})",
+  "@repeatsRule": {
+    "placeholders": {
+      "rule": {
+        "type": "String"
+      }
+    }
+  },
+  "dayAllDay": "{day} · All day",
+  "@dayAllDay": {
+    "placeholders": {
+      "day": {
+        "type": "String"
+      }
+    }
+  },
+  "linkedIdea": "The linked idea",
+  "fromBacklog": "From the backlog",
+  "theSeries": "The series: {title}, {when}",
+  "@theSeries": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "backToSeries": "Back to the series",
+  "undo": "Undo",
+  "changeThisOccurrence": "Change this occurrence",
+  "occurrenceCancelled": "This occurrence is cancelled",
+  "cancelThisOccurrence": "Cancel this occurrence",
+  "cancelled": "Cancelled",
+  "restored": "Restored",
+  "restore": "Restore",
+  "editEvent": "Edit event",
+  "endAfterStart": "The end must be after the start.",
+  "restoreCancelledTitle": "Restore cancelled dates?",
+  "restoreCancelledMessage": "{count, plural, =1{Changing the time or the repeat pattern brings back the 1 cancelled occurrence.} other{Changing the time or the repeat pattern brings back the {count} cancelled occurrences.}}",
+  "@restoreCancelledMessage": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "saveAnyway": "Save anyway",
+  "once": "Once",
+  "repeats": "Repeats",
+  "birthday": "Birthday",
+  "birthdayEventHelp": "For someone who isn't on Friends. Members' own birthdays come from their profiles.",
+  "whoseBirthday": "Whose birthday",
+  "bornOn": "Born on",
+  "starts": "Starts",
+  "ends": "Ends",
+  "eventTimezoneHelper": "The time zone it repeats in (the group's by default)",
+  "aBacklogIdea": "A backlog idea",
+  "schedulingMarks": "Scheduling this idea marks it as scheduled",
+  "linkedIdeaLabel": "Linked idea",
+  "unlinkIdea": "Unlink the idea",
+  "addToCalendar": "Add to calendar",
+  "enterTitleShort": "Enter a title.",
+  "lastDayBeforeFirst": "The last day is before the first.",
+  "onlyThisTime": "Only this time changes; the rest of the series stays as it is.",
+  "firstDay": "First day",
+  "lastDay": "Last day",
+  "weekly": "Weekly",
+  "monthly": "Monthly",
+  "yearly": "Yearly",
+  "daily": "Daily",
+  "onDay": "On day {day}",
+  "@onDay": {
+    "placeholders": {
+      "day": {
+        "type": "int"
+      }
+    }
+  },
+  "notEveryMonth": "Not every month has this day",
+  "onLastDay": "On the last day",
+  "onOrdinalWeekday": "On the {ordinal} {weekday}",
+  "@onOrdinalWeekday": {
+    "placeholders": {
+      "ordinal": {
+        "type": "String"
+      },
+      "weekday": {
+        "type": "String"
+      }
+    }
+  },
+  "never": "Never",
+  "onPrefix": "On ",
+  "aDate": "a date",
+  "afterPrefix": "After ",
+  "timesSuffix": " times",
+  "nothingPlannedAnywhere": "Nothing planned in any of your groups."
 }
