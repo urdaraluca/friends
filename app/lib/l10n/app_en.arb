@@ -1401,5 +1401,272 @@
   "aDate": "a date",
   "afterPrefix": "After ",
   "timesSuffix": " times",
-  "nothingPlannedAnywhere": "Nothing planned in any of your groups."
+  "nothingPlannedAnywhere": "Nothing planned in any of your groups.",
+  "myAvailability": "My availability",
+  "wholeDay": "Whole day",
+  "freeCount": "{count, plural, other{{count} free}}",
+  "@freeCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "maybeCount": "{count, plural, other{{count} maybe}}",
+  "@maybeCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "busyCount": "{count, plural, other{{count} busy}}",
+  "@busyCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "notSetCount": "{count, plural, other{{count} not set}}",
+  "@notSetCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "bestDays": "Best days",
+  "nobodyFreeYet": "Nobody has said when they are free yet.",
+  "addMine": "Add mine",
+  "fewerFree": "Fewer free",
+  "everyone": "Everyone",
+  "tapDayHint": "{count, plural, =1{1 member · tap a day to see who is free} other{{count} members · tap a day to see who is free}}",
+  "@tapDayHint": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "freeList": "Free: {names}",
+  "@freeList": {
+    "placeholders": {
+      "names": {
+        "type": "String"
+      }
+    }
+  },
+  "maybeList": "Maybe: {names}",
+  "@maybeList": {
+    "placeholders": {
+      "names": {
+        "type": "String"
+      }
+    }
+  },
+  "planIt": "Plan it",
+  "availabilitySaved": "Availability saved.",
+  "saveChangesTitle": "Save your changes?",
+  "availabilityUnsaved": "Your availability for {month} isn't saved yet.",
+  "@availabilityUnsaved": {
+    "placeholders": {
+      "month": {
+        "type": "String"
+      }
+    }
+  },
+  "discard": "Discard",
+  "copyLastWeek": "Copy last week",
+  "availabilityHelp": "Tap a day to switch between free, maybe, busy and not set; drag to fill several days. Every group you are in sees it.",
+  "statusFree": "Free",
+  "statusMaybe": "Maybe",
+  "statusBusy": "Busy",
+  "statusNotSet": "Not set",
+  "slotMorning": "Morning",
+  "slotAfternoon": "Afternoon",
+  "slotEvening": "Evening",
+  "previousMonth": "Previous month",
+  "nextMonth": "Next month",
+  "recapYour": "Your {period}",
+  "@recapYour": {
+    "placeholders": {
+      "period": {
+        "type": "String"
+      }
+    }
+  },
+  "recapYourWith": "Your {period} with {group}",
+  "@recapYourWith": {
+    "placeholders": {
+      "period": {
+        "type": "String"
+      },
+      "group": {
+        "type": "String"
+      }
+    }
+  },
+  "recapWith": "with {group}",
+  "@recapWith": {
+    "placeholders": {
+      "group": {
+        "type": "String"
+      }
+    }
+  },
+  "recapSoFarMonth": "So far: this month isn't over yet.",
+  "recapSoFarYear": "So far: this year isn't over yet.",
+  "nothingYet": "Nothing yet",
+  "quietMonth": "A quiet month",
+  "quietYear": "A quiet year",
+  "quietHelp": "Add ideas and mark them done: they will fill your next recap.",
+  "memoriesMade": "Memories made",
+  "nothingDoneYet": "Nothing marked done yet.",
+  "thingsTogether": "{count, plural, =1{thing you did together} other{things you did together}}",
+  "@thingsTogether": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "andMore": "…and {count} more",
+  "@andMore": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "mostActivePlanner": "Most active planner",
+  "planCount": "{count, plural, =1{1 plan} other{{count} plans}}",
+  "@planCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "eventCount": "{count, plural, =1{1 event} other{{count} events}}",
+  "@eventCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "pollCount": "{count, plural, =1{1 poll} other{{count} polls}}",
+  "@pollCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "doneCount": "{count, plural, other{{count} done}}",
+  "@doneCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "topCategory": "Top category",
+  "memoryCount": "{count, plural, =1{1 memory} other{{count} memories}}",
+  "@memoryCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "wheelDecided": "The wheel decided",
+  "timesFate": "{count, plural, =1{time you let fate choose} other{times you let fate choose}}",
+  "@timesFate": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "mostVotedPoll": "Most-voted poll",
+  "worthTheWait": "Worth the wait",
+  "daysIdeaToMemory": "{count, plural, =1{day from idea to memory} other{days from idea to memory}}",
+  "@daysIdeaToMemory": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "busiestMonth": "Busiest month",
+  "stillWishList": "Still on the wish list",
+  "peopleInterested": "{count, plural, =1{1 person interested} other{{count} people interested}}",
+  "@peopleInterested": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "inNumbers": "In numbers",
+  "thatsAWrap": "That's a wrap",
+  "soFar": "So far",
+  "ideasAdded": "{count, plural, =1{1 idea added} other{{count} ideas added}}",
+  "@ideasAdded": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "eventsPlanned": "{count, plural, =1{1 event planned} other{{count} events planned}}",
+  "@eventsPlanned": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "pollsCreated": "{count, plural, =1{1 poll created} other{{count} polls created}}",
+  "@pollsCreated": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "newMembers": "{count, plural, =1{1 new member} other{{count} new members}}",
+  "@newMembers": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "recapShareText": "Our {period} with {group}, on Friends",
+  "@recapShareText": {
+    "placeholders": {
+      "period": {
+        "type": "String"
+      },
+      "group": {
+        "type": "String"
+      }
+    }
+  },
+  "couldNotShareRecap": "Couldn't share the recap.",
+  "yourGroup": "your group",
+  "back": "Back",
+  "shareThisCard": "Share this card",
+  "previousCard": "Previous card",
+  "nextCard": "Next card",
+  "periodMonth": "Month",
+  "periodYear": "Year",
+  "previousYear": "Previous year",
+  "nextYear": "Next year",
+  "openAction": "Open",
+  "recapReady": "Your recap is ready: see the highlights",
+  "dismiss": "Dismiss"
 }

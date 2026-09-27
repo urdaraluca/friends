@@ -13,6 +13,7 @@ import 'package:friends/features/groups/data/group_providers.dart';
 import 'package:friends/features/recap/data/recap_providers.dart';
 import 'package:friends/features/recap/domain/recap_period.dart';
 import 'package:friends/features/recap/domain/recap_story.dart';
+import 'package:friends/l10n/l10n.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -102,12 +103,12 @@ class _RecapScreenState extends ConsumerState<RecapScreen> {
           .read(recapSharerProvider)
           .shareImage(
             bytes.buffer.asUint8List(),
-            text: 'Our $label with $groupName, on Friends',
+            text: currentL10n.recapShareText(label, groupName),
           );
     } on Object {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Couldn't share the recap.")),
+          SnackBar(content: Text(context.l10n.couldNotShareRecap)),
         );
       }
     } finally {
@@ -120,7 +121,8 @@ class _RecapScreenState extends ConsumerState<RecapScreen> {
     final provider = groupRecapProvider(widget.groupId, _period, _start);
     final recap = ref.watch(provider);
     final groupName =
-        ref.watch(groupProvider(widget.groupId)).value?.name ?? 'your group';
+        ref.watch(groupProvider(widget.groupId)).value?.name ??
+        context.l10n.yourGroup;
     final loaded = recap.value;
     return Scaffold(
       appBar: AppBar(
@@ -128,14 +130,14 @@ class _RecapScreenState extends ConsumerState<RecapScreen> {
         leading: context.canPop()
             ? null
             : IconButton(
-                tooltip: 'Back',
+                tooltip: context.l10n.back,
                 icon: const Icon(Icons.arrow_back),
                 onPressed: () => context.go(Routes.groupHub(widget.groupId)),
               ),
-        title: const Text('Recap'),
+        title: Text(context.l10n.recap),
         actions: [
           IconButton(
-            tooltip: 'Share this card',
+            tooltip: context.l10n.shareThisCard,
             icon: _sharing
                 ? const SizedBox.square(
                     dimension: 20,
@@ -249,7 +251,7 @@ class _RecapScreenState extends ConsumerState<RecapScreen> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             IconButton(
-                              tooltip: 'Previous card',
+                              tooltip: context.l10n.previousCard,
                               icon: const Icon(Icons.arrow_back),
                               onPressed: page == 0
                                   ? null
@@ -257,7 +259,7 @@ class _RecapScreenState extends ConsumerState<RecapScreen> {
                             ),
                             Text('${page + 1} / ${cards.length}'),
                             IconButton(
-                              tooltip: 'Next card',
+                              tooltip: context.l10n.nextCard,
                               icon: const Icon(Icons.arrow_forward),
                               onPressed: page == cards.length - 1
                                   ? null
@@ -304,9 +306,15 @@ class _PeriodBar extends StatelessWidget {
         children: [
           SegmentedButton<RecapPeriod>(
             showSelectedIcon: false,
-            segments: const [
-              ButtonSegment(value: RecapPeriod.month, label: Text('Month')),
-              ButtonSegment(value: RecapPeriod.year, label: Text('Year')),
+            segments: [
+              ButtonSegment(
+                value: RecapPeriod.month,
+                label: Text(context.l10n.periodMonth),
+              ),
+              ButtonSegment(
+                value: RecapPeriod.year,
+                label: Text(context.l10n.periodYear),
+              ),
             ],
             selected: {period},
             onSelectionChanged: (selection) {
@@ -329,7 +337,9 @@ class _PeriodBar extends StatelessWidget {
           Row(
             children: [
               IconButton(
-                tooltip: year ? 'Previous year' : 'Previous month',
+                tooltip: year
+                    ? context.l10n.previousYear
+                    : context.l10n.previousMonth,
                 icon: const Icon(Icons.chevron_left),
                 onPressed: local == null
                     ? null
@@ -346,7 +356,7 @@ class _PeriodBar extends StatelessWidget {
                 ),
               ),
               IconButton(
-                tooltip: year ? 'Next year' : 'Next month',
+                tooltip: year ? context.l10n.nextYear : context.l10n.nextMonth,
                 icon: const Icon(Icons.chevron_right),
                 // The current period is the latest one.
                 onPressed: local == null || recap == null || !recap.complete
@@ -465,7 +475,7 @@ class RecapCardView extends StatelessWidget {
                 const SizedBox(height: 12),
                 FilledButton.tonal(
                   onPressed: () => onOpenActivity(activityId),
-                  child: const Text('Open'),
+                  child: Text(context.l10n.openAction),
                 ),
               ],
               const Spacer(),

@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/gestures.dart' show DragStartBehavior;
 import 'package:friends/features/availability/domain/month_days.dart';
+import 'package:friends/l10n/l10n.dart';
 import 'package:intl/intl.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -215,7 +216,7 @@ class MonthHeader extends StatelessWidget {
     return Row(
       children: [
         IconButton(
-          tooltip: 'Previous month',
+          tooltip: context.l10n.previousMonth,
           icon: const Icon(Icons.chevron_left),
           onPressed: () => onChanged(DateTime(month.year, month.month - 1)),
         ),
@@ -227,7 +228,7 @@ class MonthHeader extends StatelessWidget {
           ),
         ),
         IconButton(
-          tooltip: 'Next month',
+          tooltip: context.l10n.nextMonth,
           icon: const Icon(Icons.chevron_right),
           onPressed: () => onChanged(DateTime(month.year, month.month + 1)),
         ),

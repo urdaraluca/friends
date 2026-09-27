@@ -12,6 +12,7 @@ import 'package:friends/features/availability/domain/availability_draft.dart';
 import 'package:friends/features/availability/domain/month_days.dart';
 import 'package:friends/features/availability/presentation/widgets/availability_style.dart';
 import 'package:friends/features/availability/presentation/widgets/month_grid.dart';
+import 'package:friends/l10n/l10n.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:material_ui/material_ui.dart';
@@ -87,8 +88,9 @@ class _MyAvailabilityScreenState extends ConsumerState<MyAvailabilityScreen> {
           .saveMonth(_month, draft.entries(range.from, range.to));
       if (!mounted) return true;
       setState(() => _draft = AvailabilityDraft(saved.entries));
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Availability saved.')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(context.l10n.availabilitySaved)));
       return true;
     } on ApiException catch (e) {
       if (mounted) {
@@ -108,23 +110,22 @@ class _MyAvailabilityScreenState extends ConsumerState<MyAvailabilityScreen> {
     final choice = await showDialog<_Unsaved>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Save your changes?'),
+        title: Text(context.l10n.saveChangesTitle),
         content: Text(
-          'Your availability for ${DateFormat.yMMMM().format(_month)} '
-          "isn't saved yet.",
+          context.l10n.availabilityUnsaved(DateFormat.yMMMM().format(_month)),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
+            child: Text(context.l10n.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(_Unsaved.discard),
-            child: const Text('Discard'),
+            child: Text(context.l10n.discard),
           ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(_Unsaved.save),
-            child: const Text('Save'),
+            child: Text(context.l10n.save),
           ),
         ],
       ),
@@ -166,11 +167,11 @@ class _MyAvailabilityScreenState extends ConsumerState<MyAvailabilityScreen> {
           leading: context.canPop()
               ? null
               : IconButton(
-                  tooltip: 'Home',
+                  tooltip: context.l10n.home,
                   icon: const Icon(Icons.home_outlined),
                   onPressed: () => context.go(Routes.home),
                 ),
-          title: const Text('My availability'),
+          title: Text(context.l10n.myAvailability),
           actions: [
             TextButton(
               onPressed: _dirty && !_saving ? () => unawaited(_save()) : null,
@@ -179,7 +180,7 @@ class _MyAvailabilityScreenState extends ConsumerState<MyAvailabilityScreen> {
                       dimension: 18,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Text('Save'),
+                  : Text(context.l10n.save),
             ),
           ],
         ),
@@ -228,7 +229,7 @@ class _MyAvailabilityScreenState extends ConsumerState<MyAvailabilityScreen> {
                                       key: ValueKey(
                                         'copy-week-${DateOnly.format(monday)}',
                                       ),
-                                      tooltip: 'Copy last week',
+                                      tooltip: context.l10n.copyLastWeek,
                                       iconSize: 18,
                                       icon: const Icon(Icons.content_copy),
                                       onPressed: () => _copyWeekAbove(monday),
@@ -384,8 +385,7 @@ class _Legend extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            'Tap a day to switch between free, maybe, busy and not set; '
-            'drag to fill several days. Every group you are in sees it.',
+            context.l10n.availabilityHelp,
             textAlign: TextAlign.center,
             style: textTheme.bodySmall?.copyWith(
               color: colors.onSurfaceVariant,

@@ -8,6 +8,7 @@ import 'package:friends/core/widgets/async_value_view.dart';
 import 'package:friends/features/availability/data/availability_providers.dart';
 import 'package:friends/features/availability/presentation/widgets/availability_style.dart';
 import 'package:friends/features/availability/presentation/widgets/month_grid.dart';
+import 'package:friends/l10n/l10n.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:material_ui/material_ui.dart';
@@ -81,10 +82,10 @@ class _GroupAvailabilityScreenState
     final availability = ref.watch(provider);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('When can everyone make it?'),
+        title: Text(context.l10n.whenCanEveryone),
         actions: [
           IconButton(
-            tooltip: 'My availability',
+            tooltip: context.l10n.myAvailability,
             icon: const Icon(Icons.edit_calendar_outlined),
             onPressed: () => unawaited(_editMine()),
           ),
@@ -107,7 +108,7 @@ class _GroupAvailabilityScreenState
                     ),
                     SlotChips(
                       selected: _slot,
-                      allDayLabel: 'Whole day',
+                      allDayLabel: context.l10n.wholeDay,
                       onSelected: (slot) => setState(() => _slot = slot),
                     ),
                     const SizedBox(height: 8),
@@ -160,8 +161,8 @@ class _Heatmap extends StatelessWidget {
 
   /// "2 free, 1 maybe", leaving out a zero.
   static String _tally(BestDay day) => [
-    if (day.free > 0) '${day.free} free',
-    if (day.maybe > 0) '${day.maybe} maybe',
+    if (day.free > 0) currentL10n.freeCount(day.free),
+    if (day.maybe > 0) currentL10n.maybeCount(day.maybe),
   ].join(', ');
 
   @override
@@ -178,19 +179,17 @@ class _Heatmap extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
-          child: Text('Best days', style: textTheme.titleSmall),
+          child: Text(context.l10n.bestDays, style: textTheme.titleSmall),
         ),
         if (data.bestDays.isEmpty)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
               children: [
-                const Expanded(
-                  child: Text('Nobody has said when they are free yet.'),
-                ),
+                Expanded(child: Text(context.l10n.nobodyFreeYet)),
                 TextButton(
                   onPressed: onEditMine,
-                  child: const Text('Add mine'),
+                  child: Text(context.l10n.addMine),
                 ),
               ],
             ),
@@ -244,7 +243,8 @@ class _Heatmap extends StatelessWidget {
                 excludeSemantics: true,
                 label:
                     '${DateFormat('EEEE d MMMM').format(date)}: '
-                    '${counts?.free ?? 0} free, ${counts?.maybe ?? 0} maybe',
+                    '${context.l10n.freeCount(counts?.free ?? 0)}, '
+                    '${context.l10n.maybeCount(counts?.maybe ?? 0)}',
                 child: Padding(
                   key: ValueKey('heat-$key'),
                   padding: const EdgeInsets.all(2),
@@ -294,7 +294,7 @@ class _Heatmap extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text('Fewer free', style: textTheme.bodySmall),
+              Text(context.l10n.fewerFree, style: textTheme.bodySmall),
               const SizedBox(width: 8),
               for (final step in [0.0, 0.25, 0.5, 0.75, 1.0])
                 Container(
@@ -311,15 +311,13 @@ class _Heatmap extends StatelessWidget {
                   ),
                 ),
               const SizedBox(width: 8),
-              Text('Everyone', style: textTheme.bodySmall),
+              Text(context.l10n.everyone, style: textTheme.bodySmall),
             ],
           ),
         ),
         const SizedBox(height: 4),
         Text(
-          data.memberCount == 1
-              ? '1 member · tap a day to see who is free'
-              : '${data.memberCount} members · tap a day to see who is free',
+          context.l10n.tapDayHint(data.memberCount),
           textAlign: TextAlign.center,
           style: textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant),
         ),
@@ -337,10 +335,10 @@ class DaySheet extends StatelessWidget {
   final VoidCallback onPlan;
 
   static String counts(SlotCounts counts) => [
-    '${counts.free} free',
-    if (counts.maybe > 0) '${counts.maybe} maybe',
-    if (counts.busy > 0) '${counts.busy} busy',
-    if (counts.unknown > 0) '${counts.unknown} not set',
+    currentL10n.freeCount(counts.free),
+    if (counts.maybe > 0) currentL10n.maybeCount(counts.maybe),
+    if (counts.busy > 0) currentL10n.busyCount(counts.busy),
+    if (counts.unknown > 0) currentL10n.notSetCount(counts.unknown),
   ].join(' · ');
 
   @override
@@ -367,7 +365,7 @@ class DaySheet extends StatelessWidget {
                   Expanded(
                     child: Text(
                       slot.slot == AvailabilitySlot.allDay
-                          ? 'Whole day'
+                          ? context.l10n.wholeDay
                           : slotLabel(slot.slot),
                       style: textTheme.titleSmall,
                     ),
@@ -377,12 +375,12 @@ class DaySheet extends StatelessWidget {
               ),
               if (slot.freeUsers.isNotEmpty)
                 Text(
-                  'Free: ${names(slot.freeUsers)}',
+                  context.l10n.freeList(names(slot.freeUsers)),
                   style: textTheme.bodyMedium,
                 ),
               if (slot.maybeUsers.isNotEmpty)
                 Text(
-                  'Maybe: ${names(slot.maybeUsers)}',
+                  context.l10n.maybeList(names(slot.maybeUsers)),
                   style: textTheme.bodyMedium?.copyWith(
                     color: colors.onSurfaceVariant,
                   ),
@@ -392,7 +390,7 @@ class DaySheet extends StatelessWidget {
             FilledButton.icon(
               onPressed: onPlan,
               icon: const Icon(Icons.event_available),
-              label: const Text('Plan it'),
+              label: Text(context.l10n.planIt),
             ),
           ],
         ),

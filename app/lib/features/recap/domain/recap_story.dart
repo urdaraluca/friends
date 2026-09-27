@@ -1,6 +1,7 @@
 import 'package:friends/core/api/date_only.dart';
 import 'package:friends/core/api/generated/export.dart';
 import 'package:friends/features/recap/domain/recap_period.dart';
+import 'package:friends/l10n/l10n.dart';
 import 'package:intl/intl.dart';
 
 /// A line under a card's headline, with an optional category colour dot.
@@ -43,21 +44,20 @@ class RecapCard {
   final String? activityId;
 }
 
-String _plural(int count, String one, [String? many]) =>
-    count == 1 ? '1 $one' : '$count ${many ?? '${one}s'}';
-
 /// The cards of [recap]'s story, in order. Cards without data are left out;
 /// a period with nothing in it gets a single "quiet" card after the intro.
 List<RecapCard> recapStory(Recap recap, {required String groupName}) {
   final start = DateOnly.from(recap.start);
+  final l10n = currentL10n;
   final label = periodLabel(recap.period, DateTime(start.year, start.month));
-  final unit = recap.period == RecapPeriod.year ? 'year' : 'month';
+  final year = recap.period == RecapPeriod.year;
   final intro = RecapCard(
-    eyebrow: 'Recap',
-    headline: 'Your $label',
-    subtitle: 'with $groupName',
+    eyebrow: l10n.recap,
+    headline: toBeginningOfSentenceCase(l10n.recapYour(label)),
+    subtitle: l10n.recapWith(groupName),
     lines: [
-      if (!recap.complete) RecapLine("So far: this $unit isn't over yet."),
+      if (!recap.complete)
+        RecapLine(year ? l10n.recapSoFarYear : l10n.recapSoFarMonth),
     ],
   );
 
@@ -71,10 +71,9 @@ List<RecapCard> recapStory(Recap recap, {required String groupName}) {
     return [
       intro,
       RecapCard(
-        eyebrow: 'Nothing yet',
-        headline: 'A quiet $unit',
-        subtitle:
-            'Add ideas and mark them done: they will fill your next recap.',
+        eyebrow: l10n.nothingYet,
+        headline: year ? l10n.quietYear : l10n.quietMonth,
+        subtitle: l10n.quietHelp,
       ),
     ];
   }
@@ -90,46 +89,44 @@ List<RecapCard> recapStory(Recap recap, {required String groupName}) {
   return [
     intro,
     RecapCard(
-      eyebrow: 'Memories made',
+      eyebrow: l10n.memoriesMade,
       headline: '${recap.memoryCount}',
       number: recap.memoryCount,
       subtitle: switch (recap.memoryCount) {
-        0 => 'Nothing marked done yet.',
-        1 => 'thing you did together',
-        _ => 'things you did together',
+        0 => l10n.nothingDoneYet,
+        final count => l10n.thingsTogether(count),
       },
       lines: [
         for (final memory in memories.take(shown))
           RecapLine(memory.title, color: memory.color),
         if (recap.memoryCount > shown)
-          RecapLine('…and ${recap.memoryCount - shown} more'),
+          RecapLine(l10n.andMore(recap.memoryCount - shown)),
       ],
     ),
     if (planners.isNotEmpty)
       RecapCard(
-        eyebrow: 'Most active planner',
+        eyebrow: l10n.mostActivePlanner,
         headline: planners.first.user.displayName,
         subtitle: [
-          _plural(planners.first.score, 'plan'),
-          if (planners.first.ideas > 0) _plural(planners.first.ideas, 'idea'),
-          if (planners.first.events > 0)
-            _plural(planners.first.events, 'event'),
-          if (planners.first.polls > 0) _plural(planners.first.polls, 'poll'),
-          if (planners.first.done > 0) '${planners.first.done} done',
+          l10n.planCount(planners.first.score),
+          if (planners.first.ideas > 0) l10n.ideaCount(planners.first.ideas),
+          if (planners.first.events > 0) l10n.eventCount(planners.first.events),
+          if (planners.first.polls > 0) l10n.pollCount(planners.first.polls),
+          if (planners.first.done > 0) l10n.doneCount(planners.first.done),
         ].join(' · '),
         lines: [
           for (final (index, planner) in planners.skip(1).indexed)
             RecapLine(
               '${index + 2}. ${planner.user.displayName} · '
-              '${_plural(planner.score, 'plan')}',
+              '${l10n.planCount(planner.score)}',
             ),
         ],
       ),
     if (categories.isNotEmpty)
       RecapCard(
-        eyebrow: 'Top category',
+        eyebrow: l10n.topCategory,
         headline: categories.first.name,
-        subtitle: _plural(categories.first.count, 'memory', 'memories'),
+        subtitle: l10n.memoryCount(categories.first.count),
         color: categories.first.color,
         lines: [
           for (final category in categories.skip(1))
@@ -141,60 +138,51 @@ List<RecapCard> recapStory(Recap recap, {required String groupName}) {
       ),
     if (recap.wheelDecisions > 0)
       RecapCard(
-        eyebrow: 'The wheel decided',
+        eyebrow: l10n.wheelDecided,
         headline: '${recap.wheelDecisions}',
         number: recap.wheelDecisions,
-        subtitle: recap.wheelDecisions == 1
-            ? 'time you let fate choose'
-            : 'times you let fate choose',
+        subtitle: l10n.timesFate(recap.wheelDecisions),
       ),
     if (poll != null)
       RecapCard(
-        eyebrow: 'Most-voted poll',
+        eyebrow: l10n.mostVotedPoll,
         headline: poll.question,
-        subtitle: '${_plural(poll.voters, 'voter')} · ${poll.activityTitle}',
+        subtitle: '${l10n.voterCount(poll.voters)} · ${poll.activityTitle}',
         activityId: poll.activityId,
       ),
     if (wait != null && wait.days > 0)
       RecapCard(
-        eyebrow: 'Worth the wait',
+        eyebrow: l10n.worthTheWait,
         headline: '${wait.days}',
         number: wait.days,
-        subtitle: wait.days == 1
-            ? 'day from idea to memory'
-            : 'days from idea to memory',
+        subtitle: l10n.daysIdeaToMemory(wait.days),
         lines: [RecapLine(wait.activity.title, color: wait.activity.color)],
         activityId: wait.activity.id,
       ),
     if (month != null && recap.period == RecapPeriod.year)
       RecapCard(
-        eyebrow: 'Busiest month',
-        headline: DateFormat.MMMM().format(DateOnly.from(month.month)),
-        subtitle: _plural(month.count, 'memory', 'memories'),
+        eyebrow: l10n.busiestMonth,
+        headline: toBeginningOfSentenceCase(
+          DateFormat.MMMM().format(DateOnly.from(month.month)),
+        ),
+        subtitle: l10n.memoryCount(month.count),
       ),
     if (wanted != null)
       RecapCard(
-        eyebrow: 'Still on the wish list',
+        eyebrow: l10n.stillWishList,
         headline: wanted.title,
-        subtitle:
-            '${_plural(wanted.interested, 'person', 'people')} '
-            'interested',
+        subtitle: l10n.peopleInterested(wanted.interested),
         color: wanted.color,
         activityId: wanted.activityId,
       ),
     RecapCard(
-      eyebrow: 'In numbers',
-      headline: recap.complete ? "That's a wrap" : 'So far',
+      eyebrow: l10n.inNumbers,
+      headline: recap.complete ? l10n.thatsAWrap : l10n.soFar,
       lines: [
-        RecapLine('${_plural(recap.ideasAdded, 'idea')} added'),
-        RecapLine('${_plural(recap.eventsPlanned, 'event')} planned'),
-        RecapLine('${_plural(recap.pollsCreated, 'poll')} created'),
-        if (recap.newMembers > 0)
-          RecapLine(
-            recap.newMembers == 1
-                ? '1 new member'
-                : '${recap.newMembers} new members',
-          ),
+        RecapLine(l10n.ideasAdded(recap.ideasAdded)),
+        RecapLine(l10n.eventsPlanned(recap.eventsPlanned)),
+        RecapLine(l10n.pollsCreated(recap.pollsCreated)),
+        if (recap.newMembers > 0) RecapLine(l10n.newMembers(recap.newMembers)),
       ],
     ),
   ];

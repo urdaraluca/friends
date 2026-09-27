@@ -6,7 +6,9 @@ import 'package:friends/core/router/routes.dart';
 import 'package:friends/features/groups/data/group_providers.dart';
 import 'package:friends/features/recap/data/recap_providers.dart';
 import 'package:friends/features/recap/domain/recap_period.dart';
+import 'package:friends/l10n/l10n.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import 'package:material_ui/material_ui.dart';
 
 /// "Your 2026 with Friends" all January, and last month's recap during a
@@ -35,8 +37,14 @@ class RecapBanner extends ConsumerWidget {
         color: colors.tertiaryContainer,
         child: ListTile(
           leading: Icon(Icons.auto_awesome, color: colors.onTertiaryContainer),
-          title: Text(name == null ? 'Your $label' : 'Your $label with $name'),
-          subtitle: const Text('Your recap is ready: see the highlights'),
+          title: Text(
+            toBeginningOfSentenceCase(
+              name == null
+                  ? context.l10n.recapYour(label)
+                  : context.l10n.recapYourWith(label, name),
+            ),
+          ),
+          subtitle: Text(context.l10n.recapReady),
           onTap: () => unawaited(
             context.push(
               Routes.groupRecap(
@@ -47,7 +55,7 @@ class RecapBanner extends ConsumerWidget {
             ),
           ),
           trailing: IconButton(
-            tooltip: 'Dismiss',
+            tooltip: context.l10n.dismiss,
             icon: const Icon(Icons.close),
             onPressed: () => unawaited(
               ref.read(dismissedRecapBannersProvider.notifier).dismiss(key),
