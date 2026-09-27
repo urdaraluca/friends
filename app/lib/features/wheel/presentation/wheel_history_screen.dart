@@ -6,6 +6,7 @@ import 'package:friends/core/widgets/async_value_view.dart';
 import 'package:friends/features/backlog/presentation/widgets/category_visuals.dart';
 import 'package:friends/features/groups/presentation/widgets/group_themed.dart';
 import 'package:friends/features/wheel/data/wheel_providers.dart';
+import 'package:friends/l10n/l10n.dart';
 import 'package:intl/intl.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -24,17 +25,17 @@ class WheelHistoryScreen extends ConsumerWidget {
     return GroupThemed(
       groupId: groupId,
       child: Scaffold(
-        appBar: AppBar(title: const Text('Wheel history')),
+        appBar: AppBar(title: Text(context.l10n.wheelHistory)),
         body: AsyncValueView(
           value: history,
           onRetry: () => ref.invalidate(provider),
           data: (list) {
             if (list.items.isEmpty) {
-              return const Center(
+              return Center(
                 child: Padding(
-                  padding: EdgeInsets.all(24),
+                  padding: const EdgeInsets.all(24),
                   child: Text(
-                    'No spins yet. Spin the wheel when the group can’t decide.',
+                    context.l10n.noSpinsYet,
                     textAlign: TextAlign.center,
                   ),
                 ),
@@ -75,15 +76,15 @@ class SpinTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final when = DateFormat('EEE d MMM, HH:mm')
         .format(spin.createdAt.toLocal());
-    final who = spin.spunBy?.displayName ?? 'Someone';
+    final who = spin.spunBy?.displayName ?? context.l10n.someone;
     final count = spin.candidates.length;
     return ListTile(
       leading: ColorDot(color: spin.result.color, size: 14),
       title: Text(spin.result.title),
-      subtitle: Text('$who spun · $when · $count ideas'),
+      subtitle: Text(context.l10n.spunSummary(count, who, when)),
       trailing: spin.acceptedAt != null
-          ? const Chip(
-              label: Text('Accepted'),
+          ? Chip(
+              label: Text(context.l10n.accepted),
               visualDensity: VisualDensity.compact,
             )
           : null,
@@ -103,7 +104,7 @@ class _SnapshotDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('On the wheel'),
+      title: Text(context.l10n.onTheWheel),
       content: SizedBox(
         width: 360,
         child: ListView(
@@ -129,7 +130,7 @@ class _SnapshotDialog extends StatelessWidget {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Close'),
+          child: Text(context.l10n.close),
         ),
       ],
     );

@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:friends/core/theme/app_theme.dart';
 import 'package:friends/features/wheel/domain/wheel_math.dart';
+import 'package:friends/l10n/l10n.dart';
 import 'package:material_ui/material_ui.dart';
 
 /// One slice of the wheel.
@@ -164,9 +165,11 @@ class _FortuneWheelState extends State<FortuneWheel>
     final showLabels = slices.length <= maxLabelledSlices;
     final target = widget.target;
     final semantics = target != null && target.index < slices.length
-        ? 'Wheel of ${slices.length} ideas; it picked '
-              '${slices[target.index].label}'
-        : 'Wheel of ${slices.length} ideas';
+        ? context.l10n.wheelSemanticsPicked(
+            slices.length,
+            slices[target.index].label,
+          )
+        : context.l10n.wheelSemantics(slices.length);
     final wheel = SizedBox.square(
       dimension: widget.size,
       child: Stack(

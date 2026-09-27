@@ -949,5 +949,199 @@
         "type": "String"
       }
     }
-  }
+  },
+  "pollErrorClosed": "This poll just closed.",
+  "pollErrorOneChoice": "This poll takes one choice only.",
+  "pollErrorOptionCount": "A poll has 2 to 20 options.",
+  "pollErrorOptionTaken": "That option is already in the poll.",
+  "deletePollTitle": "Delete this poll?",
+  "deletePollMessage": "Its options and votes go with it.",
+  "removeOptionTitle": "Remove \"{option}\"?",
+  "@removeOptionTitle": {
+    "placeholders": {
+      "option": {
+        "type": "String"
+      }
+    }
+  },
+  "noVotesYet": "Nobody has voted for it yet.",
+  "votesRemoved": "{count, plural, =1{Its 1 vote is removed too.} other{Its {count} votes are removed too.}}",
+  "@votesRemoved": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "pollClosed": "Closed",
+  "pollClosedOn": "Closed {date}",
+  "@pollClosedOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "pollOpen": "Open",
+  "pollOpenUntil": "Open until {date}",
+  "@pollOpenUntil": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "voterCount": "{count, plural, =1{1 voter} other{{count} voters}}",
+  "@voterCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "winning": "Winning",
+  "openLink": "Open link",
+  "removeOptionTooltip": "Remove \"{option}\"",
+  "@removeOptionTooltip": {
+    "placeholders": {
+      "option": {
+        "type": "String"
+      }
+    }
+  },
+  "multipleChoice": "multiple choice",
+  "managePoll": "Manage poll",
+  "closePoll": "Close poll",
+  "reopenPoll": "Reopen poll",
+  "deletePoll": "Delete poll",
+  "saveVote": "Save vote",
+  "retractVote": "Retract my vote",
+  "addOption": "Add option",
+  "closesLabel": "Closes",
+  "closesHelper": "Voting stops then, automatically",
+  "noClosingTime": "No closing time",
+  "pollEnterOption": "Enter an option",
+  "alreadyOption": "Already an option",
+  "pollLimitReached": "This idea has 10 polls already.",
+  "newPoll": "New poll",
+  "questionLabel": "Question",
+  "questionHint": "e.g. Which movie?",
+  "allowSeveral": "Allow several choices",
+  "allowSeveralHelp": "Can't be changed after the poll is made",
+  "pickFutureTime": "Pick a time in the future",
+  "optionsLabel": "Options",
+  "optionNumber": "Option {number}",
+  "@optionNumber": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "linkOptional": "Link (optional)",
+  "removeOptionNumber": "Remove option {number}",
+  "@removeOptionNumber": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "addAnOption": "Add an option",
+  "createPoll": "Create poll",
+  "editPoll": "Edit poll",
+  "optionLabel": "Option",
+  "add": "Add",
+  "polls": "Polls",
+  "pollsEmptyHelp": "Can't decide? Ask the group: \"Which movie?\", \"Which restaurant?\"",
+  "wheelErrorNotEnough": "Add at least 2 ideas to spin.",
+  "wheelErrorDeleted": "That idea was deleted in the meantime.",
+  "noIdeasMatch": "No ideas match these filters.",
+  "showingIdeas": "{total, plural, other{Showing {shown} of {total} ideas}}",
+  "@showingIdeas": {
+    "placeholders": {
+      "shown": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "ideaCount": "{count, plural, =1{1 idea} other{{count} ideas}}",
+  "@ideaCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "allOnWheel": "All on the wheel. Open to hand-pick.",
+  "onTheWheelCount": "{count} on the wheel",
+  "@onTheWheelCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "spin": "Spin!",
+  "spinAgain": "Spin again",
+  "addTwoIdeas": "Add at least 2 ideas to spin",
+  "wheelSays": "The wheel says…",
+  "ideaDeletedSince": "This idea has been deleted since.",
+  "itsOn": "It's on!",
+  "youSaidLetsDoIt": "You said let's do it.",
+  "someoneSaidLetsDoIt": "{name} said let's do it.",
+  "@someoneSaidLetsDoIt": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "letsDoIt": "Let's do it!",
+  "openActivity": "Open activity",
+  "whenCanEveryone": "When can everyone make it?",
+  "onlyInterestedIdeas": "Only ideas I'm interested in",
+  "dueBefore": "Due before",
+  "history": "History",
+  "wheelSemantics": "{count, plural, other{Wheel of {count} ideas}}",
+  "@wheelSemantics": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "wheelSemanticsPicked": "{count, plural, other{Wheel of {count} ideas; it picked {pick}}}",
+  "@wheelSemanticsPicked": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "pick": {
+        "type": "String"
+      }
+    }
+  },
+  "wheelHistory": "Wheel history",
+  "noSpinsYet": "No spins yet. Spin the wheel when the group can’t decide.",
+  "someone": "Someone",
+  "spunSummary": "{count, plural, other{{who} spun · {when} · {count} ideas}}",
+  "@spunSummary": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "who": {
+        "type": "String"
+      },
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "accepted": "Accepted",
+  "onTheWheel": "On the wheel"
 }

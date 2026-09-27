@@ -6,6 +6,7 @@ import 'package:friends/core/widgets/async_value_view.dart';
 import 'package:friends/features/polls/data/polls_providers.dart';
 import 'package:friends/features/polls/presentation/poll_card.dart';
 import 'package:friends/features/polls/presentation/poll_dialogs.dart';
+import 'package:friends/l10n/l10n.dart';
 import 'package:material_ui/material_ui.dart';
 
 /// Polls per activity (contract section 1.9).
@@ -31,7 +32,7 @@ class PollsSection extends ConsumerWidget {
             children: [
               Expanded(
                 child: Text(
-                  'Polls',
+                  context.l10n.polls,
                   style: Theme.of(context).textTheme.titleSmall,
                 ),
               ),
@@ -40,7 +41,7 @@ class PollsSection extends ConsumerWidget {
                     ? () => unawaited(showCreatePollSheet(context, activity.id))
                     : null,
                 icon: const Icon(Icons.how_to_vote_outlined),
-                label: const Text('New poll'),
+                label: Text(context.l10n.newPoll),
               ),
             ],
           ),
@@ -53,8 +54,7 @@ class PollsSection extends ConsumerWidget {
             ),
             data: (polls) => polls.isEmpty
                 ? Text(
-                    'Can\'t decide? Ask the group: "Which movie?", "Which '
-                    'restaurant?"',
+                    context.l10n.pollsEmptyHelp,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),

@@ -24,7 +24,7 @@ String _fold(String label) => label.trim().toLowerCase();
 String? _optionalUrl(String? value) {
   final url = (value ?? '').trim();
   if (url.isEmpty) return null;
-  return FieldValues.isWebUrl(url) ? null : 'Enter a full http(s) link';
+  return FieldValues.isWebUrl(url) ? null : currentL10n.enterFullLink;
 }
 
 /// Picks a date and a time in the future, in device-local time, or null.
@@ -68,13 +68,13 @@ class ClosingTimeField extends StatelessWidget {
     final value = this.value;
     return InputDecorator(
       decoration: InputDecoration(
-        labelText: 'Closes',
-        helperText: 'Voting stops then, automatically',
+        labelText: context.l10n.closesLabel,
+        helperText: context.l10n.closesHelper,
         errorText: error,
         suffixIcon: value == null
             ? null
             : IconButton(
-                tooltip: 'No closing time',
+                tooltip: context.l10n.noClosingTime,
                 icon: const Icon(Icons.clear),
                 onPressed: () => onChanged(null),
               ),
@@ -86,7 +86,7 @@ class ClosingTimeField extends StatelessWidget {
         },
         child: Text(
           value == null
-              ? 'No closing time'
+              ? context.l10n.noClosingTime
               : DateFormat('EEE d MMM y, HH:mm').format(value.toLocal()),
         ),
       ),
@@ -149,12 +149,14 @@ class _CreatePollSheetState extends ConsumerState<CreatePollSheet>
 
   String? _labelError(int index, String? value) {
     final label = (value ?? '').trim();
-    if (label.isEmpty) return 'Enter an option';
-    if (label.runes.length > 100) return 'At most 100 characters';
+    if (label.isEmpty) return context.l10n.pollEnterOption;
+    if (label.runes.length > 100) {
+      return context.l10n.fieldAtMostCharacters(100);
+    }
     final earlier = [
       for (final option in _options.take(index)) _fold(option.label.text),
     ];
-    return earlier.contains(_fold(label)) ? 'Already an option' : null;
+    return earlier.contains(_fold(label)) ? context.l10n.alreadyOption : null;
   }
 
   Future<void> _save() async {
@@ -193,7 +195,7 @@ class _CreatePollSheetState extends ConsumerState<CreatePollSheet>
       showServerError(
         error,
         fields: const {'question', 'closes_at', 'options', 'allow_multiple'},
-        messages: const {'limit_reached': 'This idea has 10 polls already.'},
+        messages: {'limit_reached': currentL10n.pollLimitReached},
       );
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -212,7 +214,10 @@ class _CreatePollSheetState extends ConsumerState<CreatePollSheet>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('New poll', style: Theme.of(context).textTheme.titleLarge),
+            Text(
+              context.l10n.newPoll,
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
             const SizedBox(height: 8),
             if (formError case final message?) ...[
               FormMessageBanner(message: message),
@@ -220,9 +225,9 @@ class _CreatePollSheetState extends ConsumerState<CreatePollSheet>
             ],
             TextFormField(
               controller: _question,
-              decoration: const InputDecoration(
-                labelText: 'Question',
-                hintText: 'e.g. Which movie?',
+              decoration: InputDecoration(
+                labelText: context.l10n.questionLabel,
+                hintText: context.l10n.questionHint,
               ),
               maxLength: 200,
               textCapitalization: TextCapitalization.sentences,
@@ -235,8 +240,8 @@ class _CreatePollSheetState extends ConsumerState<CreatePollSheet>
             ),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
-              title: const Text('Allow several choices'),
-              subtitle: const Text("Can't be changed after the poll is made"),
+              title: Text(context.l10n.allowSeveral),
+              subtitle: Text(context.l10n.allowSeveralHelp),
               value: _allowMultiple,
               onChanged: (value) => setState(() => _allowMultiple = value),
             ),
@@ -244,14 +249,17 @@ class _CreatePollSheetState extends ConsumerState<CreatePollSheet>
               value: closesAt,
               error:
                   serverError('closes_at') ??
-                  (pastClosing ? 'Pick a time in the future' : null),
+                  (pastClosing ? context.l10n.pickFutureTime : null),
               onChanged: (value) {
                 clearServerError('closes_at');
                 setState(() => _closesAt = value);
               },
             ),
             const SizedBox(height: 16),
-            Text('Options', style: Theme.of(context).textTheme.titleSmall),
+            Text(
+              context.l10n.optionsLabel,
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
             for (final (index, option) in _options.indexed)
               Row(
                 key: ObjectKey(option),
@@ -262,7 +270,7 @@ class _CreatePollSheetState extends ConsumerState<CreatePollSheet>
                     child: TextFormField(
                       controller: option.label,
                       decoration: InputDecoration(
-                        labelText: 'Option ${index + 1}',
+                        labelText: context.l10n.optionNumber(index + 1),
                       ),
                       maxLength: 100,
                       validator: (value) => _labelError(index, value),
@@ -275,8 +283,8 @@ class _CreatePollSheetState extends ConsumerState<CreatePollSheet>
                     flex: 2,
                     child: TextFormField(
                       controller: option.url,
-                      decoration: const InputDecoration(
-                        labelText: 'Link (optional)',
+                      decoration: InputDecoration(
+                        labelText: context.l10n.linkOptional,
                       ),
                       keyboardType: TextInputType.url,
                       autocorrect: false,
@@ -285,7 +293,7 @@ class _CreatePollSheetState extends ConsumerState<CreatePollSheet>
                     ),
                   ),
                   IconButton(
-                    tooltip: 'Remove option ${index + 1}',
+                    tooltip: context.l10n.removeOptionNumber(index + 1),
                     onPressed: _options.length <= minPollOptions
                         ? null
                         : () => setState(
@@ -301,11 +309,15 @@ class _CreatePollSheetState extends ConsumerState<CreatePollSheet>
                 child: TextButton.icon(
                   onPressed: () => setState(() => _options.add(_OptionDraft())),
                   icon: const Icon(Icons.add),
-                  label: const Text('Add an option'),
+                  label: Text(context.l10n.addAnOption),
                 ),
               ),
             const SizedBox(height: 8),
-            SubmitButton(label: 'Create poll', busy: _saving, onPressed: _save),
+            SubmitButton(
+              label: context.l10n.createPoll,
+              busy: _saving,
+              onPressed: _save,
+            ),
           ],
         ),
       ),
@@ -352,7 +364,7 @@ class _EditPollDialogState extends State<_EditPollDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Edit poll'),
+      title: Text(context.l10n.editPoll),
       content: Form(
         key: _formKey,
         child: Column(
@@ -360,7 +372,9 @@ class _EditPollDialogState extends State<_EditPollDialog> {
           children: [
             TextFormField(
               controller: _question,
-              decoration: const InputDecoration(labelText: 'Question'),
+              decoration: InputDecoration(
+                labelText: context.l10n.questionLabel,
+              ),
               maxLength: 200,
               validator: Validators.required(
                 context.l10n.enterQuestion,
@@ -369,7 +383,7 @@ class _EditPollDialogState extends State<_EditPollDialog> {
             ),
             ClosingTimeField(
               value: _closesAt,
-              error: _closingIsValid ? null : 'Pick a time in the future',
+              error: _closingIsValid ? null : context.l10n.pickFutureTime,
               onChanged: (value) => setState(() => _closesAt = value),
             ),
           ],
@@ -378,7 +392,7 @@ class _EditPollDialogState extends State<_EditPollDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(context.l10n.cancel),
         ),
         FilledButton(
           onPressed: () {
@@ -390,7 +404,7 @@ class _EditPollDialogState extends State<_EditPollDialog> {
               ),
             );
           },
-          child: const Text('Save'),
+          child: Text(context.l10n.save),
         ),
       ],
     );
@@ -427,7 +441,7 @@ class _AddOptionDialogState extends State<_AddOptionDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Add an option'),
+      title: Text(context.l10n.addAnOption),
       content: Form(
         key: _formKey,
         child: Column(
@@ -436,7 +450,7 @@ class _AddOptionDialogState extends State<_AddOptionDialog> {
             TextFormField(
               controller: _label,
               autofocus: true,
-              decoration: const InputDecoration(labelText: 'Option'),
+              decoration: InputDecoration(labelText: context.l10n.optionLabel),
               maxLength: 100,
               inputFormatters: [LengthLimitingTextInputFormatter(100)],
               validator: Validators.required(
@@ -446,7 +460,7 @@ class _AddOptionDialogState extends State<_AddOptionDialog> {
             ),
             TextFormField(
               controller: _url,
-              decoration: const InputDecoration(labelText: 'Link (optional)'),
+              decoration: InputDecoration(labelText: context.l10n.linkOptional),
               keyboardType: TextInputType.url,
               validator: _optionalUrl,
             ),
@@ -456,7 +470,7 @@ class _AddOptionDialogState extends State<_AddOptionDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(context.l10n.cancel),
         ),
         FilledButton(
           onPressed: () {
@@ -469,7 +483,7 @@ class _AddOptionDialogState extends State<_AddOptionDialog> {
               ),
             );
           },
-          child: const Text('Add'),
+          child: Text(context.l10n.add),
         ),
       ],
     );

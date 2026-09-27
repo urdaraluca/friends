@@ -19,6 +19,7 @@ import 'package:friends/features/backlog/presentation/widgets/category_visuals.d
 import 'package:friends/features/groups/data/group_providers.dart';
 import 'package:friends/features/wheel/data/wheel_providers.dart';
 import 'package:friends/features/wheel/presentation/fortune_wheel.dart';
+import 'package:friends/l10n/l10n.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:material_ui/material_ui.dart';
@@ -28,9 +29,9 @@ const minWheelCandidates = 2;
 const maxWheelCandidates = 50;
 
 /// Messages for wheel errors.
-const Map<String, String> wheelErrorMessages = {
-  ErrorCodes.notEnoughCandidates: 'Add at least 2 ideas to spin.',
-  ErrorCodes.resultDeleted: 'That idea was deleted in the meantime.',
+Map<String, String> get wheelErrorMessages => {
+  ErrorCodes.notEnoughCandidates: currentL10n.wheelErrorNotEnough,
+  ErrorCodes.resultDeleted: currentL10n.wheelErrorDeleted,
 };
 
 /// The Wheel tab (`/groups/:groupId/wheel`): filters, the candidates (all
@@ -185,10 +186,10 @@ class _WheelScreenState extends ConsumerState<WheelScreen> {
         checked.length >= minWheelCandidates && !_spinning && _spinningDone;
     final textTheme = Theme.of(context).textTheme;
     final summary = pool.total == 0
-        ? 'No ideas match these filters.'
+        ? context.l10n.noIdeasMatch
         : pool.total > pool.items.length
-        ? 'Showing ${pool.items.length} of ${pool.total} ideas'
-        : '${pool.total} ${pool.total == 1 ? 'idea' : 'ideas'}';
+        ? context.l10n.showingIdeas(pool.items.length, pool.total)
+        : context.l10n.ideaCount(pool.total);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -196,8 +197,8 @@ class _WheelScreenState extends ConsumerState<WheelScreen> {
         ExpansionTile(
           title: Text(summary),
           subtitle: _excluded.isEmpty
-              ? const Text('All on the wheel. Open to hand-pick.')
-              : Text('${checked.length} on the wheel'),
+              ? Text(context.l10n.allOnWheel)
+              : Text(context.l10n.onTheWheelCount(checked.length)),
           children: [
             for (final activity in pool.items)
               CheckboxListTile(
@@ -252,14 +253,16 @@ class _WheelScreenState extends ConsumerState<WheelScreen> {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : const Icon(Icons.casino),
-            label: Text(spin == null ? 'Spin!' : 'Spin again'),
+            label: Text(
+              spin == null ? context.l10n.spin : context.l10n.spinAgain,
+            ),
           ),
         ),
         if (checked.length < minWheelCandidates)
           Padding(
             padding: const EdgeInsets.all(8),
             child: Text(
-              'Add at least 2 ideas to spin',
+              context.l10n.addTwoIdeas,
               textAlign: TextAlign.center,
               style: textTheme.bodyMedium,
             ),
@@ -320,7 +323,7 @@ class SpinResultCard extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('The wheel says…', style: textTheme.labelLarge),
+            Text(context.l10n.wheelSays, style: textTheme.labelLarge),
             const SizedBox(height: 8),
             Row(
               children: [
@@ -333,14 +336,14 @@ class SpinResultCard extends ConsumerWidget {
             ),
             const SizedBox(height: 12),
             if (activityId == null)
-              const Text('This idea has been deleted since.')
+              Text(context.l10n.ideaDeletedSince)
             else if (spin.acceptedAt != null)
               Text(
                 acceptedBy == null
-                    ? "It's on!"
+                    ? context.l10n.itsOn
                     : acceptedBy.id == me
-                    ? "You said let's do it."
-                    : "${acceptedBy.displayName} said let's do it.",
+                    ? context.l10n.youSaidLetsDoIt
+                    : context.l10n.someoneSaidLetsDoIt(acceptedBy.displayName),
               ),
             const SizedBox(height: 8),
             Wrap(
@@ -351,7 +354,7 @@ class SpinResultCard extends ConsumerWidget {
                   FilledButton.icon(
                     onPressed: accepting ? null : onAccept,
                     icon: const Icon(Icons.celebration),
-                    label: const Text("Let's do it!"),
+                    label: Text(context.l10n.letsDoIt),
                   ),
                 if (activityId != null && spin.acceptedAt != null)
                   FilledButton.icon(
@@ -361,14 +364,14 @@ class SpinResultCard extends ConsumerWidget {
                       ),
                     ),
                     icon: const Icon(Icons.event_available),
-                    label: const Text('Schedule it'),
+                    label: Text(context.l10n.scheduleIt),
                   ),
                 if (activityId != null)
                   OutlinedButton(
                     onPressed: () => unawaited(
                       context.push(Routes.activity(groupId, activityId)),
                     ),
-                    child: const Text('Open activity'),
+                    child: Text(context.l10n.openActivity),
                   ),
                 if (activityId != null)
                   OutlinedButton.icon(
@@ -381,7 +384,7 @@ class SpinResultCard extends ConsumerWidget {
                       ),
                     ),
                     icon: const Icon(Icons.group_outlined),
-                    label: const Text('When can everyone make it?'),
+                    label: Text(context.l10n.whenCanEveryone),
                   ),
               ],
             ),
@@ -442,7 +445,7 @@ class _WheelFilterBar extends ConsumerWidget {
             const SizedBox(width: 6),
           ],
           FilterChip(
-            label: const Text("Only ideas I'm interested in"),
+            label: Text(context.l10n.onlyInterestedIdeas),
             selected: filters.interestedBy != null,
             onSelected: (on) =>
                 onChanged(filters.copyWith(interestedBy: on ? me : null)),
@@ -450,7 +453,9 @@ class _WheelFilterBar extends ConsumerWidget {
           const SizedBox(width: 6),
           InputChip(
             avatar: const Icon(Icons.category_outlined, size: 18),
-            label: Text(categories.name(filters.categoryId) ?? 'Category'),
+            label: Text(
+              categories.name(filters.categoryId) ?? context.l10n.categoryLabel,
+            ),
             selected: filters.categoryId != null,
             showCheckmark: false,
             onPressed: () async {
@@ -458,7 +463,7 @@ class _WheelFilterBar extends ConsumerWidget {
                 context,
                 index: categories,
                 selectedId: filters.categoryId,
-                noneLabel: 'All categories',
+                noneLabel: context.l10n.allCategories,
               );
               if (choice is PickedCategory) {
                 onChanged(
@@ -489,9 +494,10 @@ class _WheelFilterBar extends ConsumerWidget {
             ),
           InputChip(
             avatar: const Icon(Icons.payments_outlined, size: 18),
-            label: Text(
-              filters.costMax == null ? 'Max cost' : 'Up to ${filters.costMax}',
-            ),
+            label: Text(switch (filters.costMax) {
+              null => context.l10n.maxCost,
+              final max => context.l10n.upToCost(max),
+            }),
             selected: filters.costMax != null,
             showCheckmark: false,
             onPressed: () async {
@@ -522,8 +528,8 @@ class _WheelFilterBar extends ConsumerWidget {
             avatar: const Icon(Icons.flag_outlined, size: 18),
             label: Text(
               due == null
-                  ? 'Due before'
-                  : 'By ${DateFormat.MMMd().format(due)}',
+                  ? context.l10n.dueBefore
+                  : context.l10n.dueBy(DateFormat.MMMd().format(due)),
             ),
             selected: due != null,
             showCheckmark: false,
@@ -548,7 +554,7 @@ class _WheelFilterBar extends ConsumerWidget {
           const SizedBox(width: 6),
           ActionChip(
             avatar: const Icon(Icons.history, size: 18),
-            label: const Text('History'),
+            label: Text(context.l10n.history),
             onPressed: () =>
                 unawaited(context.push(Routes.wheelHistory(groupId))),
           ),

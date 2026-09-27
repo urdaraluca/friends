@@ -12,15 +12,16 @@ import 'package:friends/core/widgets/confirm_dialog.dart';
 import 'package:friends/core/widgets/user_avatar.dart';
 import 'package:friends/features/polls/data/polls_providers.dart';
 import 'package:friends/features/polls/presentation/poll_dialogs.dart';
+import 'package:friends/l10n/l10n.dart';
 import 'package:intl/intl.dart';
 import 'package:material_ui/material_ui.dart';
 
 /// Messages for poll errors that the card shows next to its options.
-const Map<String, String> pollErrorMessages = {
-  ErrorCodes.pollClosed: 'This poll just closed.',
-  ErrorCodes.tooManyChoices: 'This poll takes one choice only.',
-  ErrorCodes.limitReached: 'A poll has 2 to 20 options.',
-  ErrorCodes.nameTaken: 'That option is already in the poll.',
+Map<String, String> get pollErrorMessages => {
+  ErrorCodes.pollClosed: currentL10n.pollErrorClosed,
+  ErrorCodes.tooManyChoices: currentL10n.pollErrorOneChoice,
+  ErrorCodes.limitReached: currentL10n.pollErrorOptionCount,
+  ErrorCodes.nameTaken: currentL10n.pollErrorOptionTaken,
 };
 
 /// One poll (contract sections 8.9 and 9): the question, whether it is open
@@ -97,9 +98,9 @@ class _PollCardState extends ConsumerState<PollCard> {
       case 'delete':
         final confirmed = await showConfirmDialog(
           context,
-          title: 'Delete this poll?',
-          message: 'Its options and votes go with it.',
-          confirmLabel: 'Delete',
+          title: context.l10n.deletePollTitle,
+          message: context.l10n.deletePollMessage,
+          confirmLabel: context.l10n.delete,
           destructive: true,
         );
         if (confirmed) await _run(() => _controller.delete(_poll));
@@ -114,11 +115,11 @@ class _PollCardState extends ConsumerState<PollCard> {
   Future<void> _deleteOption(PollOption option) async {
     final confirmed = await showConfirmDialog(
       context,
-      title: 'Remove "${option.label}"?',
+      title: context.l10n.removeOptionTitle(option.label),
       message: option.voteCount == 0
-          ? 'Nobody has voted for it yet.'
-          : 'Its ${option.voteCount} votes are removed too.',
-      confirmLabel: 'Remove',
+          ? context.l10n.noVotesYet
+          : context.l10n.votesRemoved(option.voteCount),
+      confirmLabel: context.l10n.remove,
       destructive: true,
     );
     if (confirmed) await _run(() => _controller.deleteOption(_poll, option.id));
@@ -129,13 +130,13 @@ class _PollCardState extends ConsumerState<PollCard> {
     if (!_poll.isOpen) {
       final closed = _poll.closedAt ?? _poll.closesAt;
       return closed == null
-          ? 'Closed'
-          : 'Closed ${format.format(closed.toLocal())}';
+          ? context.l10n.pollClosed
+          : context.l10n.pollClosedOn(format.format(closed.toLocal()));
     }
     final closesAt = _poll.closesAt;
     return closesAt == null
-        ? 'Open'
-        : 'Open until ${format.format(closesAt.toLocal())}';
+        ? context.l10n.pollOpen
+        : context.l10n.pollOpenUntil(format.format(closesAt.toLocal()));
   }
 
   @override
@@ -146,8 +147,7 @@ class _PollCardState extends ConsumerState<PollCard> {
     final selected = _draft ?? mine;
     final maxVotes = poll.options.map((o) => o.voteCount).fold(0, max);
     final canVote = poll.isOpen && !_busy;
-    final voters =
-        '${poll.totalVoters} ${poll.totalVoters == 1 ? 'voter' : 'voters'}';
+    final voters = context.l10n.voterCount(poll.totalVoters);
     final dirty = _draft != null && !setEquals(_draft, mine);
 
     Widget optionRow(PollOption option) {
@@ -187,7 +187,7 @@ class _PollCardState extends ConsumerState<PollCard> {
                           Icons.emoji_events,
                           size: 18,
                           color: theme.colorScheme.tertiary,
-                          semanticLabel: 'Winning',
+                          semanticLabel: context.l10n.winning,
                         ),
                         const SizedBox(width: 4),
                       ],
@@ -201,7 +201,7 @@ class _PollCardState extends ConsumerState<PollCard> {
                       ),
                       if (option.url case final url?)
                         IconButton(
-                          tooltip: 'Open link',
+                          tooltip: context.l10n.openLink,
                           visualDensity: VisualDensity.compact,
                           icon: const Icon(Icons.open_in_new, size: 18),
                           onPressed: () {
@@ -235,7 +235,7 @@ class _PollCardState extends ConsumerState<PollCard> {
             AvatarStack(users: option.voters, max: 3, radius: 10),
             if (option.canDelete)
               IconButton(
-                tooltip: 'Remove "${option.label}"',
+                tooltip: context.l10n.removeOptionTooltip(option.label),
                 visualDensity: VisualDensity.compact,
                 icon: const Icon(Icons.close, size: 18),
                 onPressed: _busy
@@ -270,7 +270,7 @@ class _PollCardState extends ConsumerState<PollCard> {
                       Text(
                         [
                           _statusText(),
-                          if (poll.allowMultiple) 'multiple choice',
+                          if (poll.allowMultiple) context.l10n.multipleChoice,
                           voters,
                         ].join(' · '),
                         style: theme.textTheme.bodySmall,
@@ -280,24 +280,27 @@ class _PollCardState extends ConsumerState<PollCard> {
                 ),
                 if (poll.canManage)
                   PopupMenuButton<String>(
-                    tooltip: 'Manage poll',
+                    tooltip: context.l10n.managePoll,
                     enabled: !_busy,
                     onSelected: (action) => unawaited(_manage(action)),
                     itemBuilder: (context) => [
-                      const PopupMenuItem(value: 'edit', child: Text('Edit')),
+                      PopupMenuItem(
+                        value: 'edit',
+                        child: Text(context.l10n.edit),
+                      ),
                       if (poll.isOpen)
-                        const PopupMenuItem(
+                        PopupMenuItem(
                           value: 'close',
-                          child: Text('Close poll'),
+                          child: Text(context.l10n.closePoll),
                         )
                       else
-                        const PopupMenuItem(
+                        PopupMenuItem(
                           value: 'reopen',
-                          child: Text('Reopen poll'),
+                          child: Text(context.l10n.reopenPoll),
                         ),
-                      const PopupMenuItem(
+                      PopupMenuItem(
                         value: 'delete',
-                        child: Text('Delete poll'),
+                        child: Text(context.l10n.deletePoll),
                       ),
                     ],
                   ),
@@ -330,18 +333,18 @@ class _PollCardState extends ConsumerState<PollCard> {
                     onPressed: dirty && !_busy
                         ? () => unawaited(_vote(selected.toList()))
                         : null,
-                    child: const Text('Save vote'),
+                    child: Text(context.l10n.saveVote),
                   ),
                 if (poll.isOpen && mine.isNotEmpty && !dirty)
                   TextButton(
                     onPressed: _busy ? null : () => unawaited(_vote(const [])),
-                    child: const Text('Retract my vote'),
+                    child: Text(context.l10n.retractVote),
                   ),
                 if (poll.isOpen && poll.options.length < 20)
                   TextButton.icon(
                     onPressed: _busy ? null : () => unawaited(_addOption()),
                     icon: const Icon(Icons.add),
-                    label: const Text('Add option'),
+                    label: Text(context.l10n.addOption),
                   ),
               ],
             ),
