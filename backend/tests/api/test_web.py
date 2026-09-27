@@ -384,3 +384,54 @@ def test_other_file_system_errors_are_not_hidden(
     monkeypatch.setattr(StaticFiles, "lookup_path", _lookup_failing_with(errno.EIO))
 
     assert_problem(web.get("/bad.js"), 500, "internal_error")
+
+
+# --- served under a subpath (PUBLIC_APP_URL has a path) --------------------------------------
+
+
+@pytest.fixture
+def sub(settings: Settings, web_dir: Path) -> Iterator[TestClient]:
+    with _client(settings, web_dir=web_dir, public_app_url="https://example.com/friends") as client:
+        yield client
+
+
+@pytest.mark.parametrize("path", ["/", "/join/ABCDEFGHJK", "/index.html"])
+def test_under_a_subpath_the_app_shell_gets_that_base_href(sub: TestClient, path: str) -> None:
+    response = sub.get(path)
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/html")
+    assert response.text == INDEX_HTML.replace('<base href="/">', '<base href="/friends/">')
+    assert response.headers["cache-control"] == "no-cache"
+    assert response.headers["content-security-policy"]
+
+
+def test_under_a_subpath_the_app_shell_is_revalidated(sub: TestClient) -> None:
+    etag = sub.get("/join/ABCDEFGHJK").headers["etag"]
+
+    response = sub.get("/", headers={"If-None-Match": etag})
+
+    assert response.status_code == 304
+    assert response.headers["cache-control"] == "no-cache"
+
+
+def test_under_a_subpath_the_etag_follows_the_base_path(
+    sub: TestClient, settings: Settings, web_dir: Path
+) -> None:
+    with _client(settings, web_dir=web_dir, public_app_url="https://example.com/other") as other:
+        assert other.get("/").headers["etag"] != sub.get("/").headers["etag"]
+
+
+def test_under_a_subpath_head_matches_get(sub: TestClient) -> None:
+    body = sub.get("/").content
+
+    response = sub.head("/")
+
+    assert response.status_code == 200
+    assert response.headers["content-length"] == str(len(body))
+    assert response.content == b""
+
+
+def test_under_a_subpath_other_files_are_served_as_is(sub: TestClient) -> None:
+    assert sub.get("/main.dart.js").text == MAIN_JS
+    assert_problem(sub.get("/missing.js"), 404, "not_found")

@@ -53,3 +53,16 @@ def test_docs_are_off_in_prod_by_default() -> None:
     assert make(app_env=AppEnv.DEV).show_docs
     assert not make(**PROD).show_docs
     assert make(**PROD, docs_enabled=True).show_docs
+
+
+@pytest.mark.parametrize(
+    ("url", "base"),
+    [
+        ("https://friends.example.com", "/"),
+        ("https://friends.example.com/", "/"),
+        ("https://example.com/friends", "/friends/"),
+        ("https://example.com/apps/friends/", "/apps/friends/"),
+    ],
+)
+def test_the_web_base_path_is_the_path_of_the_public_app_url(url: str, base: str) -> None:
+    assert make(public_app_url=url).web_base_path == base

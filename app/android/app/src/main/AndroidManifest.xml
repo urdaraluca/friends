@@ -29,7 +29,7 @@
             </intent-filter>
             <!-- App Links: https://<host>/join/<code> invite links open the app, and
                  go_router shows the join screen. The host comes from the build
-                 (appLinkHost in android/app/build.gradle.kts); Android verifies it
+                 (appLinkHost and appLinkPath in android/app/build.gradle.kts); Android verifies it
                  against https://<host>/.well-known/assetlinks.json. -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW"/>
@@ -38,7 +38,7 @@
                 <data
                     android:scheme="https"
                     android:host="${appLinkHost}"
-                    android:pathPrefix="/join/"/>
+                    android:pathPrefix="${appLinkPath}/join/"/>
             </intent-filter>
             <!-- Hands incoming links to Flutter's router. -->
             <meta-data

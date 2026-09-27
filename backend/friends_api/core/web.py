@@ -20,8 +20,11 @@ would fully match ``POST /api/v1/health`` and hide the router's 405.
 """
 
 import errno
+import hashlib
+import html
 import os
 import posixpath
+import re
 import stat
 from pathlib import Path
 from typing import Any
@@ -31,7 +34,7 @@ from fastapi.responses import JSONResponse
 from starlette._utils import get_route_path
 from starlette.concurrency import run_in_threadpool
 from starlette.exceptions import HTTPException
-from starlette.responses import Response
+from starlette.responses import FileResponse, Response
 from starlette.staticfiles import StaticFiles
 from starlette.types import Receive, Scope, Send
 from starlette.websockets import WebSocketClose
@@ -79,6 +82,7 @@ WEB_SECURITY_HEADERS = {
 """On every response from ``WEB_DIR``, next to ``Cache-Control``."""
 
 _STATIC_METHODS = ("GET", "HEAD")
+_BASE_HREF = re.compile(rb'<base href="[^"]*">')
 
 
 def normalize_path(path: str) -> str:
@@ -128,10 +132,12 @@ class _WebFiles(StaticFiles):
 class WebFallback:
     """ASGI app for every request that no route matched (steps 1, 3 and 4 above)."""
 
-    def __init__(self, web_dir: Path) -> None:
+    def __init__(self, web_dir: Path, base_path: str = "/") -> None:
         # Only its path lookup and file responses are used (it is never called as an ASGI app),
         # so the directory may be missing (dev, tests).
         self.files = _WebFiles(directory=web_dir, check_dir=False)
+        self.base_tag = f'<base href="{html.escape(base_path)}">'.encode()
+        self.rewrites_index = base_path != "/"
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] != "http":  # nothing here speaks WebSocket
@@ -158,10 +164,30 @@ class WebFallback:
             if exc.status_code != 404 or "." in posixpath.basename(normalize_path(path)):
                 raise
             response = self.files.file_response(index_path, index_stat, scope)
+        if (
+            self.rewrites_index
+            and isinstance(response, FileResponse)
+            and response.path == index_path
+        ):
+            response = await self._index_response(index_path, scope)
         # Files, the app shell and their 304s alike, whatever spelling of the path was used.
         response.headers["Cache-Control"] = WEB_CACHE_CONTROL
         response.headers.update(WEB_SECURITY_HEADERS)
         return response
+
+    async def _index_response(self, index_path: str, scope: Scope) -> Response:
+        """``index.html`` with its ``<base href>`` set to the subpath, with its own ETag."""
+        raw = await run_in_threadpool(Path(index_path).read_bytes)
+        body = _BASE_HREF.sub(self.base_tag, raw, count=1)
+        etag = f'"{hashlib.sha256(body).hexdigest()[:32]}"'
+        headers = {"ETag": etag}
+        if_none_match = dict(scope["headers"]).get(b"if-none-match", b"").decode("latin-1")
+        if etag in [tag.strip() for tag in if_none_match.split(",")]:
+            return Response(status_code=304, headers=headers)
+        if scope["method"] == "HEAD":
+            headers["Content-Length"] = str(len(body))
+            return Response(media_type="text/html", headers=headers)
+        return Response(body, media_type="text/html", headers=headers)
 
 
 def install_web(app: FastAPI, settings: Settings) -> None:
@@ -180,4 +206,4 @@ def install_web(app: FastAPI, settings: Settings) -> None:
         include_in_schema=False,
         tags=["web"],
     )
-    app.router.default = WebFallback(settings.web_dir)
+    app.router.default = WebFallback(settings.web_dir, settings.web_base_path)

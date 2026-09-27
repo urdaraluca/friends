@@ -62,6 +62,15 @@ changes one, it changes the other.
   - `X-Content-Type-Options: nosniff`;
   - `Referrer-Policy: strict-origin-when-cross-origin`;
   - `X-Frame-Options: DENY`.
+- **Subpath hosting.** When `PUBLIC_APP_URL` has a path (e.g. `https://example.com/friends`), the
+  app is served under it. The reverse proxy strips that prefix, so the container still sees the
+  paths above. `index.html` (served as a file or as the SPA fallback) is sent with its first
+  `<base href="…">` replaced by the path with a trailing slash (`<base href="/friends/">`), and an
+  `ETag` of that rewritten body. So one web build (made with the default `--base-href /`) works
+  under any path. With no path in `PUBLIC_APP_URL`, `index.html` is served as is. The web app,
+  built with an empty `API_BASE_URL`, calls the API at its `<base href>` (`/friends/api/v1/…`).
+  `/.well-known/assetlinks.json` only works for Android App Links at the root of a host, so it
+  needs a separate proxy rule for `/.well-known/assetlinks.json` when the app runs under a subpath.
 - Docs: OpenAPI at `/api/v1/openapi.json`, Swagger UI at `/api/v1/docs`. Both exist only when
   `DOCS_ENABLED=true` (the default in dev and test; false in prod). No ReDoc.
 - The OpenAPI `info.version` is the fixed string `"1"`. `APP_VERSION` never appears in the schema,
@@ -281,7 +290,7 @@ FieldError { field: str, message: str, type: str }
 | `REFRESH_SESSION_MAX_DAYS` | 180 | 180 | absolute cap per session |
 | `REFRESH_REUSE_GRACE_SECONDS` | 60 | 60 | section 4.5 |
 | `REGISTRATION_MODE` | `invite_only` | `invite_only` | `invite_only` or `open` |
-| `PUBLIC_APP_URL` | `http://localhost:5000` | **required**, e.g. `https://friends.example.com` | Base of `Invite.url`; no trailing slash |
+| `PUBLIC_APP_URL` | `http://localhost:5000` | **required**, e.g. `https://friends.example.com` | Base of `Invite.url`; no trailing slash. Its path, if any, is the subpath the web app is served under (section 1.1) |
 | `DOCS_ENABLED` | `true` | `false` | |
 | `CORS_ORIGINS` | empty | empty | comma-separated; with `APP_ENV=dev` the fixed localhost regex (section 1.1) is also allowed |
 | `WEB_DIR` | `/app/web` | `/app/web` | static hosting only when `index.html` exists there |

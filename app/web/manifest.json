@@ -1,7 +1,9 @@
 {
     "name": "Friends",
     "short_name": "Friends",
+    "id": ".",
     "start_url": ".",
+    "scope": ".",
     "display": "standalone",
     "background_color": "#FF7A59",
     "theme_color": "#FF7A59",

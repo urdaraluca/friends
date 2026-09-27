@@ -1,6 +1,7 @@
 import 'package:friends/core/api/date_only.dart';
 import 'package:friends/core/api/generated/export.dart' show RecapPeriod;
 import 'package:friends/core/auth/auth_controller.dart';
+import 'package:friends/core/config/env.dart';
 import 'package:friends/core/router/routes.dart';
 import 'package:friends/features/auth/presentation/login_screen.dart';
 import 'package:friends/features/auth/presentation/register_screen.dart';
@@ -72,6 +73,15 @@ String? authRedirect(AuthState auth, Uri uri) {
   }
 }
 
+/// An App Link under the backend's subpath ([basePath], e.g.
+/// `/friends/join/<code>`) without that prefix: `/join/<code>`. Null for any
+/// other location.
+@visibleForTesting
+String? stripAppLinkBase(Uri uri, String basePath) {
+  if (basePath.isEmpty || !uri.path.startsWith('$basePath/')) return null;
+  return uri.replace(path: uri.path.substring(basePath.length)).toString();
+}
+
 /// The app's [GoRouter]. It re-runs [authRedirect] whenever the auth state
 /// changes (`refreshListenable`), without being rebuilt itself.
 @Riverpod(keepAlive: true)
@@ -87,7 +97,9 @@ GoRouter router(Ref ref) {
   final router = GoRouter(
     navigatorKey: rootNavigatorKey,
     refreshListenable: auth,
-    redirect: (context, state) => authRedirect(auth.value, state.uri),
+    redirect: (context, state) =>
+        stripAppLinkBase(state.uri, Env.appLinkBasePath) ??
+        authRedirect(auth.value, state.uri),
     errorBuilder: (context, state) => const NotFoundScreen(),
     routes: [
       GoRoute(
