@@ -1,3 +1,4 @@
+import 'package:friends/l10n/l10n.dart';
 import 'package:material_ui/material_ui.dart';
 
 /// An error (or [info]) banner above or below a form's fields.
@@ -93,7 +94,9 @@ class _PasswordFormFieldState extends State<PasswordFormField> {
         labelText: widget.label,
         helperText: widget.helperText,
         suffixIcon: IconButton(
-          tooltip: _obscured ? 'Show password' : 'Hide password',
+          tooltip: _obscured
+              ? context.l10n.showPassword
+              : context.l10n.hidePassword,
           icon: Icon(_obscured ? Icons.visibility : Icons.visibility_off),
           onPressed: () => setState(() => _obscured = !_obscured),
         ),

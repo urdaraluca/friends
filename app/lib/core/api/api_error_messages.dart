@@ -1,5 +1,6 @@
 import 'package:friends/core/api/api_exception.dart';
 import 'package:friends/core/api/error_codes.dart';
+import 'package:friends/l10n/l10n.dart';
 
 /// A short, user-facing message for any error thrown by an API call.
 ///
@@ -15,14 +16,14 @@ String friendlyErrorMessage(
   Object error, {
   Map<String, String> messages = const {},
 }) {
+  final l10n = currentL10n;
   return switch (ApiException.from(error)) {
-    NetworkException() =>
-      "Can't reach the server. Check your connection and try again.",
+    NetworkException() => l10n.errorNetwork,
     final ProblemException problem =>
       messages[problem.code] ?? _problemMessage(problem),
     UnexpectedApiException(:final statusCode?) when statusCode >= 500 =>
-      'The server is having trouble. Try again in a moment.',
-    UnexpectedApiException() => 'Something went wrong. Try again.',
+      l10n.errorServer,
+    UnexpectedApiException() => l10n.errorGeneric,
   };
 }
 
@@ -31,54 +32,44 @@ bool isNetworkError(Object error) =>
     ApiException.from(error) is NetworkException;
 
 String _problemMessage(ProblemException problem) {
+  final l10n = currentL10n;
   return switch (problem.code) {
     ErrorCodes.validationError =>
       problem.errors.length == 1
           ? problem.errors.single.message
-          : 'Please check the highlighted fields.',
+          : l10n.errorCheckFields,
     ErrorCodes.unauthenticated ||
     ErrorCodes.refreshInvalid ||
     ErrorCodes.refreshReuseDetected ||
-    ErrorCodes.tokenExpired => 'Your session has ended. Please sign in again.',
-    ErrorCodes.invalidCredentials => 'Wrong email or password.',
-    ErrorCodes.wrongPassword => 'Wrong password.',
-    ErrorCodes.weakPassword => "Your password can't be your email address.",
-    ErrorCodes.forbidden => "You don't have permission to do that.",
-    ErrorCodes.registrationClosed =>
-      'Friends is invite-only — ask a friend for an invite link',
-    ErrorCodes.notFound => "That doesn't exist anymore, or you can't see it.",
-    ErrorCodes.emailTaken => 'An account with this email already exists.',
-    ErrorCodes.nameTaken => 'That name is already taken.',
-    ErrorCodes.versionConflict =>
-      'Someone else changed this in the meantime. Reload to see their '
-          'changes.',
-    ErrorCodes.ownerMustTransfer =>
-      'Transfer ownership of the group to someone else first.',
-    ErrorCodes.pollClosed => 'This poll is closed.',
-    ErrorCodes.resultDeleted => 'That activity has been deleted.',
-    ErrorCodes.inviteExpired => 'This invite has expired.',
-    ErrorCodes.inviteRevoked => 'This invite has been revoked.',
-    ErrorCodes.inviteExhausted => 'This invite has already been used up.',
-    ErrorCodes.limitReached => "You've reached the limit for this.",
-    ErrorCodes.rangeTooLarge => 'Pick a shorter date range.',
-    ErrorCodes.notEnoughCandidates =>
-      'The wheel needs at least two activities.',
+    ErrorCodes.tokenExpired => l10n.errorSessionEnded,
+    ErrorCodes.invalidCredentials => l10n.errorInvalidCredentials,
+    ErrorCodes.wrongPassword => l10n.errorWrongPassword,
+    ErrorCodes.weakPassword => l10n.errorWeakPassword,
+    ErrorCodes.forbidden => l10n.errorForbidden,
+    ErrorCodes.registrationClosed => l10n.errorRegistrationClosed,
+    ErrorCodes.notFound => l10n.errorNotFound,
+    ErrorCodes.emailTaken => l10n.errorEmailTaken,
+    ErrorCodes.nameTaken => l10n.errorNameTaken,
+    ErrorCodes.versionConflict => l10n.errorVersionConflict,
+    ErrorCodes.ownerMustTransfer => l10n.errorOwnerMustTransfer,
+    ErrorCodes.pollClosed => l10n.errorPollClosed,
+    ErrorCodes.resultDeleted => l10n.errorResultDeleted,
+    ErrorCodes.inviteExpired => l10n.errorInviteExpired,
+    ErrorCodes.inviteRevoked => l10n.errorInviteRevoked,
+    ErrorCodes.inviteExhausted => l10n.errorInviteExhausted,
+    ErrorCodes.limitReached => l10n.errorLimitReached,
+    ErrorCodes.rangeTooLarge => l10n.errorRangeTooLarge,
+    ErrorCodes.notEnoughCandidates => l10n.errorNotEnoughCandidates,
     ErrorCodes.rateLimited => _rateLimitedMessage(problem.retryAfter),
-    ErrorCodes.internalError =>
-      'The server is having trouble. Try again in a moment.',
-    _ =>
-      problem.status >= 500
-          ? 'The server is having trouble. Try again in a moment.'
-          : 'Something went wrong. Try again.',
+    ErrorCodes.internalError => l10n.errorServer,
+    _ => problem.status >= 500 ? l10n.errorServer : l10n.errorGeneric,
   };
 }
 
 String _rateLimitedMessage(Duration? retryAfter) {
-  if (retryAfter == null) return 'Too many attempts. Try again in a moment.';
+  final l10n = currentL10n;
+  if (retryAfter == null) return l10n.errorRateLimited;
   final seconds = retryAfter.inSeconds;
-  if (seconds < 90) {
-    return 'Too many attempts. Try again in $seconds seconds.';
-  }
-  final minutes = (seconds / 60).ceil();
-  return 'Too many attempts. Try again in $minutes minutes.';
+  if (seconds < 90) return l10n.errorRateLimitedSeconds(seconds);
+  return l10n.errorRateLimitedMinutes((seconds / 60).ceil());
 }

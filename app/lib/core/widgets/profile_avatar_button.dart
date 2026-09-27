@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:friends/core/auth/auth_controller.dart';
 import 'package:friends/core/router/routes.dart';
+import 'package:friends/l10n/l10n.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -17,7 +18,7 @@ class ProfileAvatarButton extends ConsumerWidget {
     final name = user?.displayName.trim() ?? '';
     final avatarUrl = user?.avatarUrl;
     return IconButton(
-      tooltip: 'Profile',
+      tooltip: context.l10n.profile,
       onPressed: () => unawaited(context.push(Routes.profile)),
       icon: CircleAvatar(
         radius: 16,

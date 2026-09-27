@@ -1,3 +1,4 @@
+import 'package:friends/l10n/l10n.dart';
 import 'package:material_ui/material_ui.dart';
 
 /// Asks to confirm an action. Resolves to true only when [confirmLabel] is
@@ -19,7 +20,7 @@ Future<bool> showConfirmDialog(
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+            child: Text(context.l10n.cancel),
           ),
           FilledButton(
             style: destructive

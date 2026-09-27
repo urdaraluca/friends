@@ -10,6 +10,8 @@ dependencies:
   dio: ^5.11.1
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
   flutter_riverpod: ^3.4.3
   flutter_secure_storage: ^11.2.0
   flutter_timezone: ^5.1.0
@@ -41,6 +43,8 @@ dev_dependencies:
   very_good_analysis: ^11.0.0
 flutter:
   uses-material-design: true
+  # Localizations from lib/l10n/*.arb (l10n.yaml), into lib/l10n/generated/.
+  generate: true
 
 # App icons for Android (adaptive too), iOS and web, from assets/icon/.
 # Redraw with tool/make_icon.py, then run: dart run flutter_launcher_icons

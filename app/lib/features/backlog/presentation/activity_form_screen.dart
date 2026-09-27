@@ -23,6 +23,7 @@ import 'package:friends/features/backlog/presentation/widgets/category_visuals.d
 import 'package:friends/features/backlog/presentation/widgets/dynamic_fields_form.dart';
 import 'package:friends/features/groups/data/group_providers.dart';
 import 'package:friends/features/groups/presentation/widgets/group_themed.dart';
+import 'package:friends/l10n/l10n.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:material_ui/material_ui.dart';
@@ -431,7 +432,7 @@ class _ActivityFormState extends ConsumerState<ActivityForm>
             decoration: const InputDecoration(labelText: 'Title'),
             textCapitalization: TextCapitalization.sentences,
             maxLength: 120,
-            validator: Validators.required('a title', max: 120),
+            validator: Validators.required(context.l10n.enterTitle, max: 120),
             forceErrorText: serverError('title'),
             onChanged: (_) => clearServerError('title'),
           ),

@@ -5,6 +5,7 @@ import 'package:friends/core/forms/field_errors.dart';
 import 'package:friends/core/forms/validators.dart';
 import 'package:friends/core/router/routes.dart';
 import 'package:friends/core/widgets/form_widgets.dart';
+import 'package:friends/l10n/l10n.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -60,9 +61,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       _ => null,
     };
     final notice = switch (reason) {
-      SignOutReason.sessionExpired =>
-        'Your session has ended. Please sign in again.',
-      SignOutReason.accountDeleted => 'Your account has been deleted.',
+      SignOutReason.sessionExpired => context.l10n.errorSessionEnded,
+      SignOutReason.accountDeleted => context.l10n.accountDeleted,
       _ => null,
     };
     final textTheme = Theme.of(context).textTheme;
@@ -78,7 +78,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                 const Icon(Icons.diversity_3, size: 56),
                 const SizedBox(height: 16),
                 Text(
-                  'Welcome back',
+                  context.l10n.welcomeBack,
                   style: textTheme.headlineMedium,
                   textAlign: TextAlign.center,
                 ),
@@ -93,7 +93,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                 ],
                 TextFormField(
                   controller: _email,
-                  decoration: const InputDecoration(labelText: 'Email'),
+                  decoration: InputDecoration(labelText: context.l10n.email),
                   keyboardType: TextInputType.emailAddress,
                   autocorrect: false,
                   autofillHints: const [
@@ -108,7 +108,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                 const SizedBox(height: 12),
                 PasswordFormField(
                   controller: _password,
-                  label: 'Password',
+                  label: context.l10n.password,
                   textInputAction: TextInputAction.done,
                   validator: Validators.currentPassword,
                   forceErrorText: serverError('password'),
@@ -117,14 +117,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                 ),
                 const SizedBox(height: 24),
                 SubmitButton(
-                  label: 'Sign in',
+                  label: context.l10n.signIn,
                   busy: _submitting,
                   onPressed: _submit,
                 ),
                 const SizedBox(height: 12),
                 TextButton(
                   onPressed: _submitting ? null : _goToRegister,
-                  child: const Text('New here? Create an account'),
+                  child: Text(context.l10n.newHereCreateAccount),
                 ),
               ],
             ),

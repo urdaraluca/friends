@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:friends/core/auth/auth_controller.dart';
 import 'package:friends/core/router/routes.dart';
 import 'package:friends/core/widgets/async_value_view.dart';
+import 'package:friends/l10n/l10n.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -45,7 +46,7 @@ class SplashScreen extends ConsumerWidget {
                   ),
                   TextButton(
                     onPressed: () => context.push(Routes.health),
-                    child: const Text('Server status'),
+                    child: Text(context.l10n.serverStatus),
                   ),
                   const SizedBox(height: 16),
                 ],

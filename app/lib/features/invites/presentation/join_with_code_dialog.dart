@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:friends/core/invites/invite_code.dart';
 import 'package:friends/core/router/routes.dart';
+import 'package:friends/l10n/l10n.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -40,10 +41,8 @@ class _JoinWithCodeDialogState extends State<JoinWithCodeDialog> {
   }
 
   static String? _validate(String? value) {
-    if ((value ?? '').trim().isEmpty) return 'Enter an invite code.';
-    return InviteCode.parse(value!) == null
-        ? "That doesn't look like an invite code."
-        : null;
+    if ((value ?? '').trim().isEmpty) return currentL10n.enterInviteCode;
+    return InviteCode.parse(value!) == null ? currentL10n.notInviteCode : null;
   }
 
   void _submit() {
@@ -54,7 +53,7 @@ class _JoinWithCodeDialogState extends State<JoinWithCodeDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Join with code'),
+      title: Text(context.l10n.joinWithCode),
       content: Form(
         key: _formKey,
         child: TextFormField(
@@ -63,9 +62,9 @@ class _JoinWithCodeDialogState extends State<JoinWithCodeDialog> {
           autocorrect: false,
           textCapitalization: TextCapitalization.characters,
           textInputAction: TextInputAction.go,
-          decoration: const InputDecoration(
-            labelText: 'Invite code',
-            helperText: 'e.g. ABCDE-12345, or paste the invite link',
+          decoration: InputDecoration(
+            labelText: context.l10n.inviteCode,
+            helperText: context.l10n.joinWithCodeHelper,
           ),
           validator: _validate,
           onFieldSubmitted: (_) => _submit(),
@@ -74,9 +73,12 @@ class _JoinWithCodeDialogState extends State<JoinWithCodeDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(context.l10n.cancel),
         ),
-        FilledButton(onPressed: _submit, child: const Text('Continue')),
+        FilledButton(
+          onPressed: _submit,
+          child: Text(context.l10n.continueLabel),
+        ),
       ],
     );
   }

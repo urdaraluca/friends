@@ -12,6 +12,7 @@ import 'package:friends/features/backlog/domain/category_index.dart';
 import 'package:friends/features/backlog/domain/field_values.dart';
 import 'package:friends/features/backlog/presentation/widgets/category_visuals.dart';
 import 'package:friends/features/groups/presentation/widgets/group_themed.dart';
+import 'package:friends/l10n/l10n.dart';
 import 'package:material_ui/material_ui.dart';
 
 /// Colours offered for categories: the default categories' ones first
@@ -309,7 +310,7 @@ class _CategoryFormPageState extends ConsumerState<CategoryFormPage>
                 decoration: const InputDecoration(labelText: 'Name'),
                 textCapitalization: TextCapitalization.sentences,
                 maxLength: 40,
-                validator: Validators.required('a name', max: 40),
+                validator: Validators.required(context.l10n.enterName, max: 40),
                 forceErrorText: serverError('name'),
                 onChanged: (_) => clearServerError('name'),
               ),
@@ -577,7 +578,10 @@ class _FieldEditor extends StatelessWidget {
                     controller: draft.label,
                     decoration: const InputDecoration(labelText: 'Label'),
                     maxLength: 40,
-                    validator: Validators.required('a label', max: 40),
+                    validator: Validators.required(
+                      context.l10n.enterLabel,
+                      max: 40,
+                    ),
                     forceErrorText: _error('label'),
                     onChanged: (label) {
                       if (!draft.keyEdited) {

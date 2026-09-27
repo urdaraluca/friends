@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:friends/core/api/api_error_messages.dart';
+import 'package:friends/l10n/l10n.dart';
 import 'package:material_ui/material_ui.dart';
 
 /// Renders an [AsyncValue]: a spinner while loading, an [ErrorView] with
@@ -96,14 +97,16 @@ class ErrorView extends StatelessWidget {
             Icon(offline ? Icons.cloud_off : Icons.error_outline, size: 48),
             const SizedBox(height: 12),
             Text(
-              offline ? "Can't reach the server" : 'Something went wrong',
+              offline
+                  ? context.l10n.cantReachServer
+                  : context.l10n.somethingWentWrong,
               style: textTheme.titleLarge,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
             Text(
               offline
-                  ? 'Check your connection and try again.'
+                  ? context.l10n.checkConnection
                   : friendlyErrorMessage(error),
               textAlign: TextAlign.center,
             ),
@@ -112,7 +115,7 @@ class ErrorView extends StatelessWidget {
               FilledButton.icon(
                 onPressed: onRetry,
                 icon: const Icon(Icons.refresh),
-                label: const Text('Retry'),
+                label: Text(context.l10n.retry),
               ),
             ],
           ],

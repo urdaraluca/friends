@@ -9,6 +9,7 @@ import 'package:friends/core/forms/validators.dart';
 import 'package:friends/core/invites/invite_code.dart';
 import 'package:friends/core/router/routes.dart';
 import 'package:friends/core/widgets/form_widgets.dart';
+import 'package:friends/l10n/l10n.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -43,9 +44,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
     ErrorCodes.limitReached: 'invite_code',
   };
 
-  static const Map<String, String> _messages = {
-    ErrorCodes.notFound: "We couldn't find this invite code.",
-    ErrorCodes.limitReached: 'This group is full.',
+  static Map<String, String> get _messages => {
+    ErrorCodes.notFound: currentL10n.inviteCodeNotFound,
+    ErrorCodes.limitReached: currentL10n.groupFull,
   };
 
   final _formKey = GlobalKey<FormState>();
@@ -123,7 +124,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  'Create your account',
+                  context.l10n.createYourAccount,
                   style: textTheme.headlineMedium,
                   textAlign: TextAlign.center,
                 ),
@@ -134,21 +135,24 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                 ],
                 TextFormField(
                   controller: _displayName,
-                  decoration: const InputDecoration(
-                    labelText: 'Display name',
-                    helperText: 'How your friends see you',
+                  decoration: InputDecoration(
+                    labelText: context.l10n.displayName,
+                    helperText: context.l10n.displayNameHelper,
                   ),
                   textCapitalization: TextCapitalization.words,
                   autofillHints: const [AutofillHints.name],
                   textInputAction: TextInputAction.next,
-                  validator: Validators.required('a display name', max: 50),
+                  validator: Validators.required(
+                    context.l10n.enterDisplayName,
+                    max: 50,
+                  ),
                   forceErrorText: serverError('display_name'),
                   onChanged: (_) => clearServerError('display_name'),
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: _email,
-                  decoration: const InputDecoration(labelText: 'Email'),
+                  decoration: InputDecoration(labelText: context.l10n.email),
                   keyboardType: TextInputType.emailAddress,
                   autocorrect: false,
                   autofillHints: const [AutofillHints.email],
@@ -160,8 +164,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                 const SizedBox(height: 12),
                 PasswordFormField(
                   controller: _password,
-                  label: 'Password',
-                  helperText: 'At least 10 characters',
+                  label: context.l10n.password,
+                  helperText: context.l10n.passwordHelper,
                   autofillHints: const [AutofillHints.newPassword],
                   textInputAction: TextInputAction.next,
                   validator: Validators.newPassword,
@@ -171,9 +175,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: _inviteCode,
-                  decoration: const InputDecoration(
-                    labelText: 'Invite code',
-                    helperText: 'From your invite link, e.g. ABCDE-12345',
+                  decoration: InputDecoration(
+                    labelText: context.l10n.inviteCode,
+                    helperText: context.l10n.inviteCodeHelper,
                   ),
                   autocorrect: false,
                   textCapitalization: TextCapitalization.characters,
@@ -185,7 +189,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                 ),
                 const SizedBox(height: 24),
                 SubmitButton(
-                  label: 'Create account',
+                  label: context.l10n.createAccount,
                   busy: _submitting,
                   onPressed: _submit,
                 ),
@@ -194,7 +198,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                   onPressed: _submitting
                       ? null
                       : () => context.go(Routes.loginWith(from: widget.from)),
-                  child: const Text('Already have an account? Sign in'),
+                  child: Text(context.l10n.haveAccountSignIn),
                 ),
               ],
             ),

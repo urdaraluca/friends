@@ -3,6 +3,7 @@ import 'package:friends/core/api/api_exception.dart';
 import 'package:friends/core/api/error_codes.dart';
 import 'package:friends/core/forms/field_errors.dart';
 import 'package:friends/core/forms/validators.dart';
+import 'package:friends/l10n/l10n.dart';
 import 'package:material_ui/material_ui.dart';
 
 void main() {
@@ -71,6 +72,8 @@ void main() {
       final key = GlobalKey<_TestFormState>();
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: appLocalizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(body: _TestForm(key: key)),
         ),
       );
@@ -92,6 +95,8 @@ void main() {
       final key = GlobalKey<_TestFormState>();
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: appLocalizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(body: _TestForm(key: key)),
         ),
       );
@@ -112,7 +117,7 @@ void main() {
 
   group('Validators', () {
     test('required', () {
-      final validator = Validators.required('a name', max: 3);
+      final validator = Validators.required('Enter a name.', max: 3);
 
       expect(validator('  '), 'Enter a name.');
       expect(validator('abcd'), 'Use at most 3 characters.');

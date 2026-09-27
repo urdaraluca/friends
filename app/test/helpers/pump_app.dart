@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:friends/app.dart';
 import 'package:friends/core/router/app_router.dart';
+import 'package:friends/l10n/l10n.dart';
 import 'package:material_ui/material_ui.dart';
 
 extension PumpApp on WidgetTester {
@@ -12,7 +13,11 @@ extension PumpApp on WidgetTester {
       ProviderScope(
         overrides: overrides,
         retry: (retryCount, error) => null,
-        child: MaterialApp(home: widget),
+        child: MaterialApp(
+          localizationsDelegates: appLocalizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: widget,
+        ),
       ),
     );
   }

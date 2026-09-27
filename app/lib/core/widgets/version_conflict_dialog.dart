@@ -1,3 +1,4 @@
+import 'package:friends/l10n/l10n.dart';
 import 'package:material_ui/material_ui.dart';
 
 /// Tells the user that someone else saved first (`409 version_conflict`,
@@ -8,15 +9,12 @@ Future<void> showVersionConflictDialog(BuildContext context) {
     context: context,
     barrierDismissible: false,
     builder: (context) => AlertDialog(
-      title: const Text('Someone else saved first'),
-      content: const Text(
-        'This was changed while you were editing. Reload to see the latest '
-        'version, then make your changes again.',
-      ),
+      title: Text(context.l10n.conflictTitle),
+      content: Text(context.l10n.conflictMessage),
       actions: [
         FilledButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Reload'),
+          child: Text(context.l10n.reload),
         ),
       ],
     ),

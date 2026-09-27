@@ -12,6 +12,7 @@ import 'package:friends/features/groups/data/groups_controller.dart';
 import 'package:friends/features/groups/presentation/widgets/group_avatar.dart';
 import 'package:friends/features/invites/data/invite_providers.dart';
 import 'package:friends/features/invites/presentation/invite_labels.dart';
+import 'package:friends/l10n/l10n.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -33,23 +34,21 @@ class JoinScreen extends ConsumerWidget {
     final normalized = InviteCode.parse(code);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Invite'),
+        title: Text(context.l10n.invite),
         leading: context.canPop()
             ? null
             : IconButton(
-                tooltip: 'Home',
+                tooltip: context.l10n.home,
                 icon: const Icon(Icons.home_outlined),
                 onPressed: () => context.go(Routes.home),
               ),
       ),
       body: FormPage(
         child: normalized == null
-            ? const _Message(
+            ? _Message(
                 icon: Icons.link_off,
-                title: "This invite link doesn't look right.",
-                message:
-                    'Check that you copied the whole link, or ask for a new '
-                    'one.',
+                title: context.l10n.inviteLinkWrong,
+                message: context.l10n.inviteLinkWrongHelp,
               )
             : _Preview(code: normalized),
       ),
@@ -69,10 +68,8 @@ class _Preview extends ConsumerWidget {
     if (preview case AsyncError(:final error) when _isNotFound(error)) {
       return _Message(
         icon: Icons.search_off,
-        title: "We couldn't find this invite.",
-        message:
-            "There's no invite ${InviteCode.format(code)}. Check the code, "
-            'or ask for a new invite.',
+        title: context.l10n.inviteNotFound,
+        message: context.l10n.inviteNotFoundHelp(InviteCode.format(code)),
       );
     }
     return AsyncValueView(
@@ -106,8 +103,8 @@ class _PreviewCard extends ConsumerWidget {
       children: [
         Text(
           problem == null
-              ? "You've been invited to a group on Friends"
-              : 'Invite to a group on Friends',
+              ? context.l10n.invitedToGroup
+              : context.l10n.inviteToGroup,
           style: textTheme.titleLarge,
           textAlign: TextAlign.center,
         ),
@@ -130,10 +127,10 @@ class _PreviewCard extends ConsumerWidget {
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 4),
-                Text(count == 1 ? '1 member' : '$count members'),
+                Text(context.l10n.memberCount(count)),
                 if (invitedBy != null) ...[
                   const SizedBox(height: 12),
-                  Text('Invited by $invitedBy'),
+                  Text(context.l10n.invitedBy(invitedBy)),
                 ],
                 const SizedBox(height: 4),
                 Text(
@@ -156,12 +153,12 @@ class _PreviewCard extends ConsumerWidget {
           if (signedIn)
             OutlinedButton(
               onPressed: () => context.go(Routes.groups),
-              child: const Text('Go to my groups'),
+              child: Text(context.l10n.goToMyGroups),
             )
           else
             OutlinedButton(
               onPressed: () => context.go(Routes.loginWith()),
-              child: const Text('Log in'),
+              child: Text(context.l10n.logIn),
             ),
         ] else if (signedIn)
           _JoinButton(code: preview.code, groupName: group.name)
@@ -173,13 +170,13 @@ class _PreviewCard extends ConsumerWidget {
                 invite: preview.code,
               ),
             ),
-            child: const Text('Create account'),
+            child: Text(context.l10n.createAccount),
           ),
           const SizedBox(height: 8),
           OutlinedButton(
             onPressed: () =>
                 context.go(Routes.loginWith(from: Routes.join(preview.code))),
-            child: const Text('Log in'),
+            child: Text(context.l10n.logIn),
           ),
         ],
       ],
@@ -199,11 +196,9 @@ class _JoinButton extends ConsumerStatefulWidget {
 }
 
 class _JoinButtonState extends ConsumerState<_JoinButton> {
-  static const Map<String, String> _messages = {
-    ErrorCodes.notFound: "We couldn't find this invite.",
-    ErrorCodes.limitReached:
-        'You or this group has reached the limit (50 groups per person, '
-        '100 members per group).',
+  static Map<String, String> get _messages => {
+    ErrorCodes.notFound: currentL10n.inviteNotFound,
+    ErrorCodes.limitReached: currentL10n.joinLimitReached,
   };
 
   bool _joining = false;
@@ -240,7 +235,7 @@ class _JoinButtonState extends ConsumerState<_JoinButton> {
           const SizedBox(height: 16),
         ],
         SubmitButton(
-          label: 'Join ${widget.groupName}',
+          label: context.l10n.joinGroup(widget.groupName),
           busy: _joining,
           onPressed: _join,
         ),
@@ -270,7 +265,7 @@ class _Message extends StatelessWidget {
         const SizedBox(height: 24),
         OutlinedButton(
           onPressed: () => context.go(Routes.home),
-          child: const Text('Open Friends'),
+          child: Text(context.l10n.openFriends),
         ),
       ],
     );

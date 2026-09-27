@@ -21,6 +21,7 @@ import 'package:friends/features/calendar/domain/rrule_spec.dart';
 import 'package:friends/features/calendar/presentation/widgets/recurrence_picker.dart';
 import 'package:friends/features/groups/data/group_providers.dart';
 import 'package:friends/features/groups/presentation/widgets/group_themed.dart';
+import 'package:friends/l10n/l10n.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:material_ui/material_ui.dart';
@@ -461,7 +462,7 @@ class _EventFormState extends ConsumerState<EventForm> with ServerErrorsMixin {
             maxLength: 120,
             textCapitalization: TextCapitalization.sentences,
             validator: Validators.required(
-              birthday ? 'a name' : 'a title',
+              birthday ? context.l10n.enterName : context.l10n.enterTitle,
               max: 120,
             ),
             forceErrorText: serverError('title'),

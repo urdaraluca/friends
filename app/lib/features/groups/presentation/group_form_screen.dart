@@ -16,6 +16,7 @@ import 'package:friends/features/groups/data/groups_controller.dart';
 import 'package:friends/features/groups/domain/group_colors.dart';
 import 'package:friends/features/groups/domain/group_permissions.dart';
 import 'package:friends/features/groups/presentation/widgets/group_not_found_view.dart';
+import 'package:friends/l10n/l10n.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -230,7 +231,7 @@ class _GroupFormState extends ConsumerState<GroupForm> with ServerErrorsMixin {
             decoration: const InputDecoration(labelText: 'Name'),
             textCapitalization: TextCapitalization.sentences,
             textInputAction: TextInputAction.next,
-            validator: Validators.required('a name', max: 60),
+            validator: Validators.required(context.l10n.enterName, max: 60),
             forceErrorText: serverError('name'),
             onChanged: (_) => clearServerError('name'),
           ),
@@ -301,7 +302,7 @@ class _GroupFormState extends ConsumerState<GroupForm> with ServerErrorsMixin {
               helperText: 'IANA name, e.g. Europe/Bucharest',
             ),
             autocorrect: false,
-            validator: Validators.required('a timezone', max: 64),
+            validator: Validators.required(context.l10n.enterTimezone, max: 64),
             forceErrorText: serverError('timezone'),
             onChanged: (_) {
               clearServerError('timezone');

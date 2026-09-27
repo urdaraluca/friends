@@ -9,6 +9,7 @@ import 'package:friends/core/device/device_info.dart';
 import 'package:friends/core/forms/field_errors.dart';
 import 'package:friends/core/forms/validators.dart';
 import 'package:friends/core/widgets/form_widgets.dart';
+import 'package:friends/l10n/l10n.dart';
 import 'package:material_ui/material_ui.dart';
 
 /// Edits display name, birthday (month and day, optional year) and timezone
@@ -150,7 +151,10 @@ class _ProfileFormState extends ConsumerState<ProfileForm>
             controller: _displayName,
             decoration: const InputDecoration(labelText: 'Display name'),
             textCapitalization: TextCapitalization.words,
-            validator: Validators.required('a display name', max: 50),
+            validator: Validators.required(
+              context.l10n.enterDisplayName,
+              max: 50,
+            ),
             forceErrorText: serverError('display_name'),
             onChanged: (_) => clearServerError('display_name'),
           ),
@@ -254,7 +258,7 @@ class _ProfileFormState extends ConsumerState<ProfileForm>
               helperText: 'IANA name, e.g. Europe/Bucharest',
             ),
             autocorrect: false,
-            validator: Validators.required('a timezone', max: 64),
+            validator: Validators.required(context.l10n.enterTimezone, max: 64),
             forceErrorText: serverError('timezone'),
             onChanged: (_) {
               clearServerError('timezone');

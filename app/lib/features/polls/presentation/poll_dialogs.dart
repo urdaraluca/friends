@@ -10,6 +10,7 @@ import 'package:friends/core/forms/validators.dart';
 import 'package:friends/core/widgets/form_widgets.dart';
 import 'package:friends/features/backlog/domain/field_values.dart';
 import 'package:friends/features/polls/data/polls_providers.dart';
+import 'package:friends/l10n/l10n.dart';
 import 'package:intl/intl.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -225,7 +226,10 @@ class _CreatePollSheetState extends ConsumerState<CreatePollSheet>
               ),
               maxLength: 200,
               textCapitalization: TextCapitalization.sentences,
-              validator: Validators.required('a question', max: 200),
+              validator: Validators.required(
+                context.l10n.enterQuestion,
+                max: 200,
+              ),
               forceErrorText: serverError('question'),
               onChanged: (_) => clearServerError('question'),
             ),
@@ -358,7 +362,10 @@ class _EditPollDialogState extends State<_EditPollDialog> {
               controller: _question,
               decoration: const InputDecoration(labelText: 'Question'),
               maxLength: 200,
-              validator: Validators.required('a question', max: 200),
+              validator: Validators.required(
+                context.l10n.enterQuestion,
+                max: 200,
+              ),
             ),
             ClosingTimeField(
               value: _closesAt,
@@ -432,7 +439,10 @@ class _AddOptionDialogState extends State<_AddOptionDialog> {
               decoration: const InputDecoration(labelText: 'Option'),
               maxLength: 100,
               inputFormatters: [LengthLimitingTextInputFormatter(100)],
-              validator: Validators.required('an option', max: 100),
+              validator: Validators.required(
+                context.l10n.enterOption,
+                max: 100,
+              ),
             ),
             TextFormField(
               controller: _url,

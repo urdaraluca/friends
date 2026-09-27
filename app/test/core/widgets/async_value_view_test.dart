@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:friends/core/api/api_exception.dart';
 import 'package:friends/core/api/error_codes.dart';
 import 'package:friends/core/widgets/async_value_view.dart';
+import 'package:friends/l10n/l10n.dart';
 import 'package:material_ui/material_ui.dart';
 
 void main() {
@@ -15,6 +16,8 @@ void main() {
   }) {
     return tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: appLocalizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
           body: AsyncValueView(value: value, onRetry: onRetry, data: Text.new),
         ),
@@ -83,6 +86,8 @@ void main() {
         ProviderScope(
           retry: (retryCount, error) => null,
           child: MaterialApp(
+            localizationsDelegates: appLocalizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             home: Scaffold(
               body: Consumer(
                 builder: (context, ref, _) => AsyncValueView(

@@ -1,0 +1,219 @@
+{
+  "@@locale": "en",
+  "appTitle": "Friends",
+  "@appTitle": {
+    "description": "The app's name."
+  },
+  "errorNetwork": "Can't reach the server. Check your connection and try again.",
+  "errorServer": "The server is having trouble. Try again in a moment.",
+  "errorGeneric": "Something went wrong. Try again.",
+  "errorCheckFields": "Please check the highlighted fields.",
+  "errorSessionEnded": "Your session has ended. Please sign in again.",
+  "errorInvalidCredentials": "Wrong email or password.",
+  "errorWrongPassword": "Wrong password.",
+  "errorWeakPassword": "Your password can't be your email address.",
+  "errorForbidden": "You don't have permission to do that.",
+  "errorRegistrationClosed": "Friends is invite-only — ask a friend for an invite link",
+  "errorNotFound": "That doesn't exist anymore, or you can't see it.",
+  "errorEmailTaken": "An account with this email already exists.",
+  "errorNameTaken": "That name is already taken.",
+  "errorVersionConflict": "Someone else changed this in the meantime. Reload to see their changes.",
+  "errorOwnerMustTransfer": "Transfer ownership of the group to someone else first.",
+  "errorPollClosed": "This poll is closed.",
+  "errorResultDeleted": "That activity has been deleted.",
+  "errorInviteExpired": "This invite has expired.",
+  "errorInviteRevoked": "This invite has been revoked.",
+  "errorInviteExhausted": "This invite has already been used up.",
+  "errorLimitReached": "You've reached the limit for this.",
+  "errorRangeTooLarge": "Pick a shorter date range.",
+  "errorNotEnoughCandidates": "The wheel needs at least two activities.",
+  "errorRateLimited": "Too many attempts. Try again in a moment.",
+  "errorRateLimitedSeconds": "{seconds, plural, =1{Too many attempts. Try again in 1 second.} other{Too many attempts. Try again in {seconds} seconds.}}",
+  "@errorRateLimitedSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "errorRateLimitedMinutes": "{minutes, plural, =1{Too many attempts. Try again in 1 minute.} other{Too many attempts. Try again in {minutes} minutes.}}",
+  "@errorRateLimitedMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "cantReachServer": "Can't reach the server",
+  "somethingWentWrong": "Something went wrong",
+  "checkConnection": "Check your connection and try again.",
+  "retry": "Retry",
+  "cancel": "Cancel",
+  "showPassword": "Show password",
+  "hidePassword": "Hide password",
+  "profile": "Profile",
+  "conflictTitle": "Someone else saved first",
+  "conflictMessage": "This was changed while you were editing. Reload to see the latest version, then make your changes again.",
+  "reload": "Reload",
+  "couldNotOpen": "Couldn't open {host}",
+  "@couldNotOpen": {
+    "placeholders": {
+      "host": {
+        "type": "String"
+      }
+    }
+  },
+  "enterCurrency": "Enter a currency.",
+  "currencyFormat": "Use a 3-letter currency code, e.g. EUR.",
+  "atMostCharacters": "{max, plural, =1{Use at most 1 character.} other{Use at most {max} characters.}}",
+  "@atMostCharacters": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "atLeastCharacters": "{min, plural, =1{Use at least 1 character.} other{Use at least {min} characters.}}",
+  "@atLeastCharacters": {
+    "placeholders": {
+      "min": {
+        "type": "int"
+      }
+    }
+  },
+  "enterEmail": "Enter your email.",
+  "validEmail": "Enter a valid email address.",
+  "enterNewPassword": "Enter a password.",
+  "enterPassword": "Enter your password.",
+  "notInviteCode": "That doesn't look like an invite code.",
+  "enterDisplayName": "Enter a display name.",
+  "enterTitle": "Enter a title.",
+  "enterName": "Enter a name.",
+  "enterLabel": "Enter a label.",
+  "enterTimezone": "Enter a timezone.",
+  "enterQuestion": "Enter a question.",
+  "enterOption": "Enter an option.",
+  "accountDeleted": "Your account has been deleted.",
+  "welcomeBack": "Welcome back",
+  "email": "Email",
+  "password": "Password",
+  "signIn": "Sign in",
+  "newHereCreateAccount": "New here? Create an account",
+  "inviteCodeNotFound": "We couldn't find this invite code.",
+  "groupFull": "This group is full.",
+  "createYourAccount": "Create your account",
+  "displayName": "Display name",
+  "displayNameHelper": "How your friends see you",
+  "passwordHelper": "At least 10 characters",
+  "inviteCode": "Invite code",
+  "inviteCodeHelper": "From your invite link, e.g. ABCDE-12345",
+  "createAccount": "Create account",
+  "haveAccountSignIn": "Already have an account? Sign in",
+  "serverStatus": "Server status",
+  "inviteActive": "Active",
+  "inviteExpiredLabel": "Expired",
+  "inviteRevokedLabel": "Revoked",
+  "inviteUsedUp": "Used up",
+  "inviteUnavailable": "Unavailable",
+  "inviteExpiredReason": "This invite has expired. Ask for a new one.",
+  "inviteRevokedReason": "This invite was revoked, so it no longer works. Ask for a new one.",
+  "inviteExhaustedReason": "This invite has been used up. Ask for a new one.",
+  "inviteUnusableReason": "This invite can't be used. Ask for a new one.",
+  "neverExpires": "Never expires",
+  "expiresOn": "Expires {date}",
+  "@expiresOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "expiredOn": "Expired {date}",
+  "@expiredOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "invite": "Invite",
+  "home": "Home",
+  "inviteLinkWrong": "This invite link doesn't look right.",
+  "inviteLinkWrongHelp": "Check that you copied the whole link, or ask for a new one.",
+  "inviteNotFound": "We couldn't find this invite.",
+  "inviteNotFoundHelp": "There's no invite {code}. Check the code, or ask for a new invite.",
+  "@inviteNotFoundHelp": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "invitedToGroup": "You've been invited to a group on Friends",
+  "inviteToGroup": "Invite to a group on Friends",
+  "memberCount": "{count, plural, =1{1 member} other{{count} members}}",
+  "@memberCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "invitedBy": "Invited by {name}",
+  "@invitedBy": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "goToMyGroups": "Go to my groups",
+  "logIn": "Log in",
+  "joinLimitReached": "You or this group has reached the limit (50 groups per person, 100 members per group).",
+  "joinGroup": "Join {group}",
+  "@joinGroup": {
+    "placeholders": {
+      "group": {
+        "type": "String"
+      }
+    }
+  },
+  "openFriends": "Open Friends",
+  "enterInviteCode": "Enter an invite code.",
+  "joinWithCode": "Join with code",
+  "joinWithCodeHelper": "e.g. ABCDE-12345, or paste the invite link",
+  "continueLabel": "Continue",
+  "apiStatus": "API {status}",
+  "@apiStatus": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "versionLabel": "version {version}",
+  "@versionLabel": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "databaseLabel": "database {status}",
+  "@databaseLabel": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "appEnvLabel": "app {env}",
+  "@appEnvLabel": {
+    "placeholders": {
+      "env": {
+        "type": "String"
+      }
+    }
+  },
+  "checkAgain": "Check again"
+}
