@@ -302,6 +302,7 @@ FieldError { field: str, message: str, type: str }
 | `BACKUP_DIR` / `BACKUP_KEEP` | `./backups` / 14 | `/backups` / 14 | |
 | `APP_VERSION` / `GIT_SHA` | `dev` / `unknown` | set by the image build | reported by `/health` |
 | `FORWARDED_ALLOW_IPS` | – | `*` (safe only with the `127.0.0.1` port bind) | read by uvicorn (`--proxy-headers`) |
+| `METRICS_TOKEN` | unset | optional, a long random string | enables `GET /api/v1/metrics` (section 1.13); unset, it is a 404 |
 
 ### 1.12 CLI (`python -m friends_api.cli <command>`)
 
@@ -313,6 +314,32 @@ FieldError { field: str, message: str, type: str }
 | `create-user --email E --display-name N [--password-stdin]` | Creates a user **regardless of `REGISTRATION_MODE`**; this is how the first account is made. Prompts twice for the password unless `--password-stdin` is given. Exits non-zero if the email is taken. |
 | `reset-password EMAIL [--password-stdin]` | Sets a new password, increments `token_version` and deletes all the user's refresh tokens. There is no SMTP in the MVP. |
 | `seed-demo` | **Refuses when `APP_ENV=prod`** (exit code 2), and also when the demo users already exist. Creates 3 demo users (`demo1..3@example.com`, with the password printed), one group with the default categories, about 120 activities across all statuses and categories (movies with attributes), interests, events (one-time, weekly, monthly, yearly, birthdays, profile birthdays), polls with votes, and a few wheel spins. |
+
+### 1.13 Metrics (issue #18)
+
+`GET /api/v1/metrics` serves Prometheus' text format (`text/plain; version=0.0.4`) to a scraper.
+It is not in the OpenAPI schema, and the app never calls it.
+- **Access:** it is a 404 unless `METRICS_TOKEN` is set. Then it needs
+  `Authorization: Bearer <METRICS_TOKEN>`, compared in constant time; anything else is a 401
+  `unauthenticated`.
+- **Series:**
+
+| Metric | Type | Labels | Meaning |
+|---|---|---|---|
+| `friends_build_info` | gauge (1) | `version`, `git_sha` | the running build |
+| `friends_db_up` | gauge | – | 1 when the database answers |
+| `friends_rows` | gauge | `table` (`users`, `groups`, `activities`, `events`) | row counts; users without deleted accounts |
+| `friends_backups` | gauge | – | scheduled backups (`friends-*.db.gz`) in `BACKUP_DIR` |
+| `friends_last_backup_timestamp_seconds` | gauge | – | Unix time of the newest scheduled backup (absent without one): alert when it is too old |
+| `friends_http_requests_total` | counter | `method`, `route`, `status` | requests since the process started |
+| `friends_http_request_duration_seconds` | histogram | `route` | latency; buckets 5 ms .. 5 s |
+
+- **`route`:** the matched route's template within the API, without `/api/v1` (for example
+  `/events/{event_id}`). It is `web` for the web app's files and `unmatched` for unknown API paths,
+  so the number of series stays bounded.
+- The counters are per process and start at zero on every restart (Prometheus' `rate()` handles
+  this).
+- The health and metrics endpoints aren't access-logged.
 
 ---
 

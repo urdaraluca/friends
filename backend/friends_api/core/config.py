@@ -77,6 +77,10 @@ class Settings(BaseSettings):
     log_format: LogFormat = LogFormat.CONSOLE
     log_level: str = "INFO"
 
+    metrics_token: str | None = None
+    """Enables ``GET /api/v1/metrics`` for scrapers sending ``Authorization: Bearer <token>``.
+    Unset: the endpoint is a 404."""
+
     @field_validator("cors_origins", "android_cert_sha256", mode="before")
     @classmethod
     def _split_csv(cls, value: object) -> object:

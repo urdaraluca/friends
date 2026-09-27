@@ -97,6 +97,50 @@
    Backups are consistent even while the app is writing, integrity-checked and gzipped. They go to
    `BACKUP_HOST_DIR`, which should be a USB drive or NAS, not the SD card.
 
+9. **Off-site copies (recommended).** A USB drive next to the Pi doesn't survive a fire or a theft.
+   Copy the backups to cloud storage with [rclone](https://rclone.org/) after the nightly run:
+   ```bash
+   sudo apt install rclone
+   rclone config            # add a remote, e.g. "offsite" (Backblaze B2, S3, Google Drive, ...)
+   ```
+   Then replace the cron entry from step 8 with one that also copies:
+   ```cron
+   15 3 * * * cd /srv/friends && docker compose exec -T backend python -m friends_api.cli backup --keep 14 >> /srv/friends/backup.log 2>&1 && rclone copy /srv/friends/backups offsite:friends-backups --max-age 48h >> /srv/friends/backup.log 2>&1
+   ```
+   `copy` (not `sync`) keeps older copies off-site even after they rotate out locally. Give them a
+   lifecycle rule on the bucket (e.g. delete after 90 days). Encrypt with an rclone `crypt` remote
+   if the storage provider shouldn't read the data.
+
+10. **Alerts (recommended).** Three independent checks:
+    - **Is it up?** Point an uptime monitor (Uptime Kuma, UptimeRobot, healthchecks.io, ...) at
+      `https://<your-host>/api/v1/health`. It answers 200 with `"status": "ok"`, or 503 when the
+      database is unavailable.
+    - **Did the backup run?** Use a dead man's switch, e.g. a healthchecks.io check with a 1-day
+      period and a 2-hour grace. Append its ping to the cron line above:
+      ```cron
+      ... && curl -fsS -m 10 --retry 3 https://hc-ping.com/<uuid> > /dev/null
+      ```
+      A failed backup or copy never pings, so the check alerts you.
+    - **Metrics** (optional): set `METRICS_TOKEN` in `.env` and let Prometheus scrape
+      `/api/v1/metrics` (contract section 1.13):
+      ```yaml
+      scrape_configs:
+        - job_name: friends
+          scheme: https
+          metrics_path: /api/v1/metrics
+          authorization: { credentials: <METRICS_TOKEN> }
+          static_configs: [{ targets: ["<your-host>"] }]
+      ```
+      Useful alert rules:
+      ```yaml
+      - alert: FriendsBackupStale
+        expr: time() - friends_last_backup_timestamp_seconds > 26 * 3600
+      - alert: FriendsErrors
+        expr: sum(rate(friends_http_requests_total{status=~"5.."}[10m])) > 0.05
+      - alert: FriendsDatabaseDown
+        expr: friends_db_up == 0
+      ```
+
 ## Serving under a subpath
 
 To serve the app at e.g. `https://example.com/friends/` next to other sites on that host:

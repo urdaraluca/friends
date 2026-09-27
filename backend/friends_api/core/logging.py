@@ -13,6 +13,7 @@ from starlette.datastructures import MutableHeaders
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from friends_api.core.config import LogFormat
+from friends_api.core.metrics import RequestMetrics
 from friends_api.core.web import is_api_path
 
 request_id_var: ContextVar[str | None] = ContextVar("request_id", default=None)
@@ -60,13 +61,30 @@ def configure_logging(log_format: LogFormat, level: str = "INFO") -> None:
     root.setLevel(level.upper())
 
 
+def _route_label(scope: Scope, *, is_api: bool) -> str:
+    """The matched route's template (``/events/{event_id}``, without ``/api/v1``). Unmatched
+    requests are ``web`` (the web app's files) or ``unmatched`` (unknown API paths)."""
+    route = scope.get("route")
+    path = getattr(route, "path", None)
+    if isinstance(path, str):
+        return path
+    return "unmatched" if is_api else "web"
+
+
 class RequestContextMiddleware:
     """Assigns a request ID (echoed as X-Request-ID), marks API responses `no-store`, and writes
     one access-log line per request."""
 
-    def __init__(self, app: ASGIApp, *, quiet_paths: frozenset[str] = frozenset()) -> None:
+    def __init__(
+        self,
+        app: ASGIApp,
+        *,
+        quiet_paths: frozenset[str] = frozenset(),
+        metrics: RequestMetrics | None = None,
+    ) -> None:
         self.app = app
         self.quiet_paths = quiet_paths
+        self.metrics = metrics
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] != "http":
@@ -93,6 +111,13 @@ class RequestContextMiddleware:
         try:
             await self.app(scope, receive, send_with_request_id)
         finally:
+            if self.metrics is not None:
+                self.metrics.observe(
+                    method=scope["method"],
+                    route=_route_label(scope, is_api=is_api),
+                    status=status_code,
+                    seconds=time.perf_counter() - started,
+                )
             if scope["path"] not in self.quiet_paths:
                 duration_ms = round((time.perf_counter() - started) * 1000, 1)
                 client = scope.get("client")

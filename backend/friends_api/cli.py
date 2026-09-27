@@ -26,6 +26,7 @@ from alembic.script import ScriptDirectory
 from sqlalchemy import delete, select
 from sqlalchemy.engine import make_url
 
+from friends_api.core.backups import PRE_MIGRATE_KEEP, PRE_MIGRATE_PREFIX, SCHEDULED_PREFIX
 from friends_api.core.config import AppEnv, Settings, get_settings
 from friends_api.core.db import create_db_engine, create_session_factories
 from friends_api.core.errors import AppError
@@ -40,9 +41,6 @@ from friends_api.main import create_app
 
 BACKEND_DIR = Path(__file__).resolve().parent.parent
 DEFAULT_OPENAPI_PATH = BACKEND_DIR / "openapi.json"
-SCHEDULED_PREFIX = "friends-"
-PRE_MIGRATE_PREFIX = "pre-migrate-"
-PRE_MIGRATE_KEEP = 10
 
 
 def sqlite_path(database_url: str) -> Path:

@@ -10,6 +10,7 @@ from friends_api.core.config import Settings, get_settings
 from friends_api.core.db import create_db_engine, create_session_factories
 from friends_api.core.errors import CatchAllMiddleware, register_exception_handlers
 from friends_api.core.logging import REQUEST_ID_HEADER, RequestContextMiddleware, configure_logging
+from friends_api.core.metrics import RequestMetrics
 from friends_api.core.openapi import install_openapi
 from friends_api.core.ratelimit import RateLimits
 from friends_api.core.security import Passwords
@@ -51,6 +52,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.settings = settings
     app.state.auth = AuthContext(settings=settings, passwords=Passwords(settings))
     app.state.rate_limits = RateLimits()
+    app.state.metrics = RequestMetrics()
 
     install_openapi(app)
     register_exception_handlers(app)
@@ -67,7 +69,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             expose_headers=[REQUEST_ID_HEADER, "Retry-After"],
             max_age=600,
         )
-    app.add_middleware(RequestContextMiddleware, quiet_paths=frozenset({f"{API_PREFIX}/health"}))
+    app.add_middleware(
+        RequestContextMiddleware,
+        quiet_paths=frozenset({f"{API_PREFIX}/health", f"{API_PREFIX}/metrics"}),
+        metrics=app.state.metrics,
+    )
 
     app.include_router(api_router)
     # After the API: the web app, assetlinks.json and problem+json 404s for unknown /api paths.
