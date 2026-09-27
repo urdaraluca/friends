@@ -1,4 +1,5 @@
 import 'package:friends/core/api/generated/export.dart';
+import 'package:friends/l10n/l10n.dart';
 import 'package:material_ui/material_ui.dart' show immutable;
 
 /// Role checks (contract section 7.2). `$unknown` (a role a newer server
@@ -9,11 +10,11 @@ extension RoleChecks on Role {
   /// Admin or owner: "admin+" in the contract.
   bool get isAdminOrOwner => this == Role.owner || this == Role.admin;
 
-  /// "Owner", "Admin" or "Member".
+  /// "Owner", "Admin" or "Member", in the app's language.
   String get label => switch (this) {
-    Role.owner => 'Owner',
-    Role.admin => 'Admin',
-    Role.member || Role.$unknown => 'Member',
+    Role.owner => currentL10n.roleOwner,
+    Role.admin => currentL10n.roleAdmin,
+    Role.member || Role.$unknown => currentL10n.roleMember,
   };
 }
 

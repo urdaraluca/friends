@@ -1,4 +1,5 @@
 import 'package:friends/core/api/generated/export.dart';
+import 'package:friends/l10n/l10n.dart';
 import 'package:material_ui/material_ui.dart' show Rect;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:share_plus/share_plus.dart';
@@ -11,7 +12,7 @@ class InviteSharer {
 
   /// The message shared for [invite] to the group [groupName].
   static String message(Invite invite, String groupName) =>
-      'Join "$groupName" on Friends: ${invite.url}';
+      currentL10n.shareInviteMessage(groupName, invite.url);
 
   /// Shares [invite]'s link. [origin] is where the sheet points from on
   /// iPad and macOS (the tapped button).
@@ -22,7 +23,7 @@ class InviteSharer {
   }) => SharePlus.instance.share(
     ShareParams(
       text: message(invite, groupName),
-      subject: 'Join $groupName on Friends',
+      subject: currentL10n.shareInviteSubject(groupName),
       sharePositionOrigin: origin,
     ),
   );

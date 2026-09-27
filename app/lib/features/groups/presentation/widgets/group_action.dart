@@ -1,13 +1,14 @@
 import 'package:friends/core/api/api_error_messages.dart';
 import 'package:friends/core/api/api_exception.dart';
 import 'package:friends/core/api/error_codes.dart';
+import 'package:friends/l10n/l10n.dart';
 import 'package:material_ui/material_ui.dart';
 
 /// Messages for problem codes of group, member and invite mutations.
-const groupErrorMessages = <String, String>{
-  ErrorCodes.forbidden: "You don't have permission to do that any more.",
-  ErrorCodes.notFound: 'That no longer exists. The group has been reloaded.',
-  ErrorCodes.limitReached: 'This group is full (100 members at most).',
+Map<String, String> get groupErrorMessages => {
+  ErrorCodes.forbidden: currentL10n.groupErrorForbidden,
+  ErrorCodes.notFound: currentL10n.groupErrorNotFound,
+  ErrorCodes.limitReached: currentL10n.groupErrorFull,
 };
 
 /// Runs a mutation from a screen: shows [success] in a snack bar when it

@@ -16,13 +16,15 @@ import 'package:friends/features/groups/domain/group_permissions.dart';
 import 'package:friends/features/groups/presentation/widgets/group_action.dart';
 import 'package:friends/features/invites/data/invite_sharer.dart';
 import 'package:friends/features/invites/presentation/invite_labels.dart';
+import 'package:friends/l10n/l10n.dart';
 import 'package:material_ui/material_ui.dart';
 
 /// Copies [code] as `XXXXX-XXXXX`.
 Future<void> copyInviteCode(BuildContext context, String code) async {
   final messenger = ScaffoldMessenger.of(context);
+  final copied = context.l10n.codeCopied;
   await Clipboard.setData(ClipboardData(text: InviteCode.format(code)));
-  messenger.showSnackBar(const SnackBar(content: Text('Code copied')));
+  messenger.showSnackBar(SnackBar(content: Text(copied)));
 }
 
 /// Shares [invite]'s link through the platform share sheet, pointing from
@@ -38,15 +40,14 @@ Future<void> shareInvite(
       ? box.localToGlobal(Offset.zero) & box.size
       : null;
   final messenger = ScaffoldMessenger.of(context);
+  final copied = context.l10n.shareFailedCopied;
   try {
     await ref
         .read(inviteSharerProvider)
         .share(invite, groupName: groupName, origin: origin);
   } on Object {
     await Clipboard.setData(ClipboardData(text: invite.url));
-    messenger.showSnackBar(
-      const SnackBar(content: Text("Couldn't share, so the link was copied")),
-    );
+    messenger.showSnackBar(SnackBar(content: Text(copied)));
   }
 }
 
@@ -77,23 +78,23 @@ class InvitesSection extends ConsumerWidget {
                 ),
               ),
               icon: const Icon(Icons.person_add_alt_1),
-              label: const Text('Create invite'),
+              label: Text(context.l10n.createInvite),
             ),
           )
         else
-          const Text('Only admins can invite people to this group.'),
+          Text(context.l10n.onlyAdminsInvite),
         if (!permissions.seesAllInvites) ...[
           const SizedBox(height: 8),
-          Text('You see the invites you created.', style: textTheme.bodySmall),
+          Text(context.l10n.seeOwnInvites, style: textTheme.bodySmall),
         ],
         const SizedBox(height: 8),
         AsyncValueView(
           value: invites,
           onRetry: () => ref.invalidate(invitesProvider(group.id)),
           data: (invites) => invites.isEmpty
-              ? const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8),
-                  child: Text('No invites yet.'),
+              ? Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Text(context.l10n.noInvitesYet),
                 )
               : Column(
                   children: [
@@ -125,29 +126,28 @@ class InviteTile extends ConsumerWidget {
   final String groupName;
   final bool showCreator;
 
-  String get _uses {
+  String _uses(AppLocalizations l10n) {
     final uses = invite.useCount;
     final max = invite.maxUses;
-    if (max != null) return '$uses of $max uses';
-    return uses == 1 ? '1 use' : '$uses uses';
+    if (max != null) return l10n.inviteUsesOf(uses, max);
+    return l10n.inviteUses(uses);
   }
 
   Future<void> _revoke(BuildContext context, WidgetRef ref) async {
     final controller = ref.read(groupsControllerProvider.notifier);
+    final l10n = context.l10n;
     final confirmed = await showConfirmDialog(
       context,
-      title: 'Revoke this invite?',
-      message:
-          'The code ${InviteCode.format(invite.code)} stops working for '
-          "anyone who hasn't used it yet.",
-      confirmLabel: 'Revoke',
+      title: l10n.revokeInviteTitle,
+      message: l10n.revokeInviteMessage(InviteCode.format(invite.code)),
+      confirmLabel: l10n.revoke,
       destructive: true,
     );
     if (!confirmed || !context.mounted) return;
     await runGroupAction(
       context,
       () => controller.revokeInvite(invite.groupId, invite.id),
-      success: 'Invite revoked',
+      success: l10n.inviteRevokedDone,
     );
   }
 
@@ -180,10 +180,11 @@ class InviteTile extends ConsumerWidget {
             const SizedBox(height: 4),
             Text(
               [
-                _uses,
+                _uses(context.l10n),
                 if (valid || invite.status == InviteStatus.exhausted)
                   inviteExpiryLabel(invite.expiresAt),
-                if (showCreator && creator != null) 'by $creator',
+                if (showCreator && creator != null)
+                  context.l10n.createdBy(creator),
               ].join(' · '),
               style: textTheme.bodySmall,
             ),
@@ -197,7 +198,7 @@ class InviteTile extends ConsumerWidget {
                         shareInvite(context, ref, invite, groupName: groupName),
                       ),
                       icon: const Icon(Icons.share),
-                      label: const Text('Share'),
+                      label: Text(context.l10n.share),
                     ),
                   ),
                 if (valid)
@@ -205,13 +206,13 @@ class InviteTile extends ConsumerWidget {
                     onPressed: () =>
                         unawaited(copyInviteCode(context, invite.code)),
                     icon: const Icon(Icons.copy),
-                    label: const Text('Copy code'),
+                    label: Text(context.l10n.copyCode),
                   ),
                 if (invite.canDelete && invite.status != InviteStatus.revoked)
                   TextButton.icon(
                     onPressed: () => unawaited(_revoke(context, ref)),
                     icon: const Icon(Icons.block),
-                    label: const Text('Revoke'),
+                    label: Text(context.l10n.revoke),
                   ),
               ],
             ),
@@ -251,16 +252,23 @@ class _StatusChip extends StatelessWidget {
 
 /// How long a new invite stays valid (`InviteCreate`).
 enum InviteExpiry {
-  day(24, '1 day'),
-  week(168, '7 days'),
-  month(720, '30 days'),
-  never(null, 'Never');
+  day(24),
+  week(168),
+  month(720),
+  never(null);
 
-  new(this.hours, this.label);
+  new(this.hours);
 
   /// `expires_in_hours`, or null for `never_expires`.
   final int? hours;
-  final String label;
+
+  /// "1 day", "7 days", "30 days" or "Never", in the app's language.
+  String get label => switch (this) {
+    InviteExpiry.day => currentL10n.expiryDay,
+    InviteExpiry.week => currentL10n.expiryWeek,
+    InviteExpiry.month => currentL10n.expiryMonth,
+    InviteExpiry.never => currentL10n.expiryNever,
+  };
 }
 
 /// Opens the "create invite" sheet and, once created, the dialog to share
@@ -306,8 +314,8 @@ class _CreateInviteSheetState extends ConsumerState<CreateInviteSheet>
     with ServerErrorsMixin {
   static const _fields = {'max_uses', 'expires_in_hours'};
 
-  static const Map<String, String> _messages = {
-    ErrorCodes.forbidden: 'Only admins can create this invite.',
+  static Map<String, String> get _messages => {
+    ErrorCodes.forbidden: currentL10n.onlyAdminsCreateInvite,
   };
 
   final _formKey = GlobalKey<FormState>();
@@ -326,7 +334,7 @@ class _CreateInviteSheetState extends ConsumerState<CreateInviteSheet>
     if (text.isEmpty) return null;
     final uses = int.tryParse(text);
     if (uses == null || uses < 1 || uses > 100) {
-      return 'Enter a number from 1 to 100, or leave it empty.';
+      return currentL10n.maxUsesRange;
     }
     return null;
   }
@@ -374,14 +382,17 @@ class _CreateInviteSheetState extends ConsumerState<CreateInviteSheet>
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('New invite', style: Theme.of(context).textTheme.titleLarge),
+            Text(
+              context.l10n.newInvite,
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
             const SizedBox(height: 16),
             if (formError case final message?) ...[
               FormMessageBanner(message: message),
               const SizedBox(height: 16),
             ],
             Text(
-              'Expires after',
+              context.l10n.expiresAfter,
               style: Theme.of(context).textTheme.labelLarge,
             ),
             const SizedBox(height: 8),
@@ -398,9 +409,9 @@ class _CreateInviteSheetState extends ConsumerState<CreateInviteSheet>
             const SizedBox(height: 16),
             TextFormField(
               controller: _maxUses,
-              decoration: const InputDecoration(
-                labelText: 'Max uses',
-                helperText: 'Leave empty for unlimited',
+              decoration: InputDecoration(
+                labelText: context.l10n.maxUses,
+                helperText: context.l10n.maxUsesHelper,
               ),
               keyboardType: TextInputType.number,
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
@@ -411,7 +422,7 @@ class _CreateInviteSheetState extends ConsumerState<CreateInviteSheet>
             ),
             const SizedBox(height: 24),
             SubmitButton(
-              label: 'Create invite',
+              label: context.l10n.createInvite,
               busy: _creating,
               onPressed: _create,
             ),
@@ -434,12 +445,12 @@ class InviteCreatedDialog extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final textTheme = Theme.of(context).textTheme;
     return AlertDialog(
-      title: const Text('Invite created'),
+      title: Text(context.l10n.inviteCreated),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text('Share the link, or give your friends the code.'),
+          Text(context.l10n.inviteCreatedHelp),
           const SizedBox(height: 16),
           SelectableText(
             InviteCode.format(invite.code),
@@ -463,7 +474,7 @@ class InviteCreatedDialog extends ConsumerWidget {
       actions: [
         TextButton(
           onPressed: () => unawaited(copyInviteCode(context, invite.code)),
-          child: const Text('Copy code'),
+          child: Text(context.l10n.copyCode),
         ),
         Builder(
           builder: (context) => FilledButton.icon(
@@ -471,12 +482,12 @@ class InviteCreatedDialog extends ConsumerWidget {
               shareInvite(context, ref, invite, groupName: groupName),
             ),
             icon: const Icon(Icons.share),
-            label: const Text('Share'),
+            label: Text(context.l10n.share),
           ),
         ),
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Done'),
+          child: Text(context.l10n.done),
         ),
       ],
     );

@@ -41,13 +41,15 @@ class GroupFormScreen extends ConsumerWidget {
         leading: context.canPop()
             ? null
             : IconButton(
-                tooltip: 'Close',
+                tooltip: context.l10n.close,
                 icon: const Icon(Icons.close),
                 onPressed: () => context.go(
                   groupId == null ? Routes.groups : Routes.groupHub(groupId),
                 ),
               ),
-        title: Text(groupId == null ? 'New group' : 'Edit group'),
+        title: Text(
+          groupId == null ? context.l10n.newGroup : context.l10n.editGroup,
+        ),
       ),
       body: groupId == null
           ? const FormPage(maxWidth: 560, child: GroupForm())
@@ -75,10 +77,10 @@ class _EditBody extends ConsumerWidget {
               maxWidth: 560,
               child: GroupForm(key: ValueKey(group.id), group: group),
             )
-          : const Center(
+          : Center(
               child: Padding(
-                padding: EdgeInsets.all(24),
-                child: Text('Only admins can edit this group.'),
+                padding: const EdgeInsets.all(24),
+                child: Text(context.l10n.onlyAdminsEditGroup),
               ),
             ),
     );
@@ -110,8 +112,8 @@ class _GroupFormState extends ConsumerState<GroupForm> with ServerErrorsMixin {
     'timezone',
   };
 
-  static const Map<String, String> _messages = {
-    ErrorCodes.limitReached: "You're in 50 groups already, the most allowed.",
+  static Map<String, String> get _messages => {
+    ErrorCodes.limitReached: currentL10n.groupLimitReached,
   };
 
   final _formKey = GlobalKey<FormState>();
@@ -200,7 +202,7 @@ class _GroupFormState extends ConsumerState<GroupForm> with ServerErrorsMixin {
         );
         if (!mounted) return;
         ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('Group saved')));
+            .showSnackBar(SnackBar(content: Text(context.l10n.groupSaved)));
         if (router.canPop()) {
           router.pop();
         } else {
@@ -228,7 +230,7 @@ class _GroupFormState extends ConsumerState<GroupForm> with ServerErrorsMixin {
           ],
           TextFormField(
             controller: _name,
-            decoration: const InputDecoration(labelText: 'Name'),
+            decoration: InputDecoration(labelText: context.l10n.nameLabel),
             textCapitalization: TextCapitalization.sentences,
             textInputAction: TextInputAction.next,
             validator: Validators.required(context.l10n.enterName, max: 60),
@@ -238,10 +240,10 @@ class _GroupFormState extends ConsumerState<GroupForm> with ServerErrorsMixin {
           const SizedBox(height: 12),
           TextFormField(
             controller: _emoji,
-            decoration: const InputDecoration(
-              labelText: 'Emoji',
-              hintText: 'e.g. 🎬',
-              helperText: 'Optional',
+            decoration: InputDecoration(
+              labelText: context.l10n.emojiLabel,
+              hintText: context.l10n.emojiHint,
+              helperText: context.l10n.optional,
             ),
             textInputAction: TextInputAction.next,
             validator: Validators.optional(max: 16),
@@ -251,9 +253,9 @@ class _GroupFormState extends ConsumerState<GroupForm> with ServerErrorsMixin {
           const SizedBox(height: 12),
           TextFormField(
             controller: _description,
-            decoration: const InputDecoration(
-              labelText: 'Description',
-              helperText: 'Optional',
+            decoration: InputDecoration(
+              labelText: context.l10n.descriptionLabel,
+              helperText: context.l10n.optional,
             ),
             minLines: 2,
             maxLines: 5,
@@ -263,7 +265,10 @@ class _GroupFormState extends ConsumerState<GroupForm> with ServerErrorsMixin {
             onChanged: (_) => clearServerError('description'),
           ),
           const SizedBox(height: 16),
-          Text('Colour', style: Theme.of(context).textTheme.titleSmall),
+          Text(
+            context.l10n.colourLabel,
+            style: Theme.of(context).textTheme.titleSmall,
+          ),
           const SizedBox(height: 8),
           _ColorSwatches(
             selected: _color,
@@ -283,9 +288,9 @@ class _GroupFormState extends ConsumerState<GroupForm> with ServerErrorsMixin {
           const SizedBox(height: 16),
           TextFormField(
             controller: _currency,
-            decoration: const InputDecoration(
-              labelText: 'Currency',
-              helperText: 'For activity costs, e.g. EUR',
+            decoration: InputDecoration(
+              labelText: context.l10n.currencyLabel,
+              helperText: context.l10n.currencyHelper,
             ),
             autocorrect: false,
             textCapitalization: TextCapitalization.characters,
@@ -297,9 +302,9 @@ class _GroupFormState extends ConsumerState<GroupForm> with ServerErrorsMixin {
           const SizedBox(height: 12),
           TextFormField(
             controller: _timezone,
-            decoration: const InputDecoration(
-              labelText: 'Timezone',
-              helperText: 'IANA name, e.g. Europe/Bucharest',
+            decoration: InputDecoration(
+              labelText: context.l10n.timezoneLabel,
+              helperText: context.l10n.timezoneHelper,
             ),
             autocorrect: false,
             validator: Validators.required(context.l10n.enterTimezone, max: 64),
@@ -318,15 +323,15 @@ class _GroupFormState extends ConsumerState<GroupForm> with ServerErrorsMixin {
                   setState(() => _timezone.text = deviceZone);
                 },
                 icon: const Icon(Icons.my_location),
-                label: Text('Use device timezone ($deviceZone)'),
+                label: Text(context.l10n.useDeviceTimezone(deviceZone)),
               ),
             ),
           const SizedBox(height: 8),
           if (_creating)
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
-              title: const Text('Add default categories'),
-              subtitle: const Text('Movies, trips, food and more to start'),
+              title: Text(context.l10n.addDefaultCategories),
+              subtitle: Text(context.l10n.addDefaultCategoriesHelp),
               value: _seedDefaultCategories,
               onChanged: (value) =>
                   setState(() => _seedDefaultCategories = value),
@@ -334,16 +339,14 @@ class _GroupFormState extends ConsumerState<GroupForm> with ServerErrorsMixin {
           else
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
-              title: const Text('Members can invite'),
-              subtitle: const Text(
-                'When off, only admins can create invite links',
-              ),
+              title: Text(context.l10n.membersCanInvite),
+              subtitle: Text(context.l10n.membersCanInviteHelp),
               value: _membersCanInvite,
               onChanged: (value) => setState(() => _membersCanInvite = value),
             ),
           const SizedBox(height: 16),
           SubmitButton(
-            label: _creating ? 'Create group' : 'Save',
+            label: _creating ? context.l10n.createGroup : context.l10n.save,
             busy: _saving,
             onPressed: _save,
           ),
@@ -366,7 +369,7 @@ class _ColorSwatches extends StatelessWidget {
     final selected = this.selected?.toUpperCase();
     final swatches = {
       if (selected != null && !groupColorPresets.containsKey(selected))
-        selected: 'Current colour',
+        selected: context.l10n.currentColour,
       ...groupColorPresets,
     };
     final outline = Theme.of(context).colorScheme.onSurface;

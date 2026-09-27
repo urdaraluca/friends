@@ -8,6 +8,7 @@ import 'package:friends/features/groups/data/group_providers.dart';
 import 'package:friends/features/groups/data/groups_controller.dart';
 import 'package:friends/features/groups/presentation/widgets/group_action.dart';
 import 'package:friends/features/groups/presentation/widgets/role_badge.dart';
+import 'package:friends/l10n/l10n.dart';
 import 'package:material_ui/material_ui.dart';
 
 /// The transfer-ownership flow: pick another member, confirm, and they
@@ -88,7 +89,11 @@ class _TransferOwnershipDialogState
     final me = ref.watch(currentUserIdProvider);
     final members = ref.watch(membersProvider(widget.groupId));
     return AlertDialog(
-      title: Text(widget.leaving ? 'Choose a new owner' : 'Transfer ownership'),
+      title: Text(
+        widget.leaving
+            ? context.l10n.chooseNewOwner
+            : context.l10n.transferOwnership,
+      ),
       content: SizedBox(
         width: 400,
         child: SingleChildScrollView(
@@ -98,10 +103,8 @@ class _TransferOwnershipDialogState
             children: [
               Text(
                 widget.leaving
-                    ? 'You own ${widget.groupName}. Choose who takes over, '
-                          'then you leave the group.'
-                    : 'The new owner can delete ${widget.groupName} and '
-                          'change roles. You become an admin.',
+                    ? context.l10n.transferLeavingIntro(widget.groupName)
+                    : context.l10n.transferIntro(widget.groupName),
               ),
               const SizedBox(height: 12),
               if (_error case final error?) ...[
@@ -117,9 +120,7 @@ class _TransferOwnershipDialogState
                       if (member.user.id != me) member,
                   ];
                   if (candidates.isEmpty) {
-                    return const Text(
-                      "There's nobody else in the group to take over.",
-                    );
+                    return Text(context.l10n.nobodyToTakeOver);
                   }
                   return RadioGroup<String>(
                     groupValue: _selected,
@@ -149,11 +150,15 @@ class _TransferOwnershipDialogState
       actions: [
         TextButton(
           onPressed: _busy ? null : () => Navigator.of(context).pop(false),
-          child: const Text('Cancel'),
+          child: Text(context.l10n.cancel),
         ),
         FilledButton(
           onPressed: _selected == null || _busy ? null : _submit,
-          child: Text(widget.leaving ? 'Transfer and leave' : 'Transfer'),
+          child: Text(
+            widget.leaving
+                ? context.l10n.transferAndLeave
+                : context.l10n.transfer,
+          ),
         ),
       ],
     );

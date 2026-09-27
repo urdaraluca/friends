@@ -215,5 +215,321 @@
       }
     }
   },
-  "checkAgain": "Check again"
+  "checkAgain": "Check again",
+  "close": "Close",
+  "save": "Save",
+  "done": "Done",
+  "optional": "Optional",
+  "more": "More",
+  "share": "Share",
+  "remove": "Remove",
+  "leave": "Leave",
+  "roleOwner": "Owner",
+  "roleAdmin": "Admin",
+  "roleMember": "Member",
+  "colourCoral": "Coral",
+  "colourRed": "Red",
+  "colourAmber": "Amber",
+  "colourGreen": "Green",
+  "colourTeal": "Teal",
+  "colourBlue": "Blue",
+  "colourPurple": "Purple",
+  "colourPink": "Pink",
+  "currentColour": "Current colour",
+  "groupErrorForbidden": "You don't have permission to do that any more.",
+  "groupErrorNotFound": "That no longer exists. The group has been reloaded.",
+  "groupErrorFull": "This group is full (100 members at most).",
+  "groupLimitReached": "You're in 50 groups already, the most allowed.",
+  "groupNotFound": "Group not found",
+  "groupNotFoundHelp": "It may have been deleted, or you're no longer a member.",
+  "backToMyGroups": "Back to my groups",
+  "allGroups": "All groups",
+  "newGroup": "New group",
+  "switchGroup": "Switch group",
+  "tabBacklog": "Backlog",
+  "tabCalendar": "Calendar",
+  "tabWheel": "Wheel",
+  "tabGroup": "Group",
+  "yourGroups": "Your groups",
+  "myCalendar": "My calendar",
+  "noGroupsYet": "No groups yet",
+  "noGroupsHelp": "Create a group for your friends, or join one with an invite code.",
+  "editGroup": "Edit group",
+  "onlyAdminsEditGroup": "Only admins can edit this group.",
+  "groupSaved": "Group saved",
+  "nameLabel": "Name",
+  "emojiLabel": "Emoji",
+  "emojiHint": "e.g. 🎬",
+  "descriptionLabel": "Description",
+  "colourLabel": "Colour",
+  "currencyLabel": "Currency",
+  "currencyHelper": "For activity costs, e.g. EUR",
+  "timezoneLabel": "Timezone",
+  "timezoneHelper": "IANA name, e.g. Europe/Bucharest",
+  "useDeviceTimezone": "Use device timezone ({zone})",
+  "@useDeviceTimezone": {
+    "placeholders": {
+      "zone": {
+        "type": "String"
+      }
+    }
+  },
+  "addDefaultCategories": "Add default categories",
+  "addDefaultCategoriesHelp": "Movies, trips, food and more to start",
+  "membersCanInvite": "Members can invite",
+  "membersCanInviteHelp": "When off, only admins can create invite links",
+  "createGroup": "Create group",
+  "whatsNew": "What's new",
+  "whatsNewHelp": "Ideas, plans, polls and spins",
+  "recap": "Recap",
+  "recapHelp": "Your highlights, month by month",
+  "members": "Members",
+  "mySettings": "My settings",
+  "invites": "Invites",
+  "categories": "Categories",
+  "categoriesHelp": "And their custom fields",
+  "leaveGroup": "Leave group",
+  "deleteGroup": "Delete group",
+  "leaveAndDeleteTitle": "Leave and delete {group}?",
+  "@leaveAndDeleteTitle": {
+    "placeholders": {
+      "group": {
+        "type": "String"
+      }
+    }
+  },
+  "leaveTitle": "Leave {group}?",
+  "@leaveTitle": {
+    "placeholders": {
+      "group": {
+        "type": "String"
+      }
+    }
+  },
+  "leaveAloneMessage": "You're its only member, so leaving deletes the group and everything in it. This can't be undone.",
+  "leaveOwnerMessage": "You own this group, so you'll choose a new owner first.",
+  "leaveMemberMessage": "You'll need a new invite to join again.",
+  "leaveAndDelete": "Leave and delete",
+  "groupDeleted": "{group} was deleted",
+  "@groupDeleted": {
+    "placeholders": {
+      "group": {
+        "type": "String"
+      }
+    }
+  },
+  "youLeftGroup": "You left {group}",
+  "@youLeftGroup": {
+    "placeholders": {
+      "group": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteGroupTitle": "Delete {group}?",
+  "@deleteGroupTitle": {
+    "placeholders": {
+      "group": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteGroupMessage": "This deletes the group with all its activities, events and polls for everyone. This can't be undone.",
+  "memberYou": "{name} (you)",
+  "@memberYou": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "birthdayOn": "Birthday: {date}",
+  "@birthdayOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "actionsFor": "Actions for {name}",
+  "@actionsFor": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "makeAdmin": "Make admin",
+  "makeMember": "Make member",
+  "transferOwnership": "Transfer ownership",
+  "removeFromGroup": "Remove from group",
+  "nowAdmin": "{name} is now an admin",
+  "@nowAdmin": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "nowMember": "{name} is now a member",
+  "@nowMember": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "nowOwner": "{name} is now the owner",
+  "@nowOwner": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "makeOwnerTitle": "Make {name} the owner?",
+  "@makeOwnerTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "makeOwnerMessage": "{name} will be able to delete {group} and change roles. You become an admin, and only {name} can undo this.",
+  "@makeOwnerMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "group": {
+        "type": "String"
+      }
+    }
+  },
+  "removeMemberTitle": "Remove {name}?",
+  "@removeMemberTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "removeMemberMessage": "{name} leaves {group}. They can only come back with a new invite.",
+  "@removeMemberMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "group": {
+        "type": "String"
+      }
+    }
+  },
+  "memberRemoved": "{name} was removed",
+  "@memberRemoved": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "showMyBirthday": "Show my birthday to this group",
+  "showMyBirthdayHelp": "Members see the month and day, never the year.",
+  "addBirthdayFirst": "Add your birthday in your profile first.",
+  "chooseNewOwner": "Choose a new owner",
+  "transferLeavingIntro": "You own {group}. Choose who takes over, then you leave the group.",
+  "@transferLeavingIntro": {
+    "placeholders": {
+      "group": {
+        "type": "String"
+      }
+    }
+  },
+  "transferIntro": "The new owner can delete {group} and change roles. You become an admin.",
+  "@transferIntro": {
+    "placeholders": {
+      "group": {
+        "type": "String"
+      }
+    }
+  },
+  "nobodyToTakeOver": "There's nobody else in the group to take over.",
+  "transferAndLeave": "Transfer and leave",
+  "transfer": "Transfer",
+  "codeCopied": "Code copied",
+  "shareFailedCopied": "Couldn't share, so the link was copied",
+  "shareInviteMessage": "Join \"{group}\" on Friends: {url}",
+  "@shareInviteMessage": {
+    "placeholders": {
+      "group": {
+        "type": "String"
+      },
+      "url": {
+        "type": "String"
+      }
+    }
+  },
+  "shareInviteSubject": "Join {group} on Friends",
+  "@shareInviteSubject": {
+    "placeholders": {
+      "group": {
+        "type": "String"
+      }
+    }
+  },
+  "createInvite": "Create invite",
+  "onlyAdminsInvite": "Only admins can invite people to this group.",
+  "seeOwnInvites": "You see the invites you created.",
+  "noInvitesYet": "No invites yet.",
+  "inviteUsesOf": "{max, plural, =1{{uses} of 1 use} other{{uses} of {max} uses}}",
+  "@inviteUsesOf": {
+    "placeholders": {
+      "uses": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "inviteUses": "{count, plural, =1{1 use} other{{count} uses}}",
+  "@inviteUses": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "createdBy": "by {name}",
+  "@createdBy": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "revokeInviteTitle": "Revoke this invite?",
+  "revokeInviteMessage": "The code {code} stops working for anyone who hasn't used it yet.",
+  "@revokeInviteMessage": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "revoke": "Revoke",
+  "inviteRevokedDone": "Invite revoked",
+  "copyCode": "Copy code",
+  "expiryDay": "1 day",
+  "expiryWeek": "7 days",
+  "expiryMonth": "30 days",
+  "expiryNever": "Never",
+  "onlyAdminsCreateInvite": "Only admins can create this invite.",
+  "maxUsesRange": "Enter a number from 1 to 100, or leave it empty.",
+  "newInvite": "New invite",
+  "expiresAfter": "Expires after",
+  "maxUses": "Max uses",
+  "maxUsesHelper": "Leave empty for unlimited",
+  "inviteCreated": "Invite created",
+  "inviteCreatedHelp": "Share the link, or give your friends the code."
 }

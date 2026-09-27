@@ -8,6 +8,7 @@ import 'package:friends/features/groups/data/groups_controller.dart';
 import 'package:friends/features/groups/domain/group_permissions.dart';
 import 'package:friends/features/groups/presentation/widgets/group_action.dart';
 import 'package:friends/features/groups/presentation/widgets/role_badge.dart';
+import 'package:friends/l10n/l10n.dart';
 import 'package:intl/intl.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -82,7 +83,7 @@ class MemberTile extends ConsumerWidget {
         children: [
           Flexible(
             child: Text(
-              isMe ? '$name (you)' : name,
+              isMe ? context.l10n.memberYou(name) : name,
               overflow: TextOverflow.ellipsis,
             ),
           ),
@@ -92,11 +93,11 @@ class MemberTile extends ConsumerWidget {
       ),
       subtitle: birthday == null
           ? null
-          : Text('Birthday: ${formatBirthday(birthday)}'),
+          : Text(context.l10n.birthdayOn(formatBirthday(birthday))),
       trailing: actions.isEmpty
           ? null
           : PopupMenuButton<_MemberAction>(
-              tooltip: 'Actions for $name',
+              tooltip: context.l10n.actionsFor(name),
               onSelected: (action) => unawaited(
                 _run(
                   context,
@@ -109,10 +110,10 @@ class MemberTile extends ConsumerWidget {
                   PopupMenuItem(
                     value: action,
                     child: Text(switch (action) {
-                      _MemberAction.makeAdmin => 'Make admin',
-                      _MemberAction.makeMember => 'Make member',
-                      _MemberAction.transfer => 'Transfer ownership',
-                      _MemberAction.remove => 'Remove from group',
+                      _MemberAction.makeAdmin => context.l10n.makeAdmin,
+                      _MemberAction.makeMember => context.l10n.makeMember,
+                      _MemberAction.transfer => context.l10n.transferOwnership,
+                      _MemberAction.remove => context.l10n.removeFromGroup,
                     }),
                   ),
               ],
@@ -125,6 +126,7 @@ class MemberTile extends ConsumerWidget {
     GroupsController controller,
     _MemberAction action,
   ) async {
+    final l10n = context.l10n;
     final name = member.user.displayName;
     final userId = member.user.id;
     switch (action) {
@@ -132,44 +134,40 @@ class MemberTile extends ConsumerWidget {
         await runGroupAction(
           context,
           () => controller.changeRole(group.id, userId, AssignableRole.admin),
-          success: '$name is now an admin',
+          success: l10n.nowAdmin(name),
         );
       case _MemberAction.makeMember:
         await runGroupAction(
           context,
           () => controller.changeRole(group.id, userId, AssignableRole.member),
-          success: '$name is now a member',
+          success: l10n.nowMember(name),
         );
       case _MemberAction.transfer:
         final confirmed = await showConfirmDialog(
           context,
-          title: 'Make $name the owner?',
-          message:
-              '$name will be able to delete ${group.name} and change roles. '
-              'You become an admin, and only $name can undo this.',
-          confirmLabel: 'Transfer ownership',
+          title: l10n.makeOwnerTitle(name),
+          message: l10n.makeOwnerMessage(name, group.name),
+          confirmLabel: l10n.transferOwnership,
         );
         if (!confirmed || !context.mounted) return;
         await runGroupAction(
           context,
           () => controller.transferOwnership(group.id, userId),
-          success: '$name is now the owner',
+          success: l10n.nowOwner(name),
         );
       case _MemberAction.remove:
         final confirmed = await showConfirmDialog(
           context,
-          title: 'Remove $name?',
-          message:
-              '$name leaves ${group.name}. They can only come back with a '
-              'new invite.',
-          confirmLabel: 'Remove',
+          title: l10n.removeMemberTitle(name),
+          message: l10n.removeMemberMessage(name, group.name),
+          confirmLabel: l10n.remove,
           destructive: true,
         );
         if (!confirmed || !context.mounted) return;
         await runGroupAction(
           context,
           () => controller.removeMember(group.id, userId),
-          success: '$name was removed',
+          success: l10n.memberRemoved(name),
         );
     }
   }
@@ -210,11 +208,11 @@ class _MySettingsTileState extends ConsumerState<MySettingsTile> {
     final value = _pending ?? widget.me.showBirthday ?? false;
     return SwitchListTile(
       contentPadding: EdgeInsets.zero,
-      title: const Text('Show my birthday to this group'),
+      title: Text(context.l10n.showMyBirthday),
       subtitle: Text(
         hasBirthday
-            ? 'Members see the month and day, never the year.'
-            : 'Add your birthday in your profile first.',
+            ? context.l10n.showMyBirthdayHelp
+            : context.l10n.addBirthdayFirst,
       ),
       value: value,
       onChanged: _pending != null ? null : (value) => unawaited(_set(value)),

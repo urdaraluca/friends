@@ -11,6 +11,7 @@ import 'package:friends/features/groups/data/last_group_store.dart';
 import 'package:friends/features/groups/presentation/widgets/group_avatar.dart';
 import 'package:friends/features/groups/presentation/widgets/group_not_found_view.dart';
 import 'package:friends/features/invites/presentation/join_with_code_dialog.dart';
+import 'package:friends/l10n/l10n.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -87,7 +88,7 @@ class _GroupShellState extends ConsumerState<GroupShell> {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          tooltip: 'All groups',
+          tooltip: context.l10n.allGroups,
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.go(Routes.groups),
         ),
@@ -129,25 +130,25 @@ class _GroupScaffold extends StatelessWidget {
           selectedIndex: tab.index,
           onDestinationSelected: (index) =>
               context.go(Routes.groupTab(group.id, GroupTab.values[index])),
-          destinations: const [
+          destinations: [
             NavigationDestination(
-              icon: Icon(Icons.checklist),
-              label: 'Backlog',
+              icon: const Icon(Icons.checklist),
+              label: context.l10n.tabBacklog,
             ),
             NavigationDestination(
-              icon: Icon(Icons.calendar_month_outlined),
-              selectedIcon: Icon(Icons.calendar_month),
-              label: 'Calendar',
+              icon: const Icon(Icons.calendar_month_outlined),
+              selectedIcon: const Icon(Icons.calendar_month),
+              label: context.l10n.tabCalendar,
             ),
             NavigationDestination(
-              icon: Icon(Icons.casino_outlined),
-              selectedIcon: Icon(Icons.casino),
-              label: 'Wheel',
+              icon: const Icon(Icons.casino_outlined),
+              selectedIcon: const Icon(Icons.casino),
+              label: context.l10n.tabWheel,
             ),
             NavigationDestination(
-              icon: Icon(Icons.groups_outlined),
-              selectedIcon: Icon(Icons.groups),
-              label: 'Group',
+              icon: const Icon(Icons.groups_outlined),
+              selectedIcon: const Icon(Icons.groups),
+              label: context.l10n.tabGroup,
             ),
           ],
         ),
@@ -167,7 +168,7 @@ class GroupSwitcher extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final groups = ref.watch(groupsProvider).value ?? const [];
     return PopupMenuButton<VoidCallback>(
-      tooltip: 'Switch group',
+      tooltip: context.l10n.switchGroup,
       position: PopupMenuPosition.under,
       onSelected: (action) => action(),
       itemBuilder: (context) => [
@@ -189,26 +190,26 @@ class GroupSwitcher extends ConsumerWidget {
         if (groups.isNotEmpty) const PopupMenuDivider(),
         PopupMenuItem(
           value: () => context.go(Routes.groups),
-          child: const ListTile(
+          child: ListTile(
             contentPadding: EdgeInsets.zero,
-            leading: Icon(Icons.view_list_outlined),
-            title: Text('All groups'),
+            leading: const Icon(Icons.view_list_outlined),
+            title: Text(context.l10n.allGroups),
           ),
         ),
         PopupMenuItem(
           value: () => unawaited(context.push(Routes.newGroup)),
-          child: const ListTile(
+          child: ListTile(
             contentPadding: EdgeInsets.zero,
-            leading: Icon(Icons.add),
-            title: Text('New group'),
+            leading: const Icon(Icons.add),
+            title: Text(context.l10n.newGroup),
           ),
         ),
         PopupMenuItem(
           value: () => unawaited(joinWithCode(context)),
-          child: const ListTile(
+          child: ListTile(
             contentPadding: EdgeInsets.zero,
-            leading: Icon(Icons.vpn_key_outlined),
-            title: Text('Join with code'),
+            leading: const Icon(Icons.vpn_key_outlined),
+            title: Text(context.l10n.joinWithCode),
           ),
         ),
       ],

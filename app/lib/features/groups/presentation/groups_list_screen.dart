@@ -9,6 +9,7 @@ import 'package:friends/features/groups/data/group_providers.dart';
 import 'package:friends/features/groups/presentation/widgets/group_avatar.dart';
 import 'package:friends/features/groups/presentation/widgets/role_badge.dart';
 import 'package:friends/features/invites/presentation/join_with_code_dialog.dart';
+import 'package:friends/l10n/l10n.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -21,22 +22,22 @@ class GroupsListScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Your groups'),
+        title: Text(context.l10n.yourGroups),
         actions: [
           IconButton(
-            tooltip: 'My calendar',
+            tooltip: context.l10n.myCalendar,
             icon: const Icon(Icons.calendar_month_outlined),
             onPressed: () => unawaited(context.push(Routes.myCalendar)),
           ),
           PopupMenuButton<VoidCallback>(
-            tooltip: 'More',
+            tooltip: context.l10n.more,
             onSelected: (action) => action(),
             itemBuilder: (context) => [
               PopupMenuItem(
                 value: () => unawaited(joinWithCode(context)),
-                child: const ListTile(
-                  leading: Icon(Icons.vpn_key_outlined),
-                  title: Text('Join with code'),
+                child: ListTile(
+                  leading: const Icon(Icons.vpn_key_outlined),
+                  title: Text(context.l10n.joinWithCode),
                 ),
               ),
             ],
@@ -47,7 +48,7 @@ class GroupsListScreen extends ConsumerWidget {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => unawaited(context.push(Routes.newGroup)),
         icon: const Icon(Icons.add),
-        label: const Text('New group'),
+        label: Text(context.l10n.newGroup),
       ),
       body: AsyncValueView(
         value: ref.watch(groupsProvider),
@@ -90,7 +91,7 @@ class GroupCard extends StatelessWidget {
           radius: 24,
         ),
         title: Text(group.name),
-        subtitle: Text(count == 1 ? '1 member' : '$count members'),
+        subtitle: Text(context.l10n.memberCount(count)),
         trailing: RoleBadge(group.myRole),
         onTap: () => context.go(Routes.groupBacklog(group.id)),
       ),
@@ -113,21 +114,18 @@ class _NoGroups extends StatelessWidget {
         const Icon(Icons.diversity_3, size: 64),
         const SizedBox(height: 16),
         Text(
-          'No groups yet',
+          context.l10n.noGroupsYet,
           style: textTheme.titleLarge,
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 8),
-        const Text(
-          'Create a group for your friends, or join one with an invite code.',
-          textAlign: TextAlign.center,
-        ),
+        Text(context.l10n.noGroupsHelp, textAlign: TextAlign.center),
         const SizedBox(height: 16),
         Center(
           child: OutlinedButton.icon(
             onPressed: () => unawaited(joinWithCode(context)),
             icon: const Icon(Icons.vpn_key_outlined),
-            label: const Text('Join with code'),
+            label: Text(context.l10n.joinWithCode),
           ),
         ),
       ],

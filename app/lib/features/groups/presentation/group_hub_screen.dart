@@ -17,6 +17,7 @@ import 'package:friends/features/groups/presentation/widgets/group_not_found_vie
 import 'package:friends/features/groups/presentation/widgets/invites_section.dart';
 import 'package:friends/features/groups/presentation/widgets/members_section.dart';
 import 'package:friends/features/groups/presentation/widgets/transfer_ownership_dialog.dart';
+import 'package:friends/l10n/l10n.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -68,16 +69,16 @@ class GroupHubScreen extends ConsumerWidget {
                   children: [
                     ListTile(
                       leading: const Icon(Icons.dynamic_feed_outlined),
-                      title: const Text("What's new"),
-                      subtitle: const Text('Ideas, plans, polls and spins'),
+                      title: Text(context.l10n.whatsNew),
+                      subtitle: Text(context.l10n.whatsNewHelp),
                       trailing: const Icon(Icons.chevron_right),
                       onTap: () =>
                           unawaited(context.push(Routes.groupFeed(groupId))),
                     ),
                     ListTile(
                       leading: const Icon(Icons.auto_awesome_outlined),
-                      title: const Text('Recap'),
-                      subtitle: const Text('Your highlights, month by month'),
+                      title: Text(context.l10n.recap),
+                      subtitle: Text(context.l10n.recapHelp),
                       trailing: const Icon(Icons.chevron_right),
                       onTap: () =>
                           unawaited(context.push(Routes.groupRecap(groupId))),
@@ -86,7 +87,7 @@ class GroupHubScreen extends ConsumerWidget {
                 ),
               ),
               _Section(
-                title: 'Members',
+                title: context.l10n.members,
                 trailing: Text('${group.memberCount}'),
                 child: AsyncValueView(
                   value: members,
@@ -100,15 +101,15 @@ class GroupHubScreen extends ConsumerWidget {
               ),
               if (me != null)
                 _Section(
-                  title: 'My settings',
+                  title: context.l10n.mySettings,
                   child: MySettingsTile(groupId: groupId, me: me),
                 ),
               _Section(
-                title: 'Invites',
+                title: context.l10n.invites,
                 child: InvitesSection(group: group, permissions: permissions),
               ),
               _Section(
-                title: 'Group',
+                title: context.l10n.tabGroup,
                 child: GroupActions(group: group, permissions: permissions),
               ),
             ],
@@ -215,6 +216,7 @@ class _GroupActionsState extends ConsumerState<GroupActions> {
   /// owner_must_transfer` and goes through the transfer flow; the only
   /// member confirms that leaving deletes the group.
   Future<void> _leave() async {
+    final l10n = context.l10n;
     final isOwner = widget.permissions.myRole.isOwner;
     var alone = false;
     setState(() => _busy = true);
@@ -232,15 +234,14 @@ class _GroupActionsState extends ConsumerState<GroupActions> {
     final confirmed = await showConfirmDialog(
       context,
       title: alone
-          ? 'Leave and delete ${_group.name}?'
-          : 'Leave ${_group.name}?',
+          ? l10n.leaveAndDeleteTitle(_group.name)
+          : l10n.leaveTitle(_group.name),
       message: alone
-          ? "You're its only member, so leaving deletes the group and "
-                "everything in it. This can't be undone."
+          ? l10n.leaveAloneMessage
           : isOwner
-          ? "You own this group, so you'll choose a new owner first."
-          : "You'll need a new invite to join again.",
-      confirmLabel: alone ? 'Leave and delete' : 'Leave',
+          ? l10n.leaveOwnerMessage
+          : l10n.leaveMemberMessage,
+      confirmLabel: alone ? l10n.leaveAndDelete : l10n.leave,
       destructive: true,
     );
     if (!confirmed || !mounted) return;
@@ -262,7 +263,9 @@ class _GroupActionsState extends ConsumerState<GroupActions> {
         messenger.showSnackBar(
           SnackBar(
             content: Text(
-              alone ? '${_group.name} was deleted' : 'You left ${_group.name}',
+              alone
+                  ? l10n.groupDeleted(_group.name)
+                  : l10n.youLeftGroup(_group.name),
             ),
           ),
         );
@@ -277,7 +280,7 @@ class _GroupActionsState extends ConsumerState<GroupActions> {
         if (done) {
           router.go(Routes.groups);
           messenger.showSnackBar(
-            SnackBar(content: Text('You left ${_group.name}')),
+            SnackBar(content: Text(l10n.youLeftGroup(_group.name))),
           );
         }
       case final error:
@@ -292,13 +295,12 @@ class _GroupActionsState extends ConsumerState<GroupActions> {
   }
 
   Future<void> _delete() async {
+    final l10n = context.l10n;
     final confirmed = await showConfirmDialog(
       context,
-      title: 'Delete ${_group.name}?',
-      message:
-          'This deletes the group with all its activities, events and polls '
-          "for everyone. This can't be undone.",
-      confirmLabel: 'Delete group',
+      title: l10n.deleteGroupTitle(_group.name),
+      message: l10n.deleteGroupMessage,
+      confirmLabel: l10n.deleteGroup,
       destructive: true,
     );
     if (!confirmed || !mounted) return;
@@ -308,7 +310,7 @@ class _GroupActionsState extends ConsumerState<GroupActions> {
     final deleted = await runGroupAction(
       context,
       () => controller.deleteGroup(_group.id),
-      success: '${_group.name} was deleted',
+      success: l10n.groupDeleted(_group.name),
     );
     if (deleted) router.go(Routes.groups);
     if (mounted) setState(() => _busy = false);
@@ -322,8 +324,8 @@ class _GroupActionsState extends ConsumerState<GroupActions> {
         ListTile(
           contentPadding: EdgeInsets.zero,
           leading: const Icon(Icons.category_outlined),
-          title: const Text('Categories'),
-          subtitle: const Text('And their custom fields'),
+          title: Text(context.l10n.categories),
+          subtitle: Text(context.l10n.categoriesHelp),
           enabled: !_busy,
           onTap: () =>
               unawaited(context.push(Routes.groupCategories(_group.id))),
@@ -332,14 +334,14 @@ class _GroupActionsState extends ConsumerState<GroupActions> {
           ListTile(
             contentPadding: EdgeInsets.zero,
             leading: const Icon(Icons.edit_outlined),
-            title: const Text('Edit group'),
+            title: Text(context.l10n.editGroup),
             enabled: !_busy,
             onTap: () => unawaited(context.push(Routes.editGroup(_group.id))),
           ),
         ListTile(
           contentPadding: EdgeInsets.zero,
           leading: const Icon(Icons.logout),
-          title: const Text('Leave group'),
+          title: Text(context.l10n.leaveGroup),
           enabled: !_busy,
           onTap: () => unawaited(_leave()),
         ),
@@ -347,7 +349,10 @@ class _GroupActionsState extends ConsumerState<GroupActions> {
           ListTile(
             contentPadding: EdgeInsets.zero,
             leading: Icon(Icons.delete_forever, color: colors.error),
-            title: Text('Delete group', style: TextStyle(color: colors.error)),
+            title: Text(
+              context.l10n.deleteGroup,
+              style: TextStyle(color: colors.error),
+            ),
             enabled: !_busy,
             onTap: () => unawaited(_delete()),
           ),
