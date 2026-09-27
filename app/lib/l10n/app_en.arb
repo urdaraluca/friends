@@ -531,5 +531,423 @@
   "maxUses": "Max uses",
   "maxUsesHelper": "Leave empty for unlimited",
   "inviteCreated": "Invite created",
-  "inviteCreatedHelp": "Share the link, or give your friends the code."
+  "inviteCreatedHelp": "Share the link, or give your friends the code.",
+  "statusIdea": "Idea",
+  "statusPlanning": "Planning",
+  "statusScheduled": "Scheduled",
+  "statusDone": "Done",
+  "statusDropped": "Dropped",
+  "statusOther": "Other",
+  "costPerPerson": "{amount} pp",
+  "@costPerPerson": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "fieldTypeText": "Text",
+  "fieldTypeLongText": "Long text",
+  "fieldTypeNumber": "Number",
+  "fieldTypeRating": "Rating",
+  "fieldTypeLink": "Link",
+  "fieldTypeChoice": "Choice",
+  "fieldTypeYear": "Year",
+  "fieldTypeOther": "Other",
+  "fieldAtMostCharacters": "{max, plural, =1{At most 1 character} other{At most {max} characters}}",
+  "@fieldAtMostCharacters": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "enterFullLink": "Enter a full http(s) link",
+  "pickOneOption": "Pick one of the options",
+  "enterYear": "Enter a year",
+  "enterNumber": "Enter a number",
+  "betweenValues": "Between {min} and {max}",
+  "@betweenValues": {
+    "placeholders": {
+      "min": {
+        "type": "String"
+      },
+      "max": {
+        "type": "String"
+      }
+    }
+  },
+  "atLeastValue": "At least {min}",
+  "@atLeastValue": {
+    "placeholders": {
+      "min": {
+        "type": "String"
+      }
+    }
+  },
+  "atMostValue": "At most {max}",
+  "@atMostValue": {
+    "placeholders": {
+      "max": {
+        "type": "String"
+      }
+    }
+  },
+  "atMostOneDecimal": "At most one decimal",
+  "newIdea": "New idea",
+  "nothingMatchesFilters": "Nothing matches these filters",
+  "noIdeasYet": "No ideas yet",
+  "tryOtherFilters": "Try other filters, or clear them.",
+  "noIdeasHelp": "Collect things you want to do together: movies, trips, dinners, games…",
+  "clearFilters": "Clear filters",
+  "addFirstIdea": "Add the first idea",
+  "allCategories": "All categories",
+  "searchIdeas": "Search ideas",
+  "clearSearch": "Clear search",
+  "showArchived": "Show archived",
+  "categoryLabel": "Category",
+  "imInterested": "I'm interested",
+  "mine": "Mine",
+  "maxCost": "Max cost",
+  "upToCost": "Up to {amount}",
+  "@upToCost": {
+    "placeholders": {
+      "amount": {
+        "type": "int"
+      }
+    }
+  },
+  "sortNewest": "Newest",
+  "sortDueDate": "Due date",
+  "sortTitle": "Title",
+  "sortMostInterest": "Most interest",
+  "sortCost": "Cost",
+  "sort": "Sort",
+  "ascending": "Ascending",
+  "descending": "Descending",
+  "atMost": "At most",
+  "inGroupCurrency": "In the group currency",
+  "includeWithoutCost": "Include ideas without a cost",
+  "clear": "Clear",
+  "apply": "Apply",
+  "dueBy": "By {date}",
+  "@dueBy": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "pollWaitingVote": "An open poll is waiting for your vote",
+  "vote": "Vote",
+  "markInterested": "Mark as interested",
+  "attributeContains": "{label} contains ‘{value}’",
+  "@attributeContains": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      },
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "fieldsLabel": "Fields",
+  "fieldEnterNumber": "{label}: enter a number.",
+  "@fieldEnterNumber": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "tooManyFieldFilters": "{max, plural, =1{At most 1 field filter at once.} other{At most {max} field filters at once.}}",
+  "@tooManyFieldFilters": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "filterByFields": "Filter by fields",
+  "fieldAtLeast": "{label} at least",
+  "@fieldAtLeast": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "atMostLower": "at most",
+  "anyValue": "Any",
+  "fieldContains": "{label} contains",
+  "@fieldContains": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "noCategoriesInGroup": "This group has no categories yet.",
+  "uncategorised": "Uncategorised",
+  "rateIt": "Rate it",
+  "clearField": "Clear {label}",
+  "@clearField": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "edit": "Edit",
+  "delete": "Delete",
+  "create": "Create",
+  "change": "Change",
+  "nobody": "Nobody",
+  "me": "Me",
+  "deleteNamedTitle": "Delete \"{name}\"?",
+  "@deleteNamedTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "editNamed": "Edit {name}",
+  "@editNamed": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteIdeaMessage": "Its polls and interests go with it. Linked plans stay in the calendar, unlinked.",
+  "ideaDeleted": "Idea deleted",
+  "doItBy": "Do it by {date}",
+  "@doItBy": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "details": "Details",
+  "notesLabel": "Notes",
+  "plans": "Plans",
+  "changeStatus": "Change status",
+  "whoIsOnIt": "Who is on it?",
+  "nobodyOnIt": "Nobody is on it yet",
+  "youreOnIt": "You're on it",
+  "someoneOnIt": "{name} is on it",
+  "@someoneOnIt": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "assign": "Assign",
+  "illDoIt": "I'll do it",
+  "nobodyInterested": "Nobody is interested yet",
+  "interestedCount": "{count, plural, other{{count} interested}}",
+  "@interestedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "scheduleIt": "Schedule it",
+  "notInCalendar": "Not in the calendar yet.",
+  "repeatsFrom": "Repeats, from {start}",
+  "@repeatsFrom": {
+    "placeholders": {
+      "start": {
+        "type": "String"
+      }
+    }
+  },
+  "editIdea": "Edit idea",
+  "noCategory": "No category",
+  "changeCategoryTitle": "Change the category?",
+  "changeCategoryOne": "{category} has no field for: {fields}. It will be removed when you save.",
+  "@changeCategoryOne": {
+    "placeholders": {
+      "category": {
+        "type": "String"
+      },
+      "fields": {
+        "type": "String"
+      }
+    }
+  },
+  "changeCategoryMany": "{category} has no fields for: {fields}. They will be removed when you save.",
+  "@changeCategoryMany": {
+    "placeholders": {
+      "category": {
+        "type": "String"
+      },
+      "fields": {
+        "type": "String"
+      }
+    }
+  },
+  "changeCategory": "Change category",
+  "cantHandOver": "You can't give this idea to that person. Only its owner or an admin can hand it over.",
+  "titleLabel": "Title",
+  "whosOnIt": "Who's on it",
+  "statusLabel": "Status",
+  "doItByLabel": "Do it by",
+  "clearDate": "Clear the date",
+  "noDate": "No date",
+  "estimatedCost": "Estimated cost",
+  "estimatedCostHelper": "Whole amounts, roughly",
+  "costTooHigh": "At most 10,000,000",
+  "perPerson": "Per person",
+  "placeLabel": "Place",
+  "placeHint": "e.g. Ana's place",
+  "addressLabel": "Address",
+  "notesHelper": "Anything else worth remembering",
+  "addIdea": "Add idea",
+  "links": "Links",
+  "urlLabel": "URL",
+  "labelField": "Label",
+  "removeLink": "Remove link",
+  "addLink": "Add a link",
+  "reorder": "Reorder",
+  "newCategory": "New category",
+  "noCategoriesHelp": "No categories yet. Categories group your ideas (movies, trips, food…) and can add their own fields, like an IMDb rating for movies.",
+  "subcategoryCount": "{count, plural, =1{1 subcategory} other{{count} subcategories}}",
+  "@subcategoryCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "fieldCount": "{count, plural, =1{1 field} other{{count} fields}}",
+  "@fieldCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "ownFieldCount": "{count, plural, =1{1 own field} other{{count} own fields}}",
+  "@ownFieldCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "addSubcategoryTo": "Add a subcategory to {name}",
+  "@addSubcategoryTo": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "optionsFor": "Options for {name}",
+  "@optionsFor": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "categoryMovesTo": "Its ideas and plans move to \"{parent}\".",
+  "@categoryMovesTo": {
+    "placeholders": {
+      "parent": {
+        "type": "String"
+      }
+    }
+  },
+  "categoryDeleteWithSubs": "Its subcategories are deleted too, and all their ideas and plans become uncategorised.",
+  "categoryDeleteUncategorised": "Its ideas and plans become uncategorised.",
+  "deletedNamed": "Deleted \"{name}\"",
+  "@deletedNamed": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "colourOrange": "Orange",
+  "colourYellow": "Yellow",
+  "colourBrown": "Brown",
+  "colourGrey": "Grey",
+  "categoryNameTaken": "Another category here has this name.",
+  "categoryDepthExceeded": "Subcategories can only go under a top-level category.",
+  "fieldKeyConflict": "A field key is also used by the parent or a subcategory. Pick another key.",
+  "fieldTypeChange": "A field's type can't change. Remove the field and add it again instead.",
+  "categoryLimitReached": "This group has 100 categories already.",
+  "parentFieldsNote": "{count, plural, other{It also gets the {count} fields of {parent}.}}",
+  "@parentFieldsNote": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "parent": {
+        "type": "String"
+      }
+    }
+  },
+  "newSubcategory": "New subcategory",
+  "insideLabel": "Inside",
+  "staysTopLevel": "It has subcategories, so it stays top-level",
+  "nothingTopLevel": "Nothing (top level)",
+  "parentsColour": "Parent's",
+  "pickColour": "Pick a colour",
+  "iconLabel": "Icon",
+  "orEmoji": "Or an emoji",
+  "emojiHintBowling": "e.g. 🎳",
+  "customFields": "Custom fields",
+  "customFieldsHelp": "Extra details every idea in this category can have, like an IMDb rating for movies.",
+  "addField": "Add a field",
+  "fieldNumber": "Field {number}",
+  "@fieldNumber": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "moveUp": "Move up",
+  "moveDown": "Move down",
+  "removeField": "Remove field",
+  "keyLabel": "Key",
+  "keyLocked": "Stored values use this key, so it stays",
+  "keyHelper": "Lowercase letters, digits and _",
+  "keyInvalid": "Start with a letter; a-z, 0-9 and _ only",
+  "typeLabel": "Type",
+  "typeLocked": "To change the type, remove the field and add it again",
+  "optionsPerLine": "Options, one per line",
+  "addOneOption": "Add at least one option",
+  "atMostOptions": "At most 30 options",
+  "optionOnce": "Each option only once",
+  "minLabel": "Min",
+  "maxLabel": "Max",
+  "showOnCard": "Show on the card",
+  "showOnCardHelp": "e.g. the rating of a movie",
+  "reorderCategories": "Reorder categories",
+  "reorderNamed": "Reorder {name}",
+  "@reorderNamed": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "dragToReorder": "Drag the handles to change the order everyone sees.",
+  "dragNamed": "Drag {name}",
+  "@dragNamed": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  }
 }

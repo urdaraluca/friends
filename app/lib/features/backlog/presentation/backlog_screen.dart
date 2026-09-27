@@ -13,6 +13,7 @@ import 'package:friends/features/backlog/domain/category_index.dart';
 import 'package:friends/features/backlog/presentation/widgets/activity_card.dart';
 import 'package:friends/features/backlog/presentation/widgets/backlog_filter_bar.dart';
 import 'package:friends/features/recap/presentation/widgets/recap_banner.dart';
+import 'package:friends/l10n/l10n.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -53,7 +54,7 @@ class BacklogScreen extends ConsumerWidget {
         heroTag: 'new-idea',
         onPressed: () => unawaited(context.push(Routes.newActivity(groupId))),
         icon: const Icon(Icons.add),
-        label: const Text('New idea'),
+        label: Text(context.l10n.newIdea),
       ),
     );
   }
@@ -199,7 +200,7 @@ class _ListFooter extends StatelessWidget {
             TextButton.icon(
               onPressed: onRetry,
               icon: const Icon(Icons.refresh),
-              label: const Text('Retry'),
+              label: Text(context.l10n.retry),
             ),
           ],
         ),
@@ -246,29 +247,30 @@ class _EmptyBacklog extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    filtered ? 'Nothing matches these filters' : 'No ideas yet',
+                    filtered
+                        ? context.l10n.nothingMatchesFilters
+                        : context.l10n.noIdeasYet,
                     style: textTheme.titleLarge,
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 8),
                   Text(
                     filtered
-                        ? 'Try other filters, or clear them.'
-                        : 'Collect things you want to do together: movies, '
-                              'trips, dinners, games…',
+                        ? context.l10n.tryOtherFilters
+                        : context.l10n.noIdeasHelp,
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 16),
                   if (filtered)
                     OutlinedButton(
                       onPressed: onClearFilters,
-                      child: const Text('Clear filters'),
+                      child: Text(context.l10n.clearFilters),
                     )
                   else
                     FilledButton.icon(
                       onPressed: onAdd,
                       icon: const Icon(Icons.add),
-                      label: const Text('Add the first idea'),
+                      label: Text(context.l10n.addFirstIdea),
                     ),
                 ],
               ),

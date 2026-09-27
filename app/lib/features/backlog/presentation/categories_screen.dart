@@ -15,6 +15,7 @@ import 'package:friends/features/backlog/presentation/category_order_page.dart';
 import 'package:friends/features/backlog/presentation/widgets/category_visuals.dart';
 import 'package:friends/features/groups/data/group_providers.dart';
 import 'package:friends/features/groups/presentation/widgets/group_themed.dart';
+import 'package:friends/l10n/l10n.dart';
 import 'package:material_ui/material_ui.dart';
 
 /// A group's categories (`/groups/:groupId/settings/categories`): top-level
@@ -36,11 +37,11 @@ class CategoriesScreen extends ConsumerWidget {
       groupId: groupId,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Categories'),
+          title: Text(context.l10n.categories),
           actions: [
             if (canReorder && tree.length > 1)
               IconButton(
-                tooltip: 'Reorder',
+                tooltip: context.l10n.reorder,
                 icon: const Icon(Icons.swap_vert),
                 onPressed: () => unawaited(
                   openCategoryOrder(
@@ -63,7 +64,7 @@ class CategoriesScreen extends ConsumerWidget {
             ),
           ),
           icon: const Icon(Icons.add),
-          label: const Text('New category'),
+          label: Text(context.l10n.newCategory),
         ),
         body: AsyncValueView(
           value: categories,
@@ -71,13 +72,11 @@ class CategoriesScreen extends ConsumerWidget {
           data: (tree) {
             final index = CategoryIndex(tree);
             if (tree.isEmpty) {
-              return const Center(
+              return Center(
                 child: Padding(
-                  padding: EdgeInsets.all(24),
+                  padding: const EdgeInsets.all(24),
                   child: Text(
-                    'No categories yet. Categories group your ideas '
-                    '(movies, trips, food…) and can add their own fields, '
-                    'like an IMDb rating for movies.',
+                    context.l10n.noCategoriesHelp,
                     textAlign: TextAlign.center,
                   ),
                 ),
@@ -121,8 +120,8 @@ class _TopLevelTile extends StatelessWidget {
       title: Text(node.name),
       subtitle: Text(
         [
-          '$subs ${subs == 1 ? 'subcategory' : 'subcategories'}',
-          if (fields > 0) '$fields ${fields == 1 ? 'field' : 'fields'}',
+          context.l10n.subcategoryCount(subs),
+          if (fields > 0) context.l10n.fieldCount(fields),
         ].join(' · '),
       ),
       trailing: _CategoryMenu(
@@ -143,7 +142,7 @@ class _TopLevelTile extends StatelessWidget {
             title: Text(sub.name),
             subtitle: sub.fieldDefs.isEmpty
                 ? null
-                : Text('${sub.fieldDefs.length} own fields'),
+                : Text(context.l10n.ownFieldCount(sub.fieldDefs.length)),
             trailing: _CategoryMenu(
               groupId: groupId,
               category: sub,
@@ -153,7 +152,7 @@ class _TopLevelTile extends StatelessWidget {
           ),
         ListTile(
           leading: const Icon(Icons.add),
-          title: Text('Add a subcategory to ${node.name}'),
+          title: Text(context.l10n.addSubcategoryTo(node.name)),
           onTap: () => unawaited(
             openCategoryForm(
               context,
@@ -206,7 +205,7 @@ class _CategoryMenu extends ConsumerWidget {
       return const SizedBox.shrink();
     }
     return PopupMenuButton<String>(
-      tooltip: 'Options for ${category.name}',
+      tooltip: context.l10n.optionsFor(category.name),
       onSelected: (action) => switch (action) {
         'edit' => unawaited(
           openCategoryForm(
@@ -222,9 +221,9 @@ class _CategoryMenu extends ConsumerWidget {
       },
       itemBuilder: (context) => [
         if (category.canEdit)
-          const PopupMenuItem(value: 'edit', child: Text('Edit')),
+          PopupMenuItem(value: 'edit', child: Text(context.l10n.edit)),
         if (category.canDelete)
-          const PopupMenuItem(value: 'delete', child: Text('Delete')),
+          PopupMenuItem(value: 'delete', child: Text(context.l10n.delete)),
       ],
     );
   }
@@ -232,16 +231,16 @@ class _CategoryMenu extends ConsumerWidget {
   Future<void> _delete(BuildContext context, WidgetRef ref) async {
     final messenger = ScaffoldMessenger.of(context);
     final parentName = index.name(category.parentId);
+    final l10n = context.l10n;
     final confirmed = await showConfirmDialog(
       context,
-      title: 'Delete "${category.name}"?',
+      title: l10n.deleteNamedTitle(category.name),
       message: parentName != null
-          ? 'Its ideas and plans move to "$parentName".'
+          ? l10n.categoryMovesTo(parentName)
           : hasSubcategories
-          ? 'Its subcategories are deleted too, and all their ideas and plans '
-                'become uncategorised.'
-          : 'Its ideas and plans become uncategorised.',
-      confirmLabel: 'Delete',
+          ? l10n.categoryDeleteWithSubs
+          : l10n.categoryDeleteUncategorised,
+      confirmLabel: l10n.delete,
       destructive: true,
     );
     if (!confirmed) return;
@@ -250,7 +249,7 @@ class _CategoryMenu extends ConsumerWidget {
           .read(backlogControllerProvider.notifier)
           .deleteCategory(groupId, category.id);
       messenger.showSnackBar(
-        SnackBar(content: Text('Deleted "${category.name}"')),
+        SnackBar(content: Text(l10n.deletedNamed(category.name))),
       );
     } on ApiException catch (error) {
       messenger.showSnackBar(

@@ -1,5 +1,6 @@
 import 'package:friends/core/theme/app_theme.dart';
 import 'package:friends/features/backlog/domain/category_index.dart';
+import 'package:friends/l10n/l10n.dart';
 import 'package:material_ui/material_ui.dart';
 
 /// The icon keys the app knows (contract section 6.5). Anything else is shown
@@ -87,7 +88,7 @@ class CategoryLabel extends StatelessWidget {
         const SizedBox(width: 6),
         Flexible(
           child: Text(
-            name ?? 'Uncategorised',
+            name ?? context.l10n.uncategorised,
             overflow: TextOverflow.ellipsis,
             style: style,
           ),

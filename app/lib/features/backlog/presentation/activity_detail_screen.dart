@@ -22,6 +22,7 @@ import 'package:friends/features/backlog/presentation/widgets/category_visuals.d
 import 'package:friends/features/groups/data/group_providers.dart';
 import 'package:friends/features/groups/presentation/widgets/group_themed.dart';
 import 'package:friends/features/polls/presentation/polls_section.dart';
+import 'package:friends/l10n/l10n.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:material_ui/material_ui.dart';
@@ -42,7 +43,7 @@ class ActivityDetailScreen extends ConsumerWidget {
       groupId: groupId,
       child: Scaffold(
         appBar: AppBar(
-          title: Text(loaded?.title ?? 'Idea'),
+          title: Text(loaded?.title ?? context.l10n.statusIdea),
           actions: [
             if (loaded != null)
               _ActivityMenu(groupId: groupId, activity: loaded),
@@ -71,7 +72,7 @@ class _ActivityMenu extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return PopupMenuButton<String>(
-      tooltip: 'More',
+      tooltip: context.l10n.more,
       onSelected: (action) => switch (action) {
         'edit' => unawaited(
           context.push(Routes.editActivity(groupId, activity.id)),
@@ -81,21 +82,21 @@ class _ActivityMenu extends ConsumerWidget {
       },
       itemBuilder: (context) => [
         if (activity.canEdit)
-          const PopupMenuItem(
+          PopupMenuItem(
             value: 'edit',
             child: ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: Icon(Icons.edit_outlined),
-              title: Text('Edit'),
+              leading: const Icon(Icons.edit_outlined),
+              title: Text(context.l10n.edit),
             ),
           ),
         if (activity.canDelete)
-          const PopupMenuItem(
+          PopupMenuItem(
             value: 'delete',
             child: ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: Icon(Icons.delete_outline),
-              title: Text('Delete'),
+              leading: const Icon(Icons.delete_outline),
+              title: Text(context.l10n.delete),
             ),
           ),
       ],
@@ -105,13 +106,12 @@ class _ActivityMenu extends ConsumerWidget {
   Future<void> _delete(BuildContext context, WidgetRef ref) async {
     final router = GoRouter.of(context);
     final messenger = ScaffoldMessenger.of(context);
+    final l10n = context.l10n;
     final confirmed = await showConfirmDialog(
       context,
-      title: 'Delete "${activity.title}"?',
-      message:
-          'Its polls and interests go with it. Linked plans stay in the '
-          'calendar, unlinked.',
-      confirmLabel: 'Delete',
+      title: l10n.deleteNamedTitle(activity.title),
+      message: l10n.deleteIdeaMessage,
+      confirmLabel: l10n.delete,
       destructive: true,
     );
     if (!confirmed) return;
@@ -120,7 +120,7 @@ class _ActivityMenu extends ConsumerWidget {
           .read(backlogControllerProvider.notifier)
           .deleteActivity(activity.id);
       router.go(Routes.groupBacklog(groupId));
-      messenger.showSnackBar(const SnackBar(content: Text('Idea deleted')));
+      messenger.showSnackBar(SnackBar(content: Text(l10n.ideaDeleted)));
     } on ApiException catch (error) {
       messenger.showSnackBar(
         SnackBar(content: Text(friendlyErrorMessage(error))),
@@ -180,7 +180,7 @@ class _ActivityBody extends ConsumerWidget {
         if (activity.dueDate case final due?)
           _InfoTile(
             icon: Icons.flag_outlined,
-            text: 'Do it by ${DateFormat.yMMMd().format(due)}',
+            text: context.l10n.doItBy(DateFormat.yMMMd().format(due)),
           ),
         if (cost != null) _InfoTile(icon: Icons.payments_outlined, text: cost),
         if (activity.locationName case final place?)
@@ -209,20 +209,23 @@ class _ActivityBody extends ConsumerWidget {
             },
           ),
         if (activity.description case final description?)
-          section('Description', SelectableText(description)),
+          section(context.l10n.descriptionLabel, SelectableText(description)),
         if (fieldDefs.isNotEmpty &&
             activity.attributes is Map &&
             (activity.attributes as Map).isNotEmpty)
           section(
-            'Details',
+            context.l10n.details,
             AttributesView(
               fieldDefs: fieldDefs,
               attributes: activity.attributes,
             ),
           ),
         if (activity.notes case final notes?)
-          section('Notes', SelectableText(notes)),
-        section('Plans', _LinkedEvents(groupId: groupId, activity: activity)),
+          section(context.l10n.notesLabel, SelectableText(notes)),
+        section(
+          context.l10n.plans,
+          _LinkedEvents(groupId: groupId, activity: activity),
+        ),
         PollsSection(activity: activity),
       ],
     );
@@ -286,7 +289,7 @@ class _StatusMenuState extends ConsumerState<_StatusMenu> {
   @override
   Widget build(BuildContext context) {
     return PopupMenuButton<ActivityStatus>(
-      tooltip: 'Change status',
+      tooltip: context.l10n.changeStatus,
       enabled: !_saving,
       onSelected: (status) => unawaited(_set(status)),
       itemBuilder: (context) => [
@@ -353,14 +356,14 @@ class _OwnerRowState extends ConsumerState<_OwnerRow> {
     final picked = await showDialog<_OwnerChoice>(
       context: context,
       builder: (context) => SimpleDialog(
-        title: const Text('Who is on it?'),
+        title: Text(context.l10n.whoIsOnIt),
         children: [
           SimpleDialogOption(
             onPressed: () =>
                 Navigator.of(context).pop(const _OwnerChoice(null)),
-            child: const ListTile(
-              leading: Icon(Icons.person_off_outlined),
-              title: Text('Nobody'),
+            child: ListTile(
+              leading: const Icon(Icons.person_off_outlined),
+              title: Text(context.l10n.nobody),
             ),
           ),
           for (final member in members)
@@ -401,10 +404,10 @@ class _OwnerRowState extends ConsumerState<_OwnerRow> {
         Expanded(
           child: Text(
             owner == null
-                ? 'Nobody is on it yet'
+                ? context.l10n.nobodyOnIt
                 : owner.id == me
-                ? "You're on it"
-                : '${owner.displayName} is on it',
+                ? context.l10n.youreOnIt
+                : context.l10n.someoneOnIt(owner.displayName),
           ),
         ),
         if (_saving)
@@ -415,12 +418,14 @@ class _OwnerRowState extends ConsumerState<_OwnerRow> {
         else if (rules != null && rules.canHandOff)
           TextButton(
             onPressed: () => unawaited(_pickOwner()),
-            child: Text(owner == null ? 'Assign' : 'Change'),
+            child: Text(
+              owner == null ? context.l10n.assign : context.l10n.change,
+            ),
           )
         else if (rules != null && rules.canClaim)
           TextButton(
             onPressed: () => unawaited(_setOwner(me)),
-            child: const Text("I'll do it"),
+            child: Text(context.l10n.illDoIt),
           ),
       ],
     );
@@ -476,7 +481,9 @@ class _InterestRowState extends ConsumerState<_InterestRow> {
         const SizedBox(width: 8),
         Expanded(
           child: Text(
-            count == 0 ? 'Nobody is interested yet' : '$count interested',
+            count == 0
+                ? context.l10n.nobodyInterested
+                : context.l10n.interestedCount(count),
           ),
         ),
         FilterChip(
@@ -485,7 +492,7 @@ class _InterestRowState extends ConsumerState<_InterestRow> {
             size: 18,
           ),
           showCheckmark: false,
-          label: const Text("I'm interested"),
+          label: Text(context.l10n.imInterested),
           selected: interested,
           onSelected: _pending == null ? (_) => unawaited(_toggle()) : null,
         ),
@@ -509,7 +516,7 @@ class _LinkedEvents extends StatelessWidget {
           context.push(Routes.newEvent(groupId, activityId: activity.id)),
         ),
         icon: const Icon(Icons.event_available),
-        label: const Text('Schedule it'),
+        label: Text(context.l10n.scheduleIt),
       ),
     );
     return Column(
@@ -517,7 +524,7 @@ class _LinkedEvents extends StatelessWidget {
       children: [
         if (activity.events.isEmpty)
           Text(
-            'Not in the calendar yet.',
+            context.l10n.notInCalendar,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
@@ -549,5 +556,5 @@ String eventRefWhen(EventRef event) {
     EventRef(:final startDate?) => DateFormat('EEE d MMM y').format(startDate),
     _ => '',
   };
-  return event.rrule == null ? start : 'Repeats, from $start';
+  return event.rrule == null ? start : currentL10n.repeatsFrom(start);
 }

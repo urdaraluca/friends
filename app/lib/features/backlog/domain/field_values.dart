@@ -1,4 +1,5 @@
 import 'package:friends/core/api/generated/export.dart';
+import 'package:friends/l10n/l10n.dart';
 
 /// Custom-field values (`activities.attributes`, contract section 6.3): how
 /// the form turns text into JSON values, checks them before sending (the
@@ -50,27 +51,27 @@ abstract final class FieldValues {
     switch (def.type) {
       case FieldType.text:
         return value.runes.length > maxText
-            ? 'At most $maxText characters'
+            ? currentL10n.fieldAtMostCharacters(maxText)
             : null;
       case FieldType.longText:
         return value.runes.length > maxLongText
-            ? 'At most $maxLongText characters'
+            ? currentL10n.fieldAtMostCharacters(maxLongText)
             : null;
       case FieldType.url:
-        return isWebUrl(value) ? null : 'Enter a full http(s) link';
+        return isWebUrl(value) ? null : currentL10n.enterFullLink;
       case FieldType.select:
         return (def.options ?? const []).contains(value)
             ? null
-            : 'Pick one of the options';
+            : currentL10n.pickOneOption;
       case FieldType.year:
         final year = int.tryParse(value);
-        if (year == null) return 'Enter a year';
+        if (year == null) return currentL10n.enterYear;
         return year < minYear || year > maxYear
-            ? 'Between $minYear and $maxYear'
+            ? currentL10n.betweenValues('$minYear', '$maxYear')
             : null;
       case FieldType.number || FieldType.rating:
         final number = _number(value);
-        if (number == null) return 'Enter a number';
+        if (number == null) return currentL10n.enterNumber;
         final min = minOf(def);
         final max = maxOf(def);
         if ((min != null && number < min) || (max != null && number > max)) {
@@ -78,7 +79,7 @@ abstract final class FieldValues {
         }
         if (def.type == FieldType.rating &&
             (number * 10).roundToDouble() != number * 10) {
-          return 'At most one decimal';
+          return currentL10n.atMostOneDecimal;
         }
         return null;
       case FieldType.$unknown:
@@ -141,10 +142,10 @@ abstract final class FieldValues {
 
   static String _rangeMessage(num? min, num? max) {
     if (min != null && max != null) {
-      return 'Between ${_formatNumber(min)} and ${_formatNumber(max)}';
+      return currentL10n.betweenValues(_formatNumber(min), _formatNumber(max));
     }
-    if (min != null) return 'At least ${_formatNumber(min)}';
-    return 'At most ${_formatNumber(max!)}';
+    if (min != null) return currentL10n.atLeastValue(_formatNumber(min));
+    return currentL10n.atMostValue(_formatNumber(max!));
   }
 
   static const _accents = {
@@ -194,13 +195,13 @@ abstract final class FieldValues {
 /// Human names of the field types, for the field editor.
 extension FieldTypeLabel on FieldType {
   String get label => switch (this) {
-    FieldType.text => 'Text',
-    FieldType.longText => 'Long text',
-    FieldType.number => 'Number',
-    FieldType.rating => 'Rating',
-    FieldType.url => 'Link',
-    FieldType.select => 'Choice',
-    FieldType.year => 'Year',
-    FieldType.$unknown => 'Other',
+    FieldType.text => currentL10n.fieldTypeText,
+    FieldType.longText => currentL10n.fieldTypeLongText,
+    FieldType.number => currentL10n.fieldTypeNumber,
+    FieldType.rating => currentL10n.fieldTypeRating,
+    FieldType.url => currentL10n.fieldTypeLink,
+    FieldType.select => currentL10n.fieldTypeChoice,
+    FieldType.year => currentL10n.fieldTypeYear,
+    FieldType.$unknown => currentL10n.fieldTypeOther,
   };
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:friends/core/api/generated/export.dart';
 import 'package:friends/features/backlog/domain/field_values.dart';
+import 'package:friends/l10n/l10n.dart';
 import 'package:material_ui/material_ui.dart';
 
 /// The inputs for a category's custom fields (contract section 6): one per
@@ -193,7 +194,7 @@ class _RatingInput extends StatelessWidget {
                 onPressed: () =>
                     onChanged(_format(((min + max) / 2 * 10).round() / 10)),
                 icon: const Icon(Icons.star_outline),
-                label: const Text('Rate it'),
+                label: Text(context.l10n.rateIt),
               ),
             )
           : Row(
@@ -211,7 +212,7 @@ class _RatingInput extends StatelessWidget {
                 ),
                 Text(_format(value), style: textTheme.titleMedium),
                 IconButton(
-                  tooltip: 'Clear ${def.label}',
+                  tooltip: context.l10n.clearField(def.label),
                   icon: Icon(Icons.clear, color: colors.onSurfaceVariant),
                   onPressed: () => onChanged(''),
                 ),

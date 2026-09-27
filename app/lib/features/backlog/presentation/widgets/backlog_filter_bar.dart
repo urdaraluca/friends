@@ -9,6 +9,7 @@ import 'package:friends/features/backlog/domain/category_index.dart';
 import 'package:friends/features/backlog/presentation/widgets/attribute_filter.dart';
 import 'package:friends/features/backlog/presentation/widgets/category_picker.dart';
 import 'package:friends/features/groups/data/group_providers.dart';
+import 'package:friends/l10n/l10n.dart';
 import 'package:material_ui/material_ui.dart';
 
 /// The backlog's search field, filter chips and sort menu.
@@ -80,7 +81,7 @@ class _BacklogFilterBarState extends ConsumerState<BacklogFilterBar> {
       context,
       index: widget.categories,
       selectedId: widget.filter.categoryId,
-      noneLabel: 'All categories',
+      noneLabel: context.l10n.allCategories,
     );
     if (choice is PickedCategory) {
       widget.onChanged(
@@ -131,14 +132,14 @@ class _BacklogFilterBarState extends ConsumerState<BacklogFilterBar> {
                     textInputAction: TextInputAction.search,
                     inputFormatters: [LengthLimitingTextInputFormatter(100)],
                     decoration: InputDecoration(
-                      hintText: 'Search ideas',
+                      hintText: context.l10n.searchIdeas,
                       prefixIcon: const Icon(Icons.search),
                       isDense: true,
                       border: const OutlineInputBorder(),
                       suffixIcon: _search.text.isEmpty
                           ? null
                           : IconButton(
-                              tooltip: 'Clear search',
+                              tooltip: context.l10n.clearSearch,
                               icon: const Icon(Icons.clear),
                               onPressed: () {
                                 _search.clear();
@@ -168,7 +169,7 @@ class _BacklogFilterBarState extends ConsumerState<BacklogFilterBar> {
                   const SizedBox(width: 6),
                 ],
                 FilterChip(
-                  label: const Text('Show archived'),
+                  label: Text(context.l10n.showArchived),
                   selected: filter.showArchived,
                   onSelected: (on) {
                     // Turning the archive off with no active status left
@@ -184,7 +185,7 @@ class _BacklogFilterBarState extends ConsumerState<BacklogFilterBar> {
                 const SizedBox(width: 6),
                 InputChip(
                   avatar: const Icon(Icons.category_outlined, size: 18),
-                  label: Text(categoryName ?? 'Category'),
+                  label: Text(categoryName ?? context.l10n.categoryLabel),
                   selected: filter.categoryId != null,
                   showCheckmark: false,
                   onPressed: () => unawaited(_pickCategory()),
@@ -207,14 +208,14 @@ class _BacklogFilterBarState extends ConsumerState<BacklogFilterBar> {
                     ),
                   ),
                 FilterChip(
-                  label: const Text("I'm interested"),
+                  label: Text(context.l10n.imInterested),
                   selected: filter.onlyInterested,
                   onSelected: (on) =>
                       widget.onChanged(filter.copyWith(onlyInterested: on)),
                 ),
                 const SizedBox(width: 6),
                 FilterChip(
-                  label: const Text('Mine'),
+                  label: Text(context.l10n.mine),
                   selected: filter.onlyMine,
                   onSelected: (on) =>
                       widget.onChanged(filter.copyWith(onlyMine: on)),
@@ -222,11 +223,10 @@ class _BacklogFilterBarState extends ConsumerState<BacklogFilterBar> {
                 const SizedBox(width: 6),
                 InputChip(
                   avatar: const Icon(Icons.payments_outlined, size: 18),
-                  label: Text(
-                    filter.costMax == null
-                        ? 'Max cost'
-                        : 'Up to ${filter.costMax}',
-                  ),
+                  label: Text(switch (filter.costMax) {
+                    null => context.l10n.maxCost,
+                    final max => context.l10n.upToCost(max),
+                  }),
                   selected: filter.costMax != null,
                   showCheckmark: false,
                   onPressed: () => unawaited(_pickCost()),
@@ -252,18 +252,18 @@ class _SortMenu extends StatelessWidget {
   final ActivityFilter filter;
   final ValueChanged<ActivityFilter> onChanged;
 
-  static const Map<ActivitySort, String> _labels = {
-    ActivitySort.createdAt: 'Newest',
-    ActivitySort.dueDate: 'Due date',
-    ActivitySort.title: 'Title',
-    ActivitySort.interestCount: 'Most interest',
-    ActivitySort.estimatedCost: 'Cost',
+  static Map<ActivitySort, String> get _labels => {
+    ActivitySort.createdAt: currentL10n.sortNewest,
+    ActivitySort.dueDate: currentL10n.sortDueDate,
+    ActivitySort.title: currentL10n.sortTitle,
+    ActivitySort.interestCount: currentL10n.sortMostInterest,
+    ActivitySort.estimatedCost: currentL10n.sortCost,
   };
 
   @override
   Widget build(BuildContext context) {
     return PopupMenuButton<Object>(
-      tooltip: 'Sort',
+      tooltip: context.l10n.sort,
       icon: const Icon(Icons.sort),
       onSelected: (value) => switch (value) {
         final ActivitySort sort => onChanged(filter.copyWith(sort: sort)),
@@ -281,12 +281,12 @@ class _SortMenu extends StatelessWidget {
         CheckedPopupMenuItem<Object>(
           value: SortOrder.asc,
           checked: filter.order == SortOrder.asc,
-          child: const Text('Ascending'),
+          child: Text(context.l10n.ascending),
         ),
         CheckedPopupMenuItem<Object>(
           value: SortOrder.desc,
           checked: filter.order == SortOrder.desc,
-          child: const Text('Descending'),
+          child: Text(context.l10n.descending),
         ),
       ],
     );
@@ -334,7 +334,7 @@ class _CostFilterDialogState extends State<CostFilterDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Max cost'),
+      title: Text(context.l10n.maxCost),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -347,14 +347,14 @@ class _CostFilterDialogState extends State<CostFilterDialog> {
               LengthLimitingTextInputFormatter(8),
             ],
             decoration: InputDecoration(
-              labelText: 'At most',
+              labelText: context.l10n.atMost,
               suffixText: widget.currency,
-              helperText: 'In the group currency',
+              helperText: context.l10n.inGroupCurrency,
             ),
           ),
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
-            title: const Text('Include ideas without a cost'),
+            title: Text(context.l10n.includeWithoutCost),
             value: _includeUnpriced,
             onChanged: (value) => setState(() => _includeUnpriced = value),
           ),
@@ -365,7 +365,7 @@ class _CostFilterDialogState extends State<CostFilterDialog> {
           onPressed: () =>
               Navigator.of(context)
                   .pop(const CostFilter(null, includeUnpriced: true)),
-          child: const Text('Clear'),
+          child: Text(context.l10n.clear),
         ),
         FilledButton(
           onPressed: () => Navigator.of(context).pop(
@@ -374,7 +374,7 @@ class _CostFilterDialogState extends State<CostFilterDialog> {
               includeUnpriced: _includeUnpriced,
             ),
           ),
-          child: const Text('Apply'),
+          child: Text(context.l10n.apply),
         ),
       ],
     );

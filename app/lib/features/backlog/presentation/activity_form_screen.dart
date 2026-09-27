@@ -80,7 +80,9 @@ class ActivityFormScreen extends ConsumerWidget {
       groupId: groupId,
       child: Scaffold(
         appBar: AppBar(
-          title: Text(activityId == null ? 'New idea' : 'Edit idea'),
+          title: Text(
+            activityId == null ? context.l10n.newIdea : context.l10n.editIdea,
+          ),
         ),
         body: AsyncValueView(
           value: all,
@@ -248,7 +250,7 @@ class _ActivityFormState extends ConsumerState<ActivityForm>
       context,
       index: widget.categories,
       selectedId: _categoryId,
-      noneLabel: 'No category',
+      noneLabel: context.l10n.noCategory,
     );
     if (choice is! PickedCategory || choice.id == _categoryId) return;
     final newKeys = {
@@ -265,22 +267,23 @@ class _ActivityFormState extends ConsumerState<ActivityForm>
       final keep = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text('Change the category?'),
+          title: Text(context.l10n.changeCategoryTitle),
           content: Text(
-            '${widget.categories.name(choice.id) ?? 'No category'} has no '
-            '${dropped.length == 1 ? 'field' : 'fields'} for: '
-            '${dropped.join(', ')}. '
-            '${dropped.length == 1 ? 'It' : 'They'} will be removed when you '
-            'save.',
+            (dropped.length == 1
+                ? context.l10n.changeCategoryOne
+                : context.l10n.changeCategoryMany)(
+              widget.categories.name(choice.id) ?? context.l10n.noCategory,
+              dropped.join(', '),
+            ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancel'),
+              child: Text(context.l10n.cancel),
             ),
             FilledButton(
               onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Change category'),
+              child: Text(context.l10n.changeCategory),
             ),
           ],
         ),
@@ -379,11 +382,7 @@ class _ActivityFormState extends ConsumerState<ActivityForm>
       showServerError(
         error,
         fields: _fields,
-        messages: const {
-          ErrorCodes.forbidden:
-              "You can't give this idea to that person. Only its owner or an "
-              'admin can hand it over.',
-        },
+        messages: {ErrorCodes.forbidden: currentL10n.cantHandOver},
       );
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -403,12 +402,16 @@ class _ActivityFormState extends ConsumerState<ActivityForm>
     bool allowed(String? id) => _creating || (rules?.allows(id) ?? false);
     return [
       if (allowed(null))
-        DropdownMenuItem(child: Text(_creating ? 'Me' : 'Nobody')),
+        DropdownMenuItem(
+          child: Text(_creating ? currentL10n.me : currentL10n.nobody),
+        ),
       for (final member in widget.members)
         if (allowed(member.user.id) && !(_creating && member.user.id == me))
           DropdownMenuItem(
             value: member.user.id,
-            child: Text(member.user.id == me ? 'Me' : member.user.displayName),
+            child: Text(
+              member.user.id == me ? currentL10n.me : member.user.displayName,
+            ),
           ),
     ];
   }
@@ -429,7 +432,7 @@ class _ActivityFormState extends ConsumerState<ActivityForm>
           ],
           TextFormField(
             controller: _title,
-            decoration: const InputDecoration(labelText: 'Title'),
+            decoration: InputDecoration(labelText: context.l10n.titleLabel),
             textCapitalization: TextCapitalization.sentences,
             maxLength: 120,
             validator: Validators.required(context.l10n.enterTitle, max: 120),
@@ -439,7 +442,7 @@ class _ActivityFormState extends ConsumerState<ActivityForm>
           const SizedBox(height: 4),
           InputDecorator(
             decoration: InputDecoration(
-              labelText: 'Category',
+              labelText: context.l10n.categoryLabel,
               errorText: serverError('category_id'),
               contentPadding: EdgeInsets.zero,
               border: InputBorder.none,
@@ -469,7 +472,9 @@ class _ActivityFormState extends ConsumerState<ActivityForm>
           const SizedBox(height: 8),
           TextFormField(
             controller: _description,
-            decoration: const InputDecoration(labelText: 'Description'),
+            decoration: InputDecoration(
+              labelText: context.l10n.descriptionLabel,
+            ),
             minLines: 2,
             maxLines: 6,
             maxLength: 5000,
@@ -484,7 +489,7 @@ class _ActivityFormState extends ConsumerState<ActivityForm>
                   ? _ownerId
                   : null,
               decoration: InputDecoration(
-                labelText: "Who's on it",
+                labelText: context.l10n.whosOnIt,
                 errorText: serverError('owner_id'),
               ),
               items: ownerItems,
@@ -498,7 +503,7 @@ class _ActivityFormState extends ConsumerState<ActivityForm>
             const SizedBox(height: 16),
             DropdownButtonFormField<ActivityStatus>(
               initialValue: _status,
-              decoration: const InputDecoration(labelText: 'Status'),
+              decoration: InputDecoration(labelText: context.l10n.statusLabel),
               items: [
                 for (final status in ActivityStatus.$valuesDefined)
                   DropdownMenuItem(value: status, child: Text(status.label)),
@@ -509,12 +514,12 @@ class _ActivityFormState extends ConsumerState<ActivityForm>
           const SizedBox(height: 16),
           InputDecorator(
             decoration: InputDecoration(
-              labelText: 'Do it by',
+              labelText: context.l10n.doItByLabel,
               errorText: serverError('due_date'),
               suffixIcon: _dueDate == null
                   ? null
                   : IconButton(
-                      tooltip: 'Clear the date',
+                      tooltip: context.l10n.clearDate,
                       icon: const Icon(Icons.clear),
                       onPressed: () => setState(() => _dueDate = null),
                     ),
@@ -523,7 +528,7 @@ class _ActivityFormState extends ConsumerState<ActivityForm>
               onTap: () => unawaited(_pickDueDate()),
               child: Text(
                 _dueDate == null
-                    ? 'No date'
+                    ? context.l10n.noDate
                     : DateFormat.yMMMd().format(_dueDate!.toLocalDate()),
               ),
             ),
@@ -536,9 +541,9 @@ class _ActivityFormState extends ConsumerState<ActivityForm>
                 child: TextFormField(
                   controller: _cost,
                   decoration: InputDecoration(
-                    labelText: 'Estimated cost',
+                    labelText: context.l10n.estimatedCost,
                     suffixText: currency,
-                    helperText: 'Whole amounts, roughly',
+                    helperText: context.l10n.estimatedCostHelper,
                   ),
                   keyboardType: TextInputType.number,
                   inputFormatters: [
@@ -548,7 +553,7 @@ class _ActivityFormState extends ConsumerState<ActivityForm>
                   validator: (value) {
                     final amount = int.tryParse(value ?? '');
                     return amount != null && amount > 10000000
-                        ? 'At most 10,000,000'
+                        ? context.l10n.costTooHigh
                         : null;
                   },
                   forceErrorText: serverError('estimated_cost'),
@@ -562,7 +567,7 @@ class _ActivityFormState extends ConsumerState<ActivityForm>
               Expanded(
                 child: SwitchListTile(
                   contentPadding: EdgeInsets.zero,
-                  title: const Text('Per person'),
+                  title: Text(context.l10n.perPerson),
                   value: _perPerson,
                   onChanged: _cost.text.trim().isEmpty
                       ? null
@@ -574,9 +579,9 @@ class _ActivityFormState extends ConsumerState<ActivityForm>
           const SizedBox(height: 8),
           TextFormField(
             controller: _location,
-            decoration: const InputDecoration(
-              labelText: 'Place',
-              hintText: "e.g. Ana's place",
+            decoration: InputDecoration(
+              labelText: context.l10n.placeLabel,
+              hintText: context.l10n.placeHint,
             ),
             maxLength: 120,
             forceErrorText: serverError('location_name'),
@@ -584,7 +589,7 @@ class _ActivityFormState extends ConsumerState<ActivityForm>
           ),
           TextFormField(
             controller: _address,
-            decoration: const InputDecoration(labelText: 'Address'),
+            decoration: InputDecoration(labelText: context.l10n.addressLabel),
             maxLength: 300,
             forceErrorText: serverError('address'),
             onChanged: (_) => clearServerError('address'),
@@ -594,9 +599,9 @@ class _ActivityFormState extends ConsumerState<ActivityForm>
           const SizedBox(height: 8),
           TextFormField(
             controller: _notes,
-            decoration: const InputDecoration(
-              labelText: 'Notes',
-              helperText: 'Anything else worth remembering',
+            decoration: InputDecoration(
+              labelText: context.l10n.notesLabel,
+              helperText: context.l10n.notesHelper,
             ),
             minLines: 2,
             maxLines: 6,
@@ -606,7 +611,7 @@ class _ActivityFormState extends ConsumerState<ActivityForm>
           ),
           const SizedBox(height: 16),
           SubmitButton(
-            label: _creating ? 'Add idea' : 'Save',
+            label: _creating ? context.l10n.addIdea : context.l10n.save,
             busy: _saving,
             onPressed: _save,
           ),
@@ -619,7 +624,7 @@ class _ActivityFormState extends ConsumerState<ActivityForm>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('Links', style: Theme.of(context).textTheme.titleSmall),
+        Text(context.l10n.links, style: Theme.of(context).textTheme.titleSmall),
         for (final (index, link) in _links.indexed)
           Row(
             key: ObjectKey(link),
@@ -629,7 +634,7 @@ class _ActivityFormState extends ConsumerState<ActivityForm>
                 flex: 3,
                 child: TextFormField(
                   controller: link.url,
-                  decoration: const InputDecoration(labelText: 'URL'),
+                  decoration: InputDecoration(labelText: context.l10n.urlLabel),
                   keyboardType: TextInputType.url,
                   autocorrect: false,
                   validator: (value) {
@@ -637,7 +642,7 @@ class _ActivityFormState extends ConsumerState<ActivityForm>
                     if (url.isEmpty) return null;
                     return FieldValues.isWebUrl(url)
                         ? null
-                        : 'Enter a full http(s) link';
+                        : context.l10n.enterFullLink;
                   },
                   forceErrorText: serverError('links.$index.url'),
                   onChanged: (_) => clearServerError('links.$index'),
@@ -648,14 +653,16 @@ class _ActivityFormState extends ConsumerState<ActivityForm>
                 flex: 2,
                 child: TextFormField(
                   controller: link.label,
-                  decoration: const InputDecoration(labelText: 'Label'),
+                  decoration: InputDecoration(
+                    labelText: context.l10n.labelField,
+                  ),
                   maxLength: 60,
                   forceErrorText: serverError('links.$index.label'),
                   onChanged: (_) => clearServerError('links.$index'),
                 ),
               ),
               IconButton(
-                tooltip: 'Remove link',
+                tooltip: context.l10n.removeLink,
                 icon: const Icon(Icons.remove_circle_outline),
                 onPressed: () {
                   clearServerError('links');
@@ -670,7 +677,7 @@ class _ActivityFormState extends ConsumerState<ActivityForm>
             child: TextButton.icon(
               onPressed: () => setState(() => _links.add(_LinkDraft())),
               icon: const Icon(Icons.add_link),
-              label: const Text('Add a link'),
+              label: Text(context.l10n.addLink),
             ),
           ),
       ],

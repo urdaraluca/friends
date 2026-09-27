@@ -1,6 +1,7 @@
 import 'package:friends/core/theme/app_theme.dart';
 import 'package:friends/features/backlog/domain/category_index.dart';
 import 'package:friends/features/backlog/presentation/widgets/category_visuals.dart';
+import 'package:friends/l10n/l10n.dart';
 import 'package:material_ui/material_ui.dart';
 
 /// What the category picker returned.
@@ -26,7 +27,7 @@ Future<CategoryChoice?> showCategoryPicker(
   required CategoryIndex index,
   required String? selectedId,
   required String noneLabel,
-  String title = 'Category',
+  String? title,
 }) {
   return showModalBottomSheet<CategoryChoice>(
     context: context,
@@ -55,7 +56,7 @@ class CategoryPickerList extends StatelessWidget {
     required this.selectedId,
     required this.noneLabel,
     required this.onPicked,
-    this.title = 'Category',
+    this.title,
     this.controller,
     super.key,
   });
@@ -63,7 +64,9 @@ class CategoryPickerList extends StatelessWidget {
   final CategoryIndex index;
   final String? selectedId;
   final String noneLabel;
-  final String title;
+
+  /// The sheet title; "Category" when null.
+  final String? title;
   final ScrollController? controller;
   final ValueChanged<CategoryChoice> onPicked;
 
@@ -91,7 +94,10 @@ class CategoryPickerList extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-          child: Text(title, style: Theme.of(context).textTheme.titleMedium),
+          child: Text(
+            title ?? context.l10n.categoryLabel,
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
         ),
         tile(id: null, label: noneLabel, leading: const Icon(Icons.clear_all)),
         for (final node in index.tree) ...[
@@ -116,9 +122,9 @@ class CategoryPickerList extends StatelessWidget {
             ),
         ],
         if (index.isEmpty)
-          const Padding(
-            padding: EdgeInsets.all(16),
-            child: Text('This group has no categories yet.'),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(context.l10n.noCategoriesInGroup),
           ),
       ],
     );

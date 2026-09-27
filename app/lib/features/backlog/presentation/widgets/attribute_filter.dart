@@ -1,5 +1,6 @@
 import 'package:flutter/services.dart';
 import 'package:friends/core/api/generated/export.dart';
+import 'package:friends/l10n/l10n.dart';
 import 'package:material_ui/material_ui.dart';
 
 /// The most attribute filters a request may combine (contract section 8.7).
@@ -23,7 +24,7 @@ String attributeFilterLabel(AttributeFilter filter, List<FieldDef> defs) {
   return switch (filter.op) {
     AttributeOp.gte => '$label ≥ ${filter.value}',
     AttributeOp.lte => '$label ≤ ${filter.value}',
-    AttributeOp.contains => '$label contains ‘${filter.value}’',
+    AttributeOp.contains => currentL10n.attributeContains(label, filter.value),
     AttributeOp.eq || AttributeOp.$unknown => '$label: ${filter.value}',
   };
 }
@@ -52,7 +53,7 @@ class AttributeFilterChip extends StatelessWidget {
         avatar: const Icon(Icons.tune, size: 18),
         label: Text(
           value.isEmpty
-              ? 'Fields'
+              ? context.l10n.fieldsLabel
               : value.map((f) => attributeFilterLabel(f, defs)).join(' · '),
         ),
         selected: value.isNotEmpty,
@@ -132,7 +133,7 @@ class _AttributeFilterDialogState extends State<AttributeFilterDialog> {
           ).text.trim().replaceAll(',', '.');
           if (text.isEmpty) continue;
           if (num.tryParse(text) == null) {
-            setState(() => _error = '${def.label}: enter a number.');
+            setState(() => _error = context.l10n.fieldEnterNumber(def.label));
             return null;
           }
           filters.add(AttributeFilter(key: def.key, op: op, value: text));
@@ -159,7 +160,7 @@ class _AttributeFilterDialogState extends State<AttributeFilterDialog> {
     }
     if (filters.length > maxAttributeFilters) {
       setState(
-        () => _error = 'At most $maxAttributeFilters field filters at once.',
+        () => _error = context.l10n.tooManyFieldFilters(maxAttributeFilters),
       );
       return null;
     }
@@ -173,7 +174,7 @@ class _AttributeFilterDialogState extends State<AttributeFilterDialog> {
       LengthLimitingTextInputFormatter(12),
     ];
     return AlertDialog(
-      title: const Text('Filter by fields'),
+      title: Text(context.l10n.filterByFields),
       content: SizedBox(
         width: 380,
         child: SingleChildScrollView(
@@ -196,7 +197,7 @@ class _AttributeFilterDialogState extends State<AttributeFilterDialog> {
                             ),
                             inputFormatters: numberFormat,
                             decoration: InputDecoration(
-                              labelText: '${def.label} at least',
+                              labelText: context.l10n.fieldAtLeast(def.label),
                               isDense: true,
                             ),
                           ),
@@ -210,8 +211,8 @@ class _AttributeFilterDialogState extends State<AttributeFilterDialog> {
                               signed: true,
                             ),
                             inputFormatters: numberFormat,
-                            decoration: const InputDecoration(
-                              labelText: 'at most',
+                            decoration: InputDecoration(
+                              labelText: context.l10n.atMostLower,
                               isDense: true,
                             ),
                           ),
@@ -225,7 +226,7 @@ class _AttributeFilterDialogState extends State<AttributeFilterDialog> {
                         isDense: true,
                       ),
                       items: [
-                        const DropdownMenuItem(child: Text('Any')),
+                        DropdownMenuItem(child: Text(context.l10n.anyValue)),
                         for (final option in def.options ?? const <String>[])
                           DropdownMenuItem(value: option, child: Text(option)),
                       ],
@@ -236,7 +237,7 @@ class _AttributeFilterDialogState extends State<AttributeFilterDialog> {
                       controller: _controller(def.key, AttributeOp.contains),
                       inputFormatters: [LengthLimitingTextInputFormatter(100)],
                       decoration: InputDecoration(
-                        labelText: '${def.label} contains',
+                        labelText: context.l10n.fieldContains(def.label),
                         isDense: true,
                       ),
                     ),
@@ -254,18 +255,18 @@ class _AttributeFilterDialogState extends State<AttributeFilterDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(const <AttributeFilter>[]),
-          child: const Text('Clear'),
+          child: Text(context.l10n.clear),
         ),
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(context.l10n.cancel),
         ),
         FilledButton(
           onPressed: () {
             final filters = _collect();
             if (filters != null) Navigator.of(context).pop(filters);
           },
-          child: const Text('Apply'),
+          child: Text(context.l10n.apply),
         ),
       ],
     );

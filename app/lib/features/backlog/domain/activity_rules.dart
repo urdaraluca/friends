@@ -1,17 +1,18 @@
 import 'package:friends/core/api/date_only.dart';
 import 'package:friends/core/api/generated/export.dart';
 import 'package:friends/features/groups/domain/group_permissions.dart';
+import 'package:friends/l10n/l10n.dart';
 import 'package:material_ui/material_ui.dart';
 
 /// Labels and colours of the activity statuses.
 extension ActivityStatusLabel on ActivityStatus {
   String get label => switch (this) {
-    ActivityStatus.idea => 'Idea',
-    ActivityStatus.planning => 'Planning',
-    ActivityStatus.scheduled => 'Scheduled',
-    ActivityStatus.done => 'Done',
-    ActivityStatus.dropped => 'Dropped',
-    ActivityStatus.$unknown => 'Other',
+    ActivityStatus.idea => currentL10n.statusIdea,
+    ActivityStatus.planning => currentL10n.statusPlanning,
+    ActivityStatus.scheduled => currentL10n.statusScheduled,
+    ActivityStatus.done => currentL10n.statusDone,
+    ActivityStatus.dropped => currentL10n.statusDropped,
+    ActivityStatus.$unknown => currentL10n.statusOther,
   };
 
   IconData get icon => switch (this) {
@@ -94,5 +95,5 @@ String? costLabel({
 }) {
   if (cost == null) return null;
   final amount = '~$cost${currency == null ? '' : ' $currency'}';
-  return perPerson ? '$amount pp' : amount;
+  return perPerson ? currentL10n.costPerPerson(amount) : amount;
 }

@@ -8,6 +8,7 @@ import 'package:friends/core/theme/app_theme.dart';
 import 'package:friends/features/backlog/data/backlog_controller.dart';
 import 'package:friends/features/backlog/presentation/widgets/category_visuals.dart';
 import 'package:friends/features/groups/presentation/widgets/group_themed.dart';
+import 'package:friends/l10n/l10n.dart';
 import 'package:material_ui/material_ui.dart';
 
 /// A category in the order being edited.
@@ -121,20 +122,22 @@ class _CategoryOrderPageState extends ConsumerState<CategoryOrderPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          parent == null ? 'Reorder categories' : 'Reorder ${parent.name}',
+          parent == null
+              ? context.l10n.reorderCategories
+              : context.l10n.reorderNamed(parent.name),
         ),
         actions: [
           TextButton(
             onPressed: _changed && !_saving ? () => unawaited(_save()) : null,
-            child: const Text('Save'),
+            child: Text(context.l10n.save),
           ),
         ],
       ),
       body: Column(
         children: [
-          const Padding(
-            padding: EdgeInsets.fromLTRB(16, 12, 16, 4),
-            child: Text('Drag the handles to change the order everyone sees.'),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+            child: Text(context.l10n.dragToReorder),
           ),
           Expanded(
             child: ReorderableListView.builder(
@@ -159,7 +162,7 @@ class _CategoryOrderPageState extends ConsumerState<CategoryOrderPage> {
                     children: [
                       if (node != null && node.subcategories.length > 1)
                         IconButton(
-                          tooltip: 'Reorder ${node.name}',
+                          tooltip: context.l10n.reorderNamed(node.name),
                           icon: const Icon(Icons.account_tree_outlined),
                           onPressed: () => unawaited(
                             openCategoryOrder(
@@ -180,7 +183,9 @@ class _CategoryOrderPageState extends ConsumerState<CategoryOrderPage> {
                           child: Icon(
                             Icons.drag_handle,
                             key: ValueKey('drag-${category.id}'),
-                            semanticLabel: 'Drag ${category.name}',
+                            semanticLabel: context.l10n.dragNamed(
+                              category.name,
+                            ),
                           ),
                         ),
                       ),

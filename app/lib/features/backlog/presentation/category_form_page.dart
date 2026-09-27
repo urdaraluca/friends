@@ -17,18 +17,21 @@ import 'package:material_ui/material_ui.dart';
 
 /// Colours offered for categories: the default categories' ones first
 /// (contract section 6.5), then a few more.
-const categoryColorPresets = <String, String>{
-  '#7E57C2': 'Purple',
-  '#EF6C00': 'Orange',
-  '#2E7D32': 'Green',
-  '#1565C0': 'Blue',
-  '#00838F': 'Teal',
-  '#AD1457': 'Pink',
-  '#C62828': 'Red',
-  '#F9A825': 'Yellow',
-  '#6D4C41': 'Brown',
-  '#546E7A': 'Grey',
-};
+Map<String, String> get categoryColorPresets {
+  final l10n = currentL10n;
+  return {
+    '#7E57C2': l10n.colourPurple,
+    '#EF6C00': l10n.colourOrange,
+    '#2E7D32': l10n.colourGreen,
+    '#1565C0': l10n.colourBlue,
+    '#00838F': l10n.colourTeal,
+    '#AD1457': l10n.colourPink,
+    '#C62828': l10n.colourRed,
+    '#F9A825': l10n.colourYellow,
+    '#6D4C41': l10n.colourBrown,
+    '#546E7A': l10n.colourGrey,
+  };
+}
 
 /// Custom fields per category (contract section 6.1).
 const maxOwnFields = 12;
@@ -237,17 +240,12 @@ class _CategoryFormPageState extends ConsumerState<CategoryFormPage>
         error,
         fields: _fields,
         codeFields: const {ErrorCodes.nameTaken: 'name'},
-        messages: const {
-          ErrorCodes.nameTaken: 'Another category here has this name.',
-          ErrorCodes.categoryDepthExceeded:
-              'Subcategories can only go under a top-level category.',
-          ErrorCodes.fieldKeyConflict:
-              'A field key is also used by the parent or a subcategory. '
-              'Pick another key.',
-          ErrorCodes.fieldTypeChange:
-              "A field's type can't change. Remove the field and add it "
-              'again instead.',
-          ErrorCodes.limitReached: 'This group has 100 categories already.',
+        messages: {
+          ErrorCodes.nameTaken: currentL10n.categoryNameTaken,
+          ErrorCodes.categoryDepthExceeded: currentL10n.categoryDepthExceeded,
+          ErrorCodes.fieldKeyConflict: currentL10n.fieldKeyConflict,
+          ErrorCodes.fieldTypeChange: currentL10n.fieldTypeChange,
+          ErrorCodes.limitReached: currentL10n.categoryLimitReached,
         },
       );
     } finally {
@@ -282,16 +280,18 @@ class _CategoryFormPageState extends ConsumerState<CategoryFormPage>
     final parentFieldCount = _parentId == null
         ? 0
         : widget.index.fieldDefs(_parentId).length;
+    final parentName = widget.index.name(_parentId) ?? '';
     final parentNote = parentFieldCount == 0
         ? ''
-        : ' It also gets the $parentFieldCount fields of '
-              '${widget.index.name(_parentId)}.';
+        : ' ${context.l10n.parentFieldsNote(parentFieldCount, parentName)}';
     return Scaffold(
       appBar: AppBar(
         title: Text(
           _creating
-              ? (widget.parentId == null ? 'New category' : 'New subcategory')
-              : 'Edit ${widget.category!.name}',
+              ? (widget.parentId == null
+                    ? context.l10n.newCategory
+                    : context.l10n.newSubcategory)
+              : context.l10n.editNamed(widget.category!.name),
         ),
       ),
       body: FormPage(
@@ -307,7 +307,7 @@ class _CategoryFormPageState extends ConsumerState<CategoryFormPage>
               ],
               TextFormField(
                 controller: _name,
-                decoration: const InputDecoration(labelText: 'Name'),
+                decoration: InputDecoration(labelText: context.l10n.nameLabel),
                 textCapitalization: TextCapitalization.sentences,
                 maxLength: 40,
                 validator: Validators.required(context.l10n.enterName, max: 40),
@@ -317,14 +317,14 @@ class _CategoryFormPageState extends ConsumerState<CategoryFormPage>
               DropdownButtonFormField<String?>(
                 initialValue: _parentId,
                 decoration: InputDecoration(
-                  labelText: 'Inside',
+                  labelText: context.l10n.insideLabel,
                   helperText: widget.hasSubcategories
-                      ? 'It has subcategories, so it stays top-level'
+                      ? context.l10n.staysTopLevel
                       : null,
                   errorText: serverError('parent_id'),
                 ),
                 items: [
-                  const DropdownMenuItem(child: Text('Nothing (top level)')),
+                  DropdownMenuItem(child: Text(context.l10n.nothingTopLevel)),
                   for (final parent in parents)
                     DropdownMenuItem(
                       value: parent.id,
@@ -344,7 +344,10 @@ class _CategoryFormPageState extends ConsumerState<CategoryFormPage>
                       },
               ),
               const SizedBox(height: 16),
-              Text('Colour', style: Theme.of(context).textTheme.titleSmall),
+              Text(
+                context.l10n.colourLabel,
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8,
@@ -352,7 +355,7 @@ class _CategoryFormPageState extends ConsumerState<CategoryFormPage>
                 children: [
                   if (!_isTopLevel)
                     ChoiceChip(
-                      label: const Text("Parent's"),
+                      label: Text(context.l10n.parentsColour),
                       selected: _color == null,
                       onSelected: (_) => setState(() => _color = null),
                     ),
@@ -370,7 +373,9 @@ class _CategoryFormPageState extends ConsumerState<CategoryFormPage>
                 ],
               ),
               if (serverError('color') ??
-                      (_isTopLevel && _color == null ? 'Pick a colour' : null)
+                      (_isTopLevel && _color == null
+                          ? context.l10n.pickColour
+                          : null)
                   case final error?)
                 Padding(
                   padding: const EdgeInsets.only(top: 4),
@@ -382,7 +387,10 @@ class _CategoryFormPageState extends ConsumerState<CategoryFormPage>
                   ),
                 ),
               const SizedBox(height: 16),
-              Text('Icon', style: Theme.of(context).textTheme.titleSmall),
+              Text(
+                context.l10n.iconLabel,
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 4,
@@ -403,9 +411,9 @@ class _CategoryFormPageState extends ConsumerState<CategoryFormPage>
               ),
               TextFormField(
                 controller: _emoji,
-                decoration: const InputDecoration(
-                  labelText: 'Or an emoji',
-                  hintText: 'e.g. 🎳',
+                decoration: InputDecoration(
+                  labelText: context.l10n.orEmoji,
+                  hintText: context.l10n.emojiHintBowling,
                 ),
                 inputFormatters: [LengthLimitingTextInputFormatter(40)],
                 forceErrorText: serverError('icon'),
@@ -416,13 +424,12 @@ class _CategoryFormPageState extends ConsumerState<CategoryFormPage>
               ),
               const SizedBox(height: 24),
               Text(
-                'Custom fields',
+                context.l10n.customFields,
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               const SizedBox(height: 4),
               Text(
-                'Extra details every idea in this category can have, like an '
-                'IMDb rating for movies.$parentNote',
+                '${context.l10n.customFieldsHelp}$parentNote',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
               const SizedBox(height: 8),
@@ -449,12 +456,12 @@ class _CategoryFormPageState extends ConsumerState<CategoryFormPage>
                   child: TextButton.icon(
                     onPressed: _addField,
                     icon: const Icon(Icons.add),
-                    label: const Text('Add a field'),
+                    label: Text(context.l10n.addField),
                   ),
                 ),
               const SizedBox(height: 16),
               SubmitButton(
-                label: _creating ? 'Create' : 'Save',
+                label: _creating ? context.l10n.create : context.l10n.save,
                 busy: _saving,
                 onPressed: _save,
               ),
@@ -548,22 +555,22 @@ class _FieldEditor extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    'Field ${index + 1}',
+                    context.l10n.fieldNumber(index + 1),
                     style: Theme.of(context).textTheme.labelLarge,
                   ),
                 ),
                 IconButton(
-                  tooltip: 'Move up',
+                  tooltip: context.l10n.moveUp,
                   onPressed: index == 0 ? null : () => onMove(-1),
                   icon: const Icon(Icons.arrow_upward),
                 ),
                 IconButton(
-                  tooltip: 'Move down',
+                  tooltip: context.l10n.moveDown,
                   onPressed: index == count - 1 ? null : () => onMove(1),
                   icon: const Icon(Icons.arrow_downward),
                 ),
                 IconButton(
-                  tooltip: 'Remove field',
+                  tooltip: context.l10n.removeField,
                   onPressed: onRemove,
                   icon: const Icon(Icons.delete_outline),
                 ),
@@ -576,7 +583,9 @@ class _FieldEditor extends StatelessWidget {
                 children: [
                   TextFormField(
                     controller: draft.label,
-                    decoration: const InputDecoration(labelText: 'Label'),
+                    decoration: InputDecoration(
+                      labelText: context.l10n.labelField,
+                    ),
                     maxLength: 40,
                     validator: Validators.required(
                       context.l10n.enterLabel,
@@ -594,15 +603,15 @@ class _FieldEditor extends StatelessWidget {
                     controller: draft.keyText,
                     readOnly: draft.locked,
                     decoration: InputDecoration(
-                      labelText: 'Key',
+                      labelText: context.l10n.keyLabel,
                       helperText: draft.locked
-                          ? 'Stored values use this key, so it stays'
-                          : 'Lowercase letters, digits and _',
+                          ? context.l10n.keyLocked
+                          : context.l10n.keyHelper,
                     ),
                     validator: (value) =>
                         FieldValues.isValidKey((value ?? '').trim())
                         ? null
-                        : 'Start with a letter; a-z, 0-9 and _ only',
+                        : context.l10n.keyInvalid,
                     forceErrorText: _error('key'),
                     onChanged: (_) {
                       draft.keyEdited = true;
@@ -613,11 +622,8 @@ class _FieldEditor extends StatelessWidget {
                   DropdownButtonFormField<FieldType>(
                     initialValue: draft.type,
                     decoration: InputDecoration(
-                      labelText: 'Type',
-                      helperText: draft.locked
-                          ? 'To change the type, remove the field and add it '
-                                'again'
-                          : null,
+                      labelText: context.l10n.typeLabel,
+                      helperText: draft.locked ? context.l10n.typeLocked : null,
                       helperMaxLines: 2,
                       errorText: _error('type'),
                     ),
@@ -637,7 +643,7 @@ class _FieldEditor extends StatelessWidget {
                     TextFormField(
                       controller: draft.options,
                       decoration: InputDecoration(
-                        labelText: 'Options, one per line',
+                        labelText: context.l10n.optionsPerLine,
                         errorText: _error('options'),
                       ),
                       minLines: 2,
@@ -647,11 +653,13 @@ class _FieldEditor extends StatelessWidget {
                           for (final line in (value ?? '').split('\n'))
                             if (line.trim().isNotEmpty) line.trim(),
                         ];
-                        if (options.isEmpty) return 'Add at least one option';
-                        if (options.length > 30) return 'At most 30 options';
+                        if (options.isEmpty) return context.l10n.addOneOption;
+                        if (options.length > 30) {
+                          return context.l10n.atMostOptions;
+                        }
                         final lower = options.map((o) => o.toLowerCase());
                         if (lower.toSet().length != options.length) {
-                          return 'Each option only once';
+                          return context.l10n.optionOnce;
                         }
                         return null;
                       },
@@ -664,7 +672,7 @@ class _FieldEditor extends StatelessWidget {
                           child: TextFormField(
                             controller: draft.min,
                             decoration: InputDecoration(
-                              labelText: 'Min',
+                              labelText: context.l10n.minLabel,
                               hintText: draft.type == FieldType.rating
                                   ? '0'
                                   : null,
@@ -682,7 +690,7 @@ class _FieldEditor extends StatelessWidget {
                           child: TextFormField(
                             controller: draft.max,
                             decoration: InputDecoration(
-                              labelText: 'Max',
+                              labelText: context.l10n.maxLabel,
                               hintText: draft.type == FieldType.rating
                                   ? '10'
                                   : null,
@@ -699,8 +707,8 @@ class _FieldEditor extends StatelessWidget {
                     ),
                   SwitchListTile(
                     contentPadding: EdgeInsets.zero,
-                    title: const Text('Show on the card'),
-                    subtitle: const Text('e.g. the rating of a movie'),
+                    title: Text(context.l10n.showOnCard),
+                    subtitle: Text(context.l10n.showOnCardHelp),
                     value: draft.showOnCard,
                     onChanged: (value) {
                       draft.showOnCard = value;

@@ -4,6 +4,7 @@ import 'package:friends/features/backlog/domain/activity_rules.dart';
 import 'package:friends/features/backlog/domain/category_index.dart';
 import 'package:friends/features/backlog/domain/field_values.dart';
 import 'package:friends/features/backlog/presentation/widgets/category_visuals.dart';
+import 'package:friends/l10n/l10n.dart';
 import 'package:intl/intl.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -41,7 +42,10 @@ class ActivityCard extends StatelessWidget {
     final next = activity.nextOccurrence;
     final details = <Widget>[
       if (activity.dueDate case final due?)
-        _Detail(icon: Icons.flag_outlined, text: 'By ${_date(due)}'),
+        _Detail(
+          icon: Icons.flag_outlined,
+          text: context.l10n.dueBy(_date(due)),
+        ),
       if (cost != null) _Detail(icon: Icons.payments_outlined, text: cost),
       if (next != null)
         _Detail(icon: Icons.event, text: nextOccurrenceLabel(next)),
@@ -143,7 +147,7 @@ String nextOccurrenceLabel(OccurrenceRef next) {
   if (next.startDate case final date?) {
     return DateFormat('EEE d MMM').format(date);
   }
-  return 'Scheduled';
+  return currentL10n.statusScheduled;
 }
 
 class _Detail extends StatelessWidget {
@@ -252,7 +256,7 @@ class VoteBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     return Semantics(
-      label: 'An open poll is waiting for your vote',
+      label: context.l10n.pollWaitingVote,
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: colors.error,
@@ -261,7 +265,7 @@ class VoteBadge extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
           child: Text(
-            'Vote',
+            context.l10n.vote,
             style: Theme.of(context).textTheme.labelSmall
                 ?.copyWith(color: colors.onError),
           ),
@@ -289,7 +293,9 @@ class InterestButton extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
     return Semantics(
       toggled: interested,
-      label: interested ? "I'm interested" : 'Mark as interested',
+      label: interested
+          ? context.l10n.imInterested
+          : context.l10n.markInterested,
       child: InkWell(
         customBorder: const StadiumBorder(),
         onTap: onPressed,
