@@ -7,7 +7,7 @@ from datetime import UTC, date, datetime
 from typing import Any
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import select, update
+from sqlalchemy import false, select, update
 from sqlalchemy.orm import Session
 
 from friends_api.core.db import utcnow
@@ -18,10 +18,15 @@ from friends_api.features.categories import service as categories_service
 from friends_api.features.categories.models import Category
 from friends_api.features.categories.service import CategoryIndex
 from friends_api.features.events import policies, recurrence
-from friends_api.features.events.lookup import activity_owners, cancelled_keys
+from friends_api.features.events.lookup import NO_EXCEPTIONS, activity_owners, event_exceptions
 from friends_api.features.events.models import Event, EventException, EventKind
 from friends_api.features.events.schemas import Event as EventOut
-from friends_api.features.events.schemas import EventUpdate, EventWrite
+from friends_api.features.events.schemas import (
+    EventUpdate,
+    EventWrite,
+    OccurrenceEdit,
+    OccurrenceEditWrite,
+)
 from friends_api.features.group_log.service import log_event
 from friends_api.features.groups.models import Group, Membership
 from friends_api.features.groups.service import GroupAccess, invalid_reference
@@ -66,6 +71,7 @@ def to_event(db: Session, access: EventAccess) -> EventOut:
     owner_id = _activity_owner(db, event)
     users = users_by_id(db, [event.created_by_id])
     index = CategoryIndex.load(db, event.group_id)
+    exceptions = event_exceptions(db, [event.id]).get(event.id, NO_EXCEPTIONS)
     return EventOut(
         id=event.id,
         group_id=event.group_id,
@@ -84,7 +90,18 @@ def to_event(db: Session, access: EventAccess) -> EventOut:
         activity_id=event.activity_id,
         location_name=event.location_name,
         address=event.address,
-        cancelled_occurrence_keys=sorted(cancelled_keys(db, [event.id]).get(event.id, ())),
+        cancelled_occurrence_keys=sorted(exceptions.cancelled),
+        edited_occurrences=[
+            OccurrenceEdit(
+                occurrence_key=key,
+                title=row.override_title,
+                starts_at=row.override_starts_at,
+                ends_at=row.override_ends_at,
+                start_date=row.override_start_date,
+                end_date=row.override_end_date,
+            )
+            for key, row in sorted(exceptions.edits.items())
+        ],
         version=event.version,
         created_by=public_user(users, event.created_by_id),
         can_edit=policies.can_edit_event(actor, event, owner_id),
@@ -325,6 +342,8 @@ def update_event(db: Session, access: EventAccess, body: EventUpdate) -> None:
             select(EventException).where(EventException.event_id == event.id)
         ):
             db.delete(exception)
+    db.flush()
+    _refresh_window(db, event)
     if changed:
         _log(db, event, "event.updated", actor.user_id)
     if links_another:
@@ -385,17 +404,25 @@ def cancel_occurrence(db: Session, access: EventAccess, key: str) -> None:
                 )
             ],
         )
-    if _exception(db, event, key) is not None:
+    exception = _exception(db, event, key)
+    if exception is not None and exception.cancelled:
         return
-    if not recurrence.is_occurrence(event.series(), key):
-        raise NotFound("No such occurrence.")
-    db.add(EventException(event_id=event.id, occurrence_key=key, created_by_id=actor.user_id))
+    if exception is None:
+        if not recurrence.is_occurrence(event.series(), key):
+            raise NotFound("No such occurrence.")
+        db.add(EventException(event_id=event.id, occurrence_key=key, created_by_id=actor.user_id))
+    else:  # an edited occurrence: the edit goes with it
+        exception.cancelled = True
+        _set_edit(exception, title=None, timing={})
+        db.flush()
+        _refresh_window(db, event)
     _log(db, event, "event.occurrence_cancelled", actor.user_id, occurrence_key=key)
     db.commit()
 
 
 def restore_occurrence(db: Session, access: EventAccess, key: str) -> None:
-    """Idempotent: restoring an occurrence that isn't cancelled changes nothing."""
+    """Back to the series: undoes a cancellation or an edit. Idempotent: restoring an
+    occurrence that is neither changes nothing."""
     event, actor = access.event, access.membership
     _ensure_can_edit(db, access)
     _check_key(key)
@@ -403,7 +430,119 @@ def restore_occurrence(db: Session, access: EventAccess, key: str) -> None:
     if exception is None:
         return
     db.delete(exception)
+    db.flush()
+    _refresh_window(db, event)
     _log(db, event, "event.occurrence_restored", actor.user_id, occurrence_key=key)
+    db.commit()
+
+
+def _one_occurrence_error(message: str, detail: str) -> Unprocessable:
+    return Unprocessable(
+        message,
+        errors=[FieldError(field="path.occurrence_key", message=detail, type="value_error")],
+    )
+
+
+def _edit_timing(event: Event, body: OccurrenceEditWrite, errors: _Errors) -> dict[str, Any]:
+    """The edit's new instants (timed) or dates (all-day), checked like the series' (section
+    5.8); empty when the timing stays the series'."""
+    if not event.all_day:
+        for name in ("start_date", "end_date"):
+            if getattr(body, name) is not None:
+                errors.add(
+                    name, "A timed event's occurrence has times only; leave the dates empty."
+                )
+        if body.starts_at is None and body.ends_at is None:
+            return {}
+        if body.starts_at is None or body.ends_at is None:
+            errors.missing("starts_at" if body.starts_at is None else "ends_at")
+            return {}
+        starts_at, ends_at = body.starts_at.astimezone(UTC), body.ends_at.astimezone(UTC)
+        if ends_at <= starts_at:
+            errors.add("ends_at", "The end must be after the start.")
+        elif ends_at - starts_at > recurrence.MAX_DURATION:
+            errors.add("ends_at", "An event lasts at most 30 days.")
+        for name, instant in (("starts_at", starts_at), ("ends_at", ends_at)):
+            if not _in_supported_range(instant.date()):
+                errors.add(name, "Use a date between the years 1000 and 8999.")
+        return {"starts_at": starts_at, "ends_at": ends_at}
+    for name in ("starts_at", "ends_at"):
+        if getattr(body, name) is not None:
+            errors.add(name, "An all-day event's occurrence has dates only; leave the times empty.")
+    if body.start_date is None:
+        if body.end_date is not None:
+            errors.missing("start_date")
+        return {}
+    assert event.start_date is not None  # noqa: S101 - an all-day event
+    length = (event.end_date or event.start_date) - event.start_date
+    start_date = body.start_date
+    end_date = body.end_date or start_date + length
+    if end_date < start_date:
+        errors.add("end_date", "The end date is before the start date.")
+    elif (end_date - start_date).days + 1 > recurrence.MAX_DURATION.days:
+        errors.add("end_date", "An event lasts at most 30 days.")
+    for name, day in (("start_date", start_date), ("end_date", end_date)):
+        if not _in_supported_range(day):
+            errors.add(name, "Use a date between the years 1000 and 8999.")
+            break
+    return {"start_date": start_date, "end_date": end_date}
+
+
+def _set_edit(row: EventException, *, title: str | None, timing: dict[str, Any]) -> None:
+    row.override_title = title
+    row.override_starts_at = timing.get("starts_at")
+    row.override_ends_at = timing.get("ends_at")
+    row.override_start_date = timing.get("start_date")
+    row.override_end_date = timing.get("end_date")
+
+
+def _refresh_window(db: Session, event: Event) -> None:
+    """The search window covers moved occurrences too (sections 5.4 and 5.9)."""
+    edits = db.scalars(
+        select(EventException).where(
+            EventException.event_id == event.id, EventException.cancelled == false()
+        )
+    )
+    event.window_start, event.window_end = recurrence.search_window(
+        event.series(), [row.override() for row in edits]
+    )
+
+
+def edit_occurrence(db: Session, access: EventAccess, key: str, body: OccurrenceEditWrite) -> None:
+    """Replaces the occurrence's edit (a cancelled one is brought back, edited). The same
+    people as for cancelling. Not for one-time events (edit the event) or birthdays."""
+    event, actor = access.event, access.membership
+    _ensure_can_edit(db, access)
+    _check_key(key)
+    if event.kind is EventKind.ONE_TIME:
+        raise _one_occurrence_error(
+            "A one-time event has a single occurrence; edit the event instead.",
+            "A one-time event's occurrence can't be edited on its own.",
+        )
+    if event.kind is EventKind.BIRTHDAY:
+        raise _one_occurrence_error(
+            "A birthday can't be moved; cancel the occurrence instead.",
+            "A birthday's occurrence can't be edited.",
+        )
+    exception = _exception(db, event, key)
+    if exception is None and not recurrence.is_occurrence(event.series(), key):
+        raise NotFound("No such occurrence.")
+    errors = _Errors()
+    timing = _edit_timing(event, body, errors)
+    if not errors.items and body.title is None and not timing:
+        errors.add("title", "Change the title, the time or both.")
+    if errors.items:
+        raise Unprocessable("Invalid occurrence edit.", errors=errors.items)
+    if exception is None:
+        exception = EventException(
+            event_id=event.id, occurrence_key=key, created_by_id=actor.user_id
+        )
+        db.add(exception)
+    exception.cancelled = False
+    _set_edit(exception, title=body.title, timing=timing)
+    db.flush()
+    _refresh_window(db, event)
+    _log(db, event, "event.occurrence_edited", actor.user_id, occurrence_key=key)
     db.commit()
 
 

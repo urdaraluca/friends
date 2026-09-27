@@ -5,6 +5,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'event_kind.dart';
+import 'occurrence_edit.dart';
 import 'user_public.dart';
 
 part 'event.freezed.dart';
@@ -41,6 +42,8 @@ abstract class Event with _$Event {
     required String? address,
     @JsonKey(name: 'cancelled_occurrence_keys')
     required List<String> cancelledOccurrenceKeys,
+    @JsonKey(name: 'edited_occurrences')
+    required List<OccurrenceEdit> editedOccurrences,
     required int version,
     @JsonKey(name: 'created_by')
     required UserPublic? createdBy,

@@ -286,7 +286,13 @@ class AgendaTile extends StatelessWidget {
         memberBirthday ? "${occurrence.title}'s birthday" : occurrence.title,
       ),
       subtitle: Text(when(occurrence)),
-      trailing: occurrence.isRecurring && !memberBirthday
+      trailing: occurrence.edited
+          ? const Icon(
+              Icons.edit_calendar_outlined,
+              size: 18,
+              semanticLabel: 'Changed for this time only',
+            )
+          : occurrence.isRecurring && !memberBirthday
           ? const Icon(Icons.repeat, size: 18)
           : null,
       onTap: eventId == null

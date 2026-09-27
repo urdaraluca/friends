@@ -14,6 +14,7 @@ import 'package:friends/features/backlog/domain/category_index.dart';
 import 'package:friends/features/backlog/presentation/widgets/category_visuals.dart';
 import 'package:friends/features/calendar/data/calendar_providers.dart';
 import 'package:friends/features/calendar/domain/rrule_spec.dart';
+import 'package:friends/features/calendar/presentation/occurrence_edit_page.dart';
 import 'package:friends/features/groups/presentation/widgets/group_themed.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -21,8 +22,8 @@ import 'package:material_ui/material_ui.dart';
 
 /// An event (`/groups/:groupId/calendar/events/:eventId?occurrence=KEY`):
 /// its time (the given occurrence's, if any), recurrence, category, linked
-/// idea, place and description; with `can_edit`, edit, delete, and cancel
-/// or restore single occurrences.
+/// idea, place and description; with `can_edit`, edit, delete, and change,
+/// cancel or restore single occurrences.
 class EventDetailScreen extends ConsumerWidget {
   const new({
     required this.groupId,
@@ -45,7 +46,9 @@ class EventDetailScreen extends ConsumerWidget {
       groupId: groupId,
       child: Scaffold(
         appBar: AppBar(
-          title: Text(loaded?.title ?? 'Event'),
+          title: Text(
+            loaded == null ? 'Event' : occurrenceTitle(loaded, occurrenceKey),
+          ),
           actions: [
             if (loaded != null && loaded.canEdit)
               IconButton(
@@ -101,9 +104,45 @@ class EventDetailScreen extends ConsumerWidget {
   }
 }
 
-/// When one occurrence of [event] starts and ends, from its [key].
-({DateTime? start, DateTime? end, DateTime? startDate, DateTime? endDate})
-occurrenceTimes(Event event, String? key) {
+/// The edit of [event]'s occurrence [key], if it was edited on its own.
+OccurrenceEdit? occurrenceEdit(Event event, String? key) => key == null
+    ? null
+    : event.editedOccurrences.where((e) => e.occurrenceKey == key).firstOrNull;
+
+/// The title of [event]'s occurrence [key]: its edit's, else the series'.
+String occurrenceTitle(Event event, String? key) =>
+    occurrenceEdit(event, key)?.title ?? event.title;
+
+/// When one occurrence starts and ends: instants when timed, dates when
+/// all-day.
+typedef OccurrenceTimes = ({
+  DateTime? start,
+  DateTime? end,
+  DateTime? startDate,
+  DateTime? endDate,
+});
+
+/// When one occurrence of [event] starts and ends, from its [key]: where
+/// its edit moved it, unless [series] (then where the series puts it).
+OccurrenceTimes occurrenceTimes(
+  Event event,
+  String? key, {
+  bool series = false,
+}) {
+  final edit = series ? null : occurrenceEdit(event, key);
+  if (edit != null) {
+    if ((edit.startsAt, edit.endsAt) case (final start?, final end?)) {
+      return (start: start, end: end, startDate: null, endDate: null);
+    }
+    if (edit.startDate case final startDate?) {
+      return (
+        start: null,
+        end: null,
+        startDate: DateOnly.from(startDate),
+        endDate: DateOnly.from(edit.endDate ?? startDate),
+      );
+    }
+  }
   final startsAt = event.startsAt;
   final endsAt = event.endsAt;
   if (!event.allDay && startsAt != null && endsAt != null) {
@@ -216,6 +255,8 @@ class _EventBodyState extends ConsumerState<_EventBody> {
         key != null &&
         event.kind != EventKind.oneTime &&
         !cancelled.contains(key);
+    final edit = occurrenceEdit(event, key);
+    final canEditOne = canCancel && event.kind == EventKind.recurring;
 
     String when() {
       if (times.start case final start?) {
@@ -294,6 +335,46 @@ class _EventBodyState extends ConsumerState<_EventBody> {
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 12),
             child: SelectableText(description),
+          ),
+        if (edit != null)
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.edit_calendar_outlined),
+            title: const Text('Changed for this time only'),
+            subtitle: Text(
+              'The series: ${event.title}, ${_keyLabel(event, key!)}',
+            ),
+            trailing: event.canEdit
+                ? TextButton(
+                    onPressed: _busy
+                        ? null
+                        : () => unawaited(
+                            _run(
+                              () => controller.restoreOccurrence(event, key),
+                              'Back to the series',
+                            ),
+                          ),
+                    child: const Text('Undo'),
+                  )
+                : null,
+          ),
+        if (canEditOne)
+          Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: OutlinedButton.icon(
+              onPressed: _busy
+                  ? null
+                  : () => unawaited(
+                      openOccurrenceEdit(
+                        context,
+                        groupId: widget.groupId,
+                        event: event,
+                        occurrenceKey: key,
+                      ),
+                    ),
+              icon: const Icon(Icons.edit_calendar),
+              label: const Text('Change this occurrence'),
+            ),
           ),
         if (canCancel)
           Padding(

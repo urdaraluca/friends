@@ -159,6 +159,7 @@ def test_create_a_weekly_event(client: TestClient, crew: Crew, db_session: Sessi
         "location_name": "Ana's place",
         "address": "Str. Lalelelor 1",
         "cancelled_occurrence_keys": [],
+        "edited_occurrences": [],
         "version": 1,
         "created_by": {
             "id": crew.alice.id,
@@ -929,3 +930,274 @@ def test_the_default_weekday_is_the_local_start_day(client: TestClient, crew: Cr
     assert timedelta(hours=3) == datetime.fromisoformat(event["ends_at"]) - datetime.fromisoformat(
         event["starts_at"]
     )
+
+
+# --- single-occurrence edits (section 5.9, issue #18) -------------------------------------
+
+
+def calendar(
+    client: TestClient, crew: Crew, start: str, end: str, account: Account | None = None
+) -> list[dict[str, Any]]:
+    response = client.get(
+        f"/api/v1/groups/{crew.group_id}/calendar",
+        headers=(account or crew.owner).headers,
+        params={"from": start, "to": end, "tz": "Europe/Bucharest"},
+    )
+    assert response.status_code == 200, response.text
+    occurrences: list[dict[str, Any]] = response.json()["occurrences"]
+    return occurrences
+
+
+def edit(client: TestClient, account: Account, event: dict[str, Any], key: str, **body: Any) -> Any:
+    return client.put(url(event, f"/occurrences/{key}"), headers=account.headers, json=body)
+
+
+def test_edit_the_title_of_one_occurrence(
+    client: TestClient, crew: Crew, db_session: Session
+) -> None:
+    event = crew.post(crew.alice, **WEEKLY_THURSDAY).json()
+
+    response = edit(client, crew.alice, event, "20261008T160000Z", title="Catan night")
+
+    assert response.status_code == 200, response.text
+    assert response.json()["edited_occurrences"] == [
+        {
+            "occurrence_key": "20261008T160000Z",
+            "title": "Catan night",
+            "starts_at": None,
+            "ends_at": None,
+            "start_date": None,
+            "end_date": None,
+        }
+    ]
+    assert response.json()["version"] == event["version"]  # the series is unchanged
+    items = calendar(client, crew, "2026-10-01", "2026-10-16")
+    assert [(o["occurrence_key"], o["title"], o["edited"]) for o in items] == [
+        ("20261001T160000Z", "Game night", False),
+        ("20261008T160000Z", "Catan night", True),
+        ("20261015T160000Z", "Game night", False),
+    ]
+    logged = db_session.scalars(
+        select(GroupLog).where(GroupLog.action == "event.occurrence_edited")
+    ).one()
+    assert logged.data == {"occurrence_key": "20261008T160000Z"}
+    feed = client.get(f"/api/v1/groups/{crew.group_id}/feed", headers=crew.bob.headers).json()
+    assert feed["items"][0]["action"] == "event.occurrence_edited"
+    assert feed["items"][0]["data"] == {"occurrence_key": "20261008T160000Z"}
+
+
+def test_a_moved_occurrence_shows_where_it_now_is(client: TestClient, crew: Crew) -> None:
+    event = crew.post(crew.alice, **WEEKLY_THURSDAY).json()
+
+    # Thursday 8 October, 19:00 local, moves to Friday 9 October, 20:00 local.
+    response = edit(
+        client,
+        crew.alice,
+        event,
+        "20261008T160000Z",
+        starts_at="2026-10-09T17:00:00Z",
+        ends_at="2026-10-09T20:00:00Z",
+    )
+
+    assert response.status_code == 200, response.text
+    assert calendar(client, crew, "2026-10-08", "2026-10-09") == []
+    on_friday = calendar(client, crew, "2026-10-09", "2026-10-10")
+    assert [
+        (o["occurrence_key"], o["starts_at"], o["ends_at"], o["edited"]) for o in on_friday
+    ] == [("20261008T160000Z", "2026-10-09T17:00:00Z", "2026-10-09T20:00:00Z", True)]
+    # The whole range keeps the order by start.
+    keys = [o["occurrence_key"] for o in calendar(client, crew, "2026-10-01", "2026-10-16")]
+    assert keys == ["20261001T160000Z", "20261008T160000Z", "20261015T160000Z"]
+
+
+def test_a_move_past_the_end_of_the_series_is_still_found(
+    client: TestClient, crew: Crew, db_session: Session
+) -> None:
+    series = {**WEEKLY_THURSDAY, "rrule": "FREQ=WEEKLY;BYDAY=TH;COUNT=2"}
+    event = crew.post(crew.alice, **series).json()
+
+    edit(
+        client,
+        crew.alice,
+        event,
+        "20261008T160000Z",
+        starts_at="2026-12-03T17:00:00Z",
+        ends_at="2026-12-03T20:00:00Z",
+    )
+
+    items = calendar(client, crew, "2026-12-01", "2026-12-31")
+    assert [o["occurrence_key"] for o in items] == ["20261008T160000Z"]
+    row = db_session.get(Event, uuid.UUID(event["id"]))
+    assert row is not None
+    assert row.window_end == datetime(2026, 12, 3, 20, tzinfo=UTC)
+    # Back to the series: the window shrinks again.
+    client.post(url(event, "/occurrences/20261008T160000Z/restore"), headers=crew.alice.headers)
+    db_session.rollback()  # a fresh snapshot
+    db_session.refresh(row)
+    assert row.window_end == datetime(2026, 10, 8, 19, tzinfo=UTC)
+    assert calendar(client, crew, "2026-12-01", "2026-12-31") == []
+
+
+def test_move_an_all_day_occurrence(client: TestClient, crew: Crew) -> None:
+    event = crew.post(
+        crew.alice,
+        kind="recurring",
+        all_day=True,
+        start_date="2026-10-03",
+        end_date="2026-10-04",
+        rrule="FREQ=WEEKLY;BYDAY=SA",
+    ).json()
+
+    # A new start keeps the two-day length.
+    response = edit(client, crew.alice, event, "20261010", start_date="2026-10-24")
+
+    assert response.status_code == 200, response.text
+    items = calendar(client, crew, "2026-10-01", "2026-11-01")
+    assert [(o["occurrence_key"], o["start_date"], o["end_date"]) for o in items] == [
+        ("20261003", "2026-10-03", "2026-10-04"),
+        ("20261017", "2026-10-17", "2026-10-18"),
+        ("20261010", "2026-10-24", "2026-10-25"),  # same day: by key
+        ("20261024", "2026-10-24", "2026-10-25"),
+        ("20261031", "2026-10-31", "2026-11-01"),
+    ]
+    edit(client, crew.alice, event, "20261010", start_date="2026-10-21", end_date="2026-10-21")
+    moved = [o for o in calendar(client, crew, "2026-10-01", "2026-11-01") if o["edited"]]
+    assert [(o["start_date"], o["end_date"]) for o in moved] == [("2026-10-21", "2026-10-21")]
+
+
+def test_cancel_restore_and_edit_again(client: TestClient, crew: Crew) -> None:
+    event = crew.post(crew.alice, **WEEKLY_THURSDAY).json()
+    key = "20261008T160000Z"
+    edit(client, crew.alice, event, key, title="Catan night")
+
+    # Cancelling an edited occurrence drops it, edit and all.
+    client.delete(url(event, f"/occurrences/{key}"), headers=crew.alice.headers)
+    got = crew.get(crew.alice, event)
+    assert got["cancelled_occurrence_keys"] == [key]
+    assert got["edited_occurrences"] == []
+    keys = [o["occurrence_key"] for o in calendar(client, crew, "2026-10-01", "2026-10-16")]
+    assert key not in keys
+
+    # Editing a cancelled one brings it back, edited.
+    edit(client, crew.alice, event, key, title="Back on")
+    got = crew.get(crew.alice, event)
+    assert got["cancelled_occurrence_keys"] == []
+    assert [e["title"] for e in got["edited_occurrences"]] == ["Back on"]
+
+    # Restoring goes back to the series.
+    response = client.post(url(event, f"/occurrences/{key}/restore"), headers=crew.alice.headers)
+    assert response.status_code == 204
+    titles = [o["title"] for o in calendar(client, crew, "2026-10-08", "2026-10-09")]
+    assert titles == ["Game night"]
+
+
+def test_a_timing_change_clears_the_edits(client: TestClient, crew: Crew) -> None:
+    event = crew.post(crew.alice, **WEEKLY_THURSDAY).json()
+    edit(client, crew.alice, event, "20261008T160000Z", title="Catan night")
+    event = crew.get(crew.alice, event)
+
+    # The end only: edits stay.
+    kept = crew.put(crew.alice, event, ends_at="2026-10-01T20:00:00Z").json()
+    assert len(kept["edited_occurrences"]) == 1
+    # The start: the keys refer to the old occurrences, so they go.
+    cleared = crew.put(crew.alice, kept, starts_at="2026-10-01T15:00:00Z").json()
+    assert cleared["edited_occurrences"] == []
+
+
+def test_the_next_occurrence_follows_a_move(client: TestClient, crew: Crew) -> None:
+    activity = crew.activity(client, title="Board games")
+    weekly = crew.post(crew.owner, **WEEKLY_THURSDAY, activity_id=activity["id"]).json()
+    # 15 October moves earlier, to Tuesday 13 October.
+    edit(
+        client,
+        crew.owner,
+        weekly,
+        "20261015T160000Z",
+        starts_at="2026-10-13T16:00:00Z",
+        ends_at="2026-10-13T19:00:00Z",
+    )
+
+    with signed_in_at(client, crew.owner, datetime(2026, 10, 11, 12, tzinfo=UTC)) as headers:
+        detail = client.get(f"/api/v1/activities/{activity['id']}", headers=headers).json()
+
+    assert detail["next_occurrence"] == {
+        "event_id": weekly["id"],
+        "occurrence_key": "20261015T160000Z",
+        "all_day": False,
+        "starts_at": "2026-10-13T16:00:00Z",
+        "start_date": None,
+    }
+
+
+@pytest.mark.parametrize(
+    ("body", "expected"),
+    [
+        ({}, [("title", "value_error")]),
+        ({"start_date": "2026-10-09"}, [("start_date", "value_error")]),
+        ({"starts_at": "2026-10-09T17:00:00Z"}, [("ends_at", "missing")]),
+        (
+            {"starts_at": "2026-10-09T17:00:00Z", "ends_at": "2026-10-09T17:00:00Z"},
+            [("ends_at", "value_error")],
+        ),
+        (
+            {"starts_at": "2026-10-09T17:00:00Z", "ends_at": "2026-11-20T17:00:00Z"},
+            [("ends_at", "value_error")],
+        ),
+        (
+            {"starts_at": "0900-10-09T17:00:00Z", "ends_at": "0900-10-09T18:00:00Z"},
+            [("starts_at", "value_error"), ("ends_at", "value_error")],
+        ),
+    ],
+)
+def test_edit_rules_for_timed_events(
+    client: TestClient, crew: Crew, body: dict[str, Any], expected: list[tuple[str, str]]
+) -> None:
+    event = crew.post(crew.alice, **WEEKLY_THURSDAY).json()
+
+    response = edit(client, crew.alice, event, "20261008T160000Z", **body)
+
+    assert response.status_code == 422, response.text
+    assert errors(response) == expected
+
+
+def test_edit_rules_for_all_day_events(client: TestClient, crew: Crew) -> None:
+    event = crew.post(
+        crew.alice, kind="recurring", all_day=True, start_date="2026-10-03", rrule="FREQ=WEEKLY"
+    ).json()
+
+    times = edit(client, crew.alice, event, "20261010", starts_at="2026-10-09T17:00:00Z")
+    backwards = edit(
+        client, crew.alice, event, "20261010", start_date="2026-10-12", end_date="2026-10-11"
+    )
+    end_only = edit(client, crew.alice, event, "20261010", end_date="2026-10-11")
+    too_long = edit(
+        client, crew.alice, event, "20261010", start_date="2026-10-10", end_date="2026-11-20"
+    )
+    too_early = edit(client, crew.alice, event, "20261010", start_date="0999-10-10")
+
+    assert errors(times) == [("starts_at", "value_error")]
+    assert errors(backwards) == [("end_date", "value_error")]
+    assert errors(end_only) == [("start_date", "missing")]
+    assert errors(too_long) == [("end_date", "value_error")]
+    assert errors(too_early) == [("start_date", "value_error")]
+
+
+def test_what_cannot_be_edited(client: TestClient, crew: Crew) -> None:
+    once = crew.post(crew.alice, kind="one_time", all_day=True, start_date="2026-10-03").json()
+    birthday = crew.post(
+        crew.alice, kind="birthday", title="Grandma", all_day=True, start_date="1950-10-05"
+    ).json()
+    weekly = crew.post(crew.alice, **WEEKLY_THURSDAY).json()
+
+    one_time = edit(client, crew.alice, once, "20261003", title="X")
+    yearly = edit(client, crew.alice, birthday, "20261005", title="X")
+    not_an_occurrence = edit(client, crew.alice, weekly, "20261009T160000Z", title="X")
+    malformed = edit(client, crew.alice, weekly, "2026-10-08", title="X")
+    not_allowed = edit(client, crew.bob, weekly, "20261008T160000Z", title="X")
+
+    assert one_time.status_code == 422
+    assert errors(one_time) == [("path.occurrence_key", "value_error")]
+    assert yearly.status_code == 422
+    assert not_an_occurrence.status_code == 404
+    assert malformed.status_code == 422
+    assert not_allowed.status_code == 403

@@ -64,6 +64,7 @@ RESTRICTED: dict[str, Callable[[World], dict[str, Any] | None]] = {
     "delete_event": lambda w: None,
     "cancel_occurrence": lambda w: None,
     "restore_occurrence": lambda w: None,
+    "edit_occurrence": lambda w: {"title": "Moved"},
 }
 
 # Routes any member may use (non-members still get 404).

@@ -62,6 +62,16 @@ void main() {
       expect(
         _sentence(
           _item(
+            action: 'event.occurrence_edited',
+            subjectType: 'event',
+            subjectTitle: 'Game night',
+          ),
+        ),
+        'Ana changed one Game night',
+      );
+      expect(
+        _sentence(
+          _item(
             action: 'member.role_changed',
             subjectType: 'member',
             subjectTitle: 'Bea',

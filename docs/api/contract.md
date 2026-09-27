@@ -528,14 +528,19 @@ events                                      -- calendar series; occurrences are 
   INDEX (group_id, window_start)
   INDEX (group_id, window_end)
 
-event_exceptions                            -- MVP: cancels one occurrence
+event_exceptions                            -- cancels or edits one occurrence (section 5.6)
   id                 uuid pk
   event_id           uuid not null -> events CASCADE
   occurrence_key     varchar(20) not null   -- '20261001T160000Z' (timed) | '20261001' (all-day)
   created_by_id      uuid null -> users SET NULL
   created_at
+  cancelled          bool not null default true   -- false: an edit (the override_* columns)
+  override_title     varchar(120) null
+  override_starts_at ts null                -- timed: the moved instants
+  override_ends_at   ts null
+  override_start_date date null             -- all-day: the moved dates (end inclusive)
+  override_end_date  date null
   UNIQUE (event_id, occurrence_key)
-  -- later: override_* columns for single-occurrence edits
 
 polls
   id                 uuid pk
@@ -627,7 +632,7 @@ or endpoint for it; the recap and notifications will build on it. For `member.*`
 | `activity.deleted` | activity | `{"title": str}` |
 | `activity.interest_added`, `activity.interest_removed` | activity | `{}` |
 | `event.created`, `event.updated`, `event.deleted` | event | `{"title": str, "kind": str}` |
-| `event.occurrence_cancelled`, `event.occurrence_restored` | event | `{"occurrence_key": str}` |
+| `event.occurrence_cancelled`, `event.occurrence_restored`, `event.occurrence_edited` | event | `{"occurrence_key": str}` |
 | `poll.created`, `poll.updated`, `poll.closed`, `poll.reopened`, `poll.deleted` | poll | `{"activity_id": uuid, "question": str}` |
 | `poll.option_added`, `poll.option_deleted` | poll | `{"option_id": uuid, "label": str}` |
 | `poll.voted` | poll | `{"option_ids": [uuid, …]}` |
@@ -975,11 +980,34 @@ or `start_date` for all-day events. Steps, in order. The first failure wins, and
     `not_found`.
   - A malformed key → 422 `validation_error` (`path.occurrence_key`).
   - A `one_time` event → 422 `validation_error` (delete the event instead).
-- **Restore:** `POST /events/{event_id}/occurrences/{key}/restore` deletes the exception. It is
-  idempotent (204, even when there was no exception).
-- `Event.cancelled_occurrence_keys` lists the exceptions, sorted.
+- **Edit** (issue #18): `PUT /events/{event_id}/occurrences/{key}` with `OccurrenceEditWrite`
+  replaces that occurrence's edit.
+  - It sets another `title`, and/or moves the occurrence:
+    - a timed event takes `starts_at` and `ends_at` together;
+    - an all-day event takes `start_date`, with `end_date` null keeping the series' length.
+  - The same rules as the series' apply (section 5.8), and at least one field must be set.
+  - A cancelled occurrence comes back, edited.
+  - Who may edit, the key checks and the one-time rule are the same as for cancelling. A
+    `birthday` event can't be edited per occurrence (422; cancel it instead).
+  - The response is 200 `Event`. The series' `version` doesn't change.
+  - It logs `event.occurrence_edited`.
+- **An edited occurrence keeps its original key.** It shows where it now is:
+  - calendars include it when its **new** time is in the range, whether or not its original slot
+    is;
+  - `Occurrence.edited` is true;
+  - its title is the edit's, if any;
+  - `next_occurrence` counts it at its new time.
+
+  The search window (section 5.4) is widened to cover every moved occurrence.
+- **Cancelling an edited occurrence** drops it, edit included.
+- **Restore:** `POST /events/{event_id}/occurrences/{key}/restore` deletes the exception, whether a
+  cancellation or an edit: the occurrence is the series' again. It is idempotent (204, even when
+  there was no exception).
+- `Event.cancelled_occurrence_keys` lists the cancellations, sorted.
+- `Event.edited_occurrences` lists the edits, by key.
 - A PUT that changes `starts_at`, `start_date`, `all_day`, `timezone` or `rrule` **deletes every
-  exception** of the event, because they refer to the old occurrences. Changing only the end time or
+  exception** of the event, cancellations and edits alike, because they refer to the old
+  occurrences. Changing only the end time or
   duration keeps them.
 
 ### 5.7 Birthdays
@@ -1408,7 +1436,8 @@ Rules for categories:
 | `PUT /events/{event_id}` | `update_event` | creator, linked activity's owner, or admin+ | `EventUpdate` | 200 `Event` (edits the whole series; section 5.6 for exceptions) | 403; 409 `version_conflict`; 422 `invalid_rrule`, `invalid_reference` |
 | `DELETE /events/{event_id}` | `delete_event` | same | – | 204 (the whole series) | 403 |
 | `DELETE /events/{event_id}/occurrences/{occurrence_key}` | `cancel_occurrence` | same | – | 204 (idempotent) | 403; 404 (not an occurrence); 422 (malformed key, or a `one_time` event) |
-| `POST /events/{event_id}/occurrences/{occurrence_key}/restore` | `restore_occurrence` | same | – | 204 (idempotent) | 403; 422 (malformed key) |
+| `PUT /events/{event_id}/occurrences/{occurrence_key}` | `edit_occurrence` | same | `OccurrenceEditWrite` | 200 `Event` (section 5.6) | 403; 404 (not an occurrence); 422 (malformed key, a `one_time` or `birthday` event, `validation_error`) |
+| `POST /events/{event_id}/occurrences/{occurrence_key}/restore` | `restore_occurrence` | same | – | 204 (idempotent; undoes a cancellation or an edit) | 403; 422 (malformed key) |
 
 ### 8.9 polls (tag `polls`)
 
@@ -1583,15 +1612,20 @@ Event             { id: uuid, group_id: uuid, kind: EventKind, title: str, descr
                     end_date: date?, timezone: str, rrule: str? (canonical), category_id: uuid?,
                     color: str? (effective category color), activity_id: uuid?,
                     location_name: str?, address: str?, cancelled_occurrence_keys: str[],
+                    edited_occurrences: OccurrenceEdit[] (by key),
                     version: int, created_by: UserPublic?, can_edit: bool, can_delete: bool,
                     created_at: datetime, updated_at: datetime }
+OccurrenceEdit    { occurrence_key: str, title: str?, starts_at: datetime?, ends_at: datetime?,
+                    start_date: date?, end_date: date? }                    # null: the series'
+OccurrenceEditWrite { title: str? (1..120), starts_at: datetime?, ends_at: datetime?,
+                    start_date: date?, end_date: date? }                    # section 5.6
 Occurrence        { occurrence_key: str, source: OccurrenceSource, event_id: uuid?, user_id: uuid?,
                     group_id: uuid? (null only for de-duplicated birthdays in /me/calendar),
                     kind: EventKind, title: str, all_day: bool,
                     starts_at: datetime?, ends_at: datetime?,      # timed
                     start_date: date?, end_date: date?,            # all-day (end inclusive)
                     timezone: str?, category_id: uuid?, color: str?, activity_id: uuid?,
-                    is_recurring: bool, can_edit: bool }
+                    is_recurring: bool, edited: bool (section 5.6), can_edit: bool }
 CalendarResponse  { from_date: date, to_date: date (exclusive), tz: str (the zone used),
                     occurrences: Occurrence[] }                               # sorted, section 5.5
 
@@ -1731,7 +1765,7 @@ own phone, and the history feeds the recap ("the wheel decided 14 times").
   (section 8.7) and `WheelFilters.attributes`.
 - A group feed UI (`GET /groups/{id}/feed` over `group_log`). Built: section 15.
 - A personal calendar UI over `/me/calendar`. Built (`/calendar` in the app).
-- Single-occurrence edits through `override_*` columns on `event_exceptions`.
+- Single-occurrence edits through `override_*` columns on `event_exceptions`. Built: section 5.6.
 - Email verification and password reset, once SMTP exists.
 - A Postgres move. UUIDs, UTC instants and plain SQL keep it cheap; `COLLATE NOCASE` becomes `citext`
   or `lower()` indexes.
@@ -1973,7 +2007,7 @@ What happened in a group, newest first, built from `group_log` (section 3.2).
 | `activity.created` | `status` |
 | `activity.status_changed` | `from`, `to`, `via` |
 | `event.created`, `event.updated`, `event.deleted` | `kind` |
-| `event.occurrence_cancelled`, `event.occurrence_restored` | `occurrence_key` |
+| `event.occurrence_cancelled`, `event.occurrence_restored`, `event.occurrence_edited` | `occurrence_key` |
 | `poll.created`, `poll.updated`, `poll.closed`, `poll.reopened`, `poll.deleted` | `activity_id` |
 | `poll.option_added` | `label` |
 | `wheel.spun` | `result_activity_id`, `candidate_count` |

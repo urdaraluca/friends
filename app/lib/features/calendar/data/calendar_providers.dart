@@ -206,7 +206,9 @@ class EventsController extends _$EventsController {
   EventsClient get _client => ref.read(eventsClientProvider);
 
   void _changed({String? eventId, Iterable<String?> activityIds = const []}) {
-    ref.invalidate(calendarProvider);
+    ref
+      ..invalidate(calendarProvider)
+      ..invalidate(myCalendarProvider);
     if (eventId != null) ref.invalidate(eventProvider(eventId));
     final backlog = ref.read(backlogControllerProvider.notifier);
     final ids = activityIds.nonNulls.toSet();
@@ -260,7 +262,26 @@ class EventsController extends _$EventsController {
     _changed(eventId: event.id, activityIds: [event.activityId]);
   }
 
-  /// `POST /events/{id}/occurrences/{key}/restore` (idempotent).
+  /// `PUT /events/{id}/occurrences/{key}`: another title and/or time for
+  /// one occurrence (contract section 5.6). Replaces its previous edit.
+  Future<Event> editOccurrence(
+    Event event,
+    String occurrenceKey,
+    OccurrenceEditWrite body,
+  ) async {
+    final updated = await apiCall(
+      () => _client.editOccurrence(
+        eventId: event.id,
+        occurrenceKey: occurrenceKey,
+        body: body,
+      ),
+    );
+    _changed(eventId: event.id, activityIds: [event.activityId]);
+    return updated;
+  }
+
+  /// `POST /events/{id}/occurrences/{key}/restore` (idempotent): undoes a
+  /// cancellation or an edit.
   Future<void> restoreOccurrence(Event event, String occurrenceKey) async {
     await apiCall(
       () => _client.restoreOccurrence(

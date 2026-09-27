@@ -7,7 +7,13 @@ from friends_api.deps import CurrentUser, DbSession, GroupMember
 from friends_api.features.events import calendar, service
 from friends_api.features.events.deps import EventMember
 from friends_api.features.events.params import FromParam, KindsParam, ToParam, TzParam
-from friends_api.features.events.schemas import CalendarResponse, Event, EventUpdate, EventWrite
+from friends_api.features.events.schemas import (
+    CalendarResponse,
+    Event,
+    EventUpdate,
+    EventWrite,
+    OccurrenceEditWrite,
+)
 
 router = APIRouter(tags=["events"])
 
@@ -71,10 +77,20 @@ def cancel_occurrence(db: DbSession, access: EventMember, occurrence_key: str) -
     service.cancel_occurrence(db, access, occurrence_key)
 
 
+@router.put("/events/{event_id}/occurrences/{occurrence_key}")
+def edit_occurrence(
+    body: OccurrenceEditWrite, db: DbSession, access: EventMember, occurrence_key: str
+) -> Event:
+    """Edits one occurrence of a recurring event: its title, its times or its dates.
+    The same people as for cancelling. Restore the occurrence to undo it."""
+    service.edit_occurrence(db, access, occurrence_key, body)
+    return service.to_event(db, access)
+
+
 @router.post(
     "/events/{event_id}/occurrences/{occurrence_key}/restore",
     status_code=http_status.HTTP_204_NO_CONTENT,
 )
 def restore_occurrence(db: DbSession, access: EventMember, occurrence_key: str) -> None:
-    """Restores a cancelled occurrence (idempotent)."""
+    """Restores a cancelled or edited occurrence to the series (idempotent)."""
     service.restore_occurrence(db, access, occurrence_key)

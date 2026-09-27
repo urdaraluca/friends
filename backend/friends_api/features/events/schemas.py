@@ -86,6 +86,34 @@ class EventUpdate(EventWrite):
     """The version last read; a mismatch is a 409 ``version_conflict``."""
 
 
+class OccurrenceEditWrite(RequestModel):
+    """Edits one occurrence of a recurring event (contract section 5.6). Null keeps the
+    series' value; at least one field must be set.
+
+    - ``title``: another title for this occurrence.
+    - Timed events: ``starts_at`` and ``ends_at`` together (the same rules as the series').
+    - All-day events: ``start_date``, and ``end_date`` (null keeps the series' length).
+    """
+
+    title: Title | None = None
+    starts_at: AwareDatetime | None = None
+    ends_at: AwareDatetime | None = None
+    start_date: ApiDate | None = None
+    end_date: ApiDate | None = None
+    """Inclusive."""
+
+
+class OccurrenceEdit(BaseModel):
+    """An edited occurrence; null fields are the series'."""
+
+    occurrence_key: str
+    title: str | None
+    starts_at: datetime | None
+    ends_at: datetime | None
+    start_date: date | None
+    end_date: date | None
+
+
 class Event(BaseModel):
     id: uuid.UUID
     group_id: uuid.UUID
@@ -109,6 +137,8 @@ class Event(BaseModel):
     address: str | None
     cancelled_occurrence_keys: list[str]
     """Sorted."""
+    edited_occurrences: list[OccurrenceEdit]
+    """By key."""
     version: int
     created_by: UserPublic | None
     can_edit: bool
@@ -142,6 +172,9 @@ class Occurrence(BaseModel):
     color: str | None
     activity_id: uuid.UUID | None
     is_recurring: bool
+    edited: bool
+    """This occurrence was edited on its own (section 5.6): its title or its time differs from
+    the series'."""
     can_edit: bool
 
 

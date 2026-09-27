@@ -565,6 +565,7 @@ Map<String, Object?> occurrenceJson({
   String? occurrenceKey,
   String? activityId,
   bool canEdit = true,
+  bool edited = false,
 }) {
   final allDay = startsAt == null;
   return {
@@ -589,6 +590,7 @@ Map<String, Object?> occurrenceJson({
     'color': color,
     'activity_id': activityId,
     'is_recurring': kind != 'one_time',
+    'edited': edited,
     'can_edit': canEdit,
   };
 }
@@ -612,6 +614,7 @@ Map<String, Object?> eventJson({
   String? rrule = 'FREQ=WEEKLY;BYDAY=TH',
   String? activityId,
   List<String> cancelled = const [],
+  List<Map<String, Object?>> edited = const [],
   int version = 1,
   bool canEdit = true,
   String? description,
@@ -634,6 +637,7 @@ Map<String, Object?> eventJson({
   'location_name': null,
   'address': null,
   'cancelled_occurrence_keys': cancelled,
+  'edited_occurrences': edited,
   'version': version,
   'created_by': userPublicJson(),
   'can_edit': canEdit,

@@ -17,7 +17,7 @@ The client mirrors section 5.2 in ``rrule_spec.dart``; both are table-tested aga
 
 import calendar
 import re
-from collections.abc import Collection, Iterator
+from collections.abc import Collection, Iterable, Iterator, Mapping
 from dataclasses import dataclass
 from datetime import MAXYEAR, UTC, date, datetime, time, timedelta
 from zoneinfo import ZoneInfo
@@ -327,6 +327,49 @@ class Span:
     Inside a spring-forward gap it doesn't exist; ``starts_at`` shows how it resolved."""
 
 
+@dataclass(frozen=True, slots=True, kw_only=True)
+class Override:
+    """A single-occurrence edit (section 5.6): the occurrence ``key`` of the series moved to
+    other instants (timed) or dates (all-day). Title-only edits have no timing and don't
+    concern expansion."""
+
+    key: str
+    starts_at: datetime | None = None
+    ends_at: datetime | None = None
+    start_date: date | None = None
+    end_date: date | None = None
+
+    @property
+    def moved(self) -> bool:
+        return self.starts_at is not None or self.start_date is not None
+
+    def span(self) -> Span:
+        """The moved occurrence, keeping its original key."""
+        if self.start_date is not None:
+            return Span(
+                key=self.key,
+                all_day=True,
+                start_date=self.start_date,
+                end_date=self.end_date or self.start_date,
+            )
+        assert self.starts_at is not None  # noqa: S101 - only moved overrides have a span
+        assert self.ends_at is not None  # noqa: S101
+        return Span(
+            key=self.key,
+            all_day=False,
+            starts_at=self.starts_at.astimezone(UTC),
+            ends_at=self.ends_at.astimezone(UTC),
+        )
+
+
+def _span_order(span: Span) -> tuple[date, datetime]:
+    """Chronological order of the spans of one series (all timed, or all floating)."""
+    if span.starts_at is not None:
+        return span.starts_at.date(), span.starts_at
+    assert span.start_date is not None  # noqa: S101 - a floating span
+    return span.start_date, datetime.min.replace(tzinfo=UTC)
+
+
 @dataclass(frozen=True, slots=True)
 class Range:
     """A calendar range: the dates ``[from_date, to_date)``, and the same range as UTC instants
@@ -382,6 +425,7 @@ def expand(
     in_range: Range,
     *,
     cancelled: Collection[str] = (),
+    overrides: Mapping[str, Override] | None = None,
     limit: int = MAX_OCCURRENCES,
 ) -> list[Span]:
     """The occurrences in ``in_range``, in order, without cancelled keys, at most ``limit``.
@@ -389,7 +433,33 @@ def expand(
     - Timed: included when ``start < range end`` and ``end > range start`` (overlap; a
       zero-length occurrence counts when it starts in the range).
     - All-day and birthdays: included when ``start_date < to`` and ``end_date >= from``.
+    - A moved occurrence (``overrides``) is included where it now is, with its original key,
+      whether or not its original slot is in the range.
     """
+    moved = {key: o for key, o in (overrides or {}).items() if o.moved and key not in cancelled}
+    base = _expand_base(series, in_range, cancelled={*cancelled, *moved}, limit=limit)
+    if not moved:
+        return base
+    extra = [
+        span
+        for span in (override.span() for override in moved.values())
+        if _in_range(span, in_range)
+    ]
+    return sorted([*base, *extra], key=_span_order)[:limit]
+
+
+def _in_range(span: Span, in_range: Range) -> bool:
+    if span.all_day:
+        assert span.start_date is not None  # noqa: S101 - a floating span
+        assert span.end_date is not None  # noqa: S101
+        return span.start_date < in_range.to_date and span.end_date >= in_range.from_date
+    return _overlaps(span, in_range)
+
+
+def _expand_base(
+    series: Series, in_range: Range, *, cancelled: Collection[str], limit: int
+) -> list[Span]:
+    """:func:`expand` without overrides."""
     if series.is_floating:
         spans = _floating_spans(series, in_range.from_date, in_range.to_date - _ONE_DAY)
     else:
@@ -417,19 +487,36 @@ def _overlaps(span: Span, in_range: Range) -> bool:
 
 
 def next_occurrence(
-    series: Series, *, now: datetime, today: date, cancelled: Collection[str] = ()
+    series: Series,
+    *,
+    now: datetime,
+    today: date,
+    cancelled: Collection[str] = (),
+    overrides: Mapping[str, Override] | None = None,
 ) -> Span | None:
     """The first occurrence that hasn't ended, skipping cancelled keys: a timed one ends after
-    ``now``, an all-day one on or after ``today`` (the date in the zone the caller uses)."""
+    ``now``, an all-day one on or after ``today`` (the date in the zone the caller uses). A
+    moved occurrence counts where it now is."""
+    moved = {key: o for key, o in (overrides or {}).items() if o.moved and key not in cancelled}
+
+    def pending(span: Span) -> bool:
+        if span.all_day:
+            return span.end_date is not None and span.end_date >= today
+        return span.ends_at is not None and span.ends_at > now
+
     if series.is_floating:
         spans = _floating_spans(series, today, None)
     else:
-        spans = (
-            span
-            for span in _timed_spans(series, now, None)
-            if span.ends_at is not None and span.ends_at > now
+        spans = (span for span in _timed_spans(series, now, None) if pending(span))
+    candidates = [
+        span
+        for span in (
+            next((s for s in spans if s.key not in cancelled and s.key not in moved), None),
+            *(override.span() for override in moved.values()),
         )
-    return next((span for span in spans if span.key not in cancelled), None)
+        if span is not None and pending(span)
+    ]
+    return min(candidates, key=_span_order, default=None)
 
 
 def is_occurrence(series: Series, key: str) -> bool:
@@ -581,10 +668,35 @@ def birthday_dates(
 # --- search window (section 5.4) ---------------------------------------------------------
 
 
-def search_window(series: Series) -> tuple[datetime, datetime | None]:
-    """``(window_start, window_end)``: a superset of every occurrence, written on each event
-    write (``window_end=None``: the series never ends). The calendar's SQL prefilter is
-    ``window_start < range end AND (window_end IS NULL OR window_end > range start)``."""
+def search_window(
+    series: Series, overrides: Iterable[Override] = ()
+) -> tuple[datetime, datetime | None]:
+    """``(window_start, window_end)``: a superset of every occurrence, moved ones included,
+    written on each event write (``window_end=None``: the series never ends). The calendar's
+    SQL prefilter is ``window_start < range end AND (window_end IS NULL OR window_end > range
+    start)``."""
+    window_start, window_end = _series_window(series)
+    for override in overrides:
+        if not override.moved:
+            continue
+        span = override.span()
+        if span.all_day:
+            assert span.start_date is not None  # noqa: S101 - a floating span
+            assert span.end_date is not None  # noqa: S101
+            start = _utc_midnight(span.start_date) - FLOATING_MARGIN
+            end = _utc_midnight(span.end_date + _ONE_DAY) + FLOATING_MARGIN
+        else:
+            assert span.starts_at is not None  # noqa: S101 - a timed span
+            assert span.ends_at is not None  # noqa: S101
+            start, end = span.starts_at, span.ends_at
+        window_start = min(window_start, start)
+        if window_end is not None:
+            window_end = max(window_end, end)
+    return window_start, window_end
+
+
+def _series_window(series: Series) -> tuple[datetime, datetime | None]:
+    """:func:`search_window` of the series alone."""
     if series.is_floating:
         start_date, end_date = series.dates
         window_start = _utc_midnight(start_date) - FLOATING_MARGIN

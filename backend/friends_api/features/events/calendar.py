@@ -20,7 +20,7 @@ from friends_api.features.auth.models import User
 from friends_api.features.categories.models import Category
 from friends_api.features.categories.service import CategoryIndex
 from friends_api.features.events import policies, recurrence
-from friends_api.features.events.lookup import activity_owners, cancelled_keys
+from friends_api.features.events.lookup import NO_EXCEPTIONS, activity_owners, event_exceptions
 from friends_api.features.events.models import Event, EventKind
 from friends_api.features.events.schemas import CalendarResponse, Occurrence, OccurrenceSource
 from friends_api.features.groups.models import Membership
@@ -106,7 +106,7 @@ def _event_occurrences(
     events = db.scalars(stmt).all()
     if not events:
         return []
-    cancelled = cancelled_keys(db, (event.id for event in events))
+    exceptions = event_exceptions(db, (event.id for event in events))
     owners = activity_owners(db, (event.activity_id for event in events))
     index = CategoryIndex(db.scalars(select(Category).where(Category.group_id.in_(memberships))))
     occurrences: list[Occurrence] = []
@@ -114,7 +114,10 @@ def _event_occurrences(
         owner_id = owners.get(event.activity_id) if event.activity_id else None
         can_edit = policies.can_edit_event(memberships[event.group_id], event, owner_id)
         color = index.effective_color(event.category_id)
-        spans = recurrence.expand(event.series(), in_range, cancelled=cancelled.get(event.id, ()))
+        own = exceptions.get(event.id, NO_EXCEPTIONS)
+        spans = recurrence.expand(
+            event.series(), in_range, cancelled=own.cancelled, overrides=own.overrides()
+        )
         occurrences.extend(
             Occurrence(
                 occurrence_key=span.key,
@@ -123,7 +126,8 @@ def _event_occurrences(
                 user_id=None,
                 group_id=event.group_id,
                 kind=event.kind,
-                title=event.title,
+                title=(edit.override_title if (edit := own.edits.get(span.key)) else None)
+                or event.title,
                 all_day=span.all_day,
                 starts_at=span.starts_at,
                 ends_at=span.ends_at,
@@ -134,6 +138,7 @@ def _event_occurrences(
                 color=color,
                 activity_id=event.activity_id,
                 is_recurring=event.kind is not EventKind.ONE_TIME,
+                edited=span.key in own.edits,
                 can_edit=can_edit,
             )
             for span in spans
@@ -191,6 +196,7 @@ def _member_birthdays(
                 color=None,
                 activity_id=None,
                 is_recurring=True,
+                edited=False,
                 can_edit=False,
             )
             for day in days

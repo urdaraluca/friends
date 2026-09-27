@@ -1,18 +1,26 @@
 """Calendar events (contract sections 3.1 and 5).
 
 An event row is a *series*: occurrences are computed on read (``recurrence.expand``), and
-``event_exceptions`` cancels single occurrences.
+``event_exceptions`` cancels or edits single occurrences.
 """
 
 import uuid
 from datetime import date, datetime
 from enum import StrEnum
 
-from sqlalchemy import CheckConstraint, ForeignKey, Index, String, Text, UniqueConstraint
+from sqlalchemy import (
+    CheckConstraint,
+    ForeignKey,
+    Index,
+    String,
+    Text,
+    UniqueConstraint,
+    true,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from friends_api.core.db import Base, IdMixin, TimestampMixin, str_enum, utcnow
-from friends_api.features.events.recurrence import Series
+from friends_api.features.events.recurrence import Override, Series
 
 
 class EventKind(StrEnum):
@@ -96,7 +104,8 @@ class Event(IdMixin, TimestampMixin, Base):
 
 
 class EventException(IdMixin, Base):
-    """Cancels one occurrence of a series (MVP; single-occurrence edits come later)."""
+    """Cancels one occurrence of a series, or edits it (contract section 5.6): another title,
+    or other instants (timed) or dates (all-day). The key stays the original occurrence's."""
 
     __tablename__ = "event_exceptions"
     __table_args__ = (UniqueConstraint("event_id", "occurrence_key"),)
@@ -108,3 +117,21 @@ class EventException(IdMixin, Base):
         ForeignKey("users.id", ondelete="SET NULL"), index=True
     )
     created_at: Mapped[datetime] = mapped_column(default=utcnow)
+    cancelled: Mapped[bool] = mapped_column(default=True, server_default=true())
+    """True: the occurrence is dropped. False: it is edited (the ``override_*`` columns)."""
+    override_title: Mapped[str | None] = mapped_column(String(120))
+    override_starts_at: Mapped[datetime | None]
+    override_ends_at: Mapped[datetime | None]
+    override_start_date: Mapped[date | None]
+    override_end_date: Mapped[date | None]
+    """Inclusive."""
+
+    def override(self) -> Override:
+        """The edit's timing, for ``recurrence``."""
+        return Override(
+            key=self.occurrence_key,
+            starts_at=self.override_starts_at,
+            ends_at=self.override_ends_at,
+            start_date=self.override_start_date,
+            end_date=self.override_end_date,
+        )

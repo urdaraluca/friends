@@ -7,6 +7,7 @@ events), so this module imports no service.
 import uuid
 from collections import defaultdict
 from collections.abc import Iterable
+from dataclasses import dataclass, field
 from zoneinfo import ZoneInfo
 
 from sqlalchemy import select
@@ -14,23 +15,37 @@ from sqlalchemy.orm import Session
 
 from friends_api.features.activities.models import Activity
 from friends_api.features.events.models import EventException
+from friends_api.features.events.recurrence import Override
 from friends_api.features.users.schemas import is_valid_timezone
 
 
-def cancelled_keys(db: Session, event_ids: Iterable[uuid.UUID]) -> dict[uuid.UUID, set[str]]:
-    """The cancelled occurrence keys by event ID (events without any are left out)."""
+@dataclass(slots=True)
+class Exceptions:
+    """One event's exceptions (section 5.6): cancelled keys and edited occurrences."""
+
+    cancelled: set[str] = field(default_factory=set)
+    edits: dict[str, EventException] = field(default_factory=dict)
+    """By occurrence key."""
+
+    def overrides(self) -> dict[str, Override]:
+        return {key: row.override() for key, row in self.edits.items()}
+
+
+NO_EXCEPTIONS = Exceptions()
+
+
+def event_exceptions(db: Session, event_ids: Iterable[uuid.UUID]) -> dict[uuid.UUID, Exceptions]:
+    """The exceptions by event ID (events without any are left out)."""
     wanted = set(event_ids)
     if not wanted:
         return {}
-    keys: defaultdict[uuid.UUID, set[str]] = defaultdict(set)
-    rows = db.execute(
-        select(EventException.event_id, EventException.occurrence_key).where(
-            EventException.event_id.in_(wanted)
-        )
-    )
-    for event_id, key in rows:
-        keys[event_id].add(key)
-    return dict(keys)
+    result: defaultdict[uuid.UUID, Exceptions] = defaultdict(Exceptions)
+    for row in db.scalars(select(EventException).where(EventException.event_id.in_(wanted))):
+        if row.cancelled:
+            result[row.event_id].cancelled.add(row.occurrence_key)
+        else:
+            result[row.event_id].edits[row.occurrence_key] = row
+    return dict(result)
 
 
 def activity_owners(

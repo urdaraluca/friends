@@ -43,6 +43,7 @@ abstract class Occurrence with _$Occurrence {
     required String? activityId,
     @JsonKey(name: 'is_recurring')
     required bool isRecurring,
+    required bool edited,
     @JsonKey(name: 'can_edit')
     required bool canEdit,
   }) = _Occurrence;

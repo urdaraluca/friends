@@ -10,6 +10,7 @@ import '../models/event.dart';
 import '../models/event_kind.dart';
 import '../models/event_update.dart';
 import '../models/event_write.dart';
+import '../models/occurrence_edit_write.dart';
 
 part 'events_client.g.dart';
 
@@ -86,9 +87,20 @@ abstract class EventsClient {
     @Path('event_id') required String eventId,
   });
 
+  /// Edit Occurrence.
+  ///
+  /// Edits one occurrence of a recurring event: its title, its times or its dates.
+  /// The same people as for cancelling. Restore the occurrence to undo it.
+  @PUT('/api/v1/events/{event_id}/occurrences/{occurrence_key}')
+  Future<Event> editOccurrence({
+    @Path('occurrence_key') required String occurrenceKey,
+    @Path('event_id') required String eventId,
+    @Body() required OccurrenceEditWrite body,
+  });
+
   /// Restore Occurrence.
   ///
-  /// Restores a cancelled occurrence (idempotent).
+  /// Restores a cancelled or edited occurrence to the series (idempotent).
   @POST('/api/v1/events/{event_id}/occurrences/{occurrence_key}/restore')
   Future<void> restoreOccurrence({
     @Path('occurrence_key') required String occurrenceKey,

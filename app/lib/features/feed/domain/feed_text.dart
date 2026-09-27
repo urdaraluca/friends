@@ -64,6 +64,7 @@ List<FeedSpan> feedSentence(FeedItem item) {
     'event.updated' => [actor, _plain(' changed '), subject],
     'event.deleted' => [actor, _plain(' called off '), subject],
     'event.occurrence_cancelled' => [actor, _plain(' cancelled one '), subject],
+    'event.occurrence_edited' => [actor, _plain(' changed one '), subject],
     'event.occurrence_restored' => [
       actor,
       _plain(' brought back one '),

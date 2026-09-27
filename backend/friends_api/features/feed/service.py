@@ -37,6 +37,7 @@ FEED_DATA: dict[str, tuple[str, ...]] = {
     "event.deleted": ("kind",),
     "event.occurrence_cancelled": ("occurrence_key",),
     "event.occurrence_restored": ("occurrence_key",),
+    "event.occurrence_edited": ("occurrence_key",),
     "poll.created": ("activity_id",),
     "poll.updated": ("activity_id",),
     "poll.closed": ("activity_id",),

@@ -4160,6 +4160,82 @@
             }
           }
         }
+      },
+      "put": {
+        "tags": [
+          "events"
+        ],
+        "summary": "Edit Occurrence",
+        "description": "Edits one occurrence of a recurring event: its title, its times or its dates.\nThe same people as for cancelling. Restore the occurrence to undo it.",
+        "operationId": "edit_occurrence",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "occurrence_key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Occurrence Key"
+            }
+          },
+          {
+            "name": "event_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Event Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OccurrenceEditWrite"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Event"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Error (RFC 9457 problem details)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (RFC 9457 problem details)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/events/{event_id}/occurrences/{occurrence_key}/restore": {
@@ -4168,7 +4244,7 @@
           "events"
         ],
         "summary": "Restore Occurrence",
-        "description": "Restores a cancelled occurrence (idempotent).",
+        "description": "Restores a cancelled or edited occurrence to the series (idempotent).",
         "operationId": "restore_occurrence",
         "security": [
           {
@@ -6118,6 +6194,13 @@
             "type": "array",
             "title": "Cancelled Occurrence Keys"
           },
+          "edited_occurrences": {
+            "items": {
+              "$ref": "#/components/schemas/OccurrenceEdit"
+            },
+            "type": "array",
+            "title": "Edited Occurrences"
+          },
           "version": {
             "type": "integer",
             "title": "Version"
@@ -6171,6 +6254,7 @@
           "location_name",
           "address",
           "cancelled_occurrence_keys",
+          "edited_occurrences",
           "version",
           "created_by",
           "can_edit",
@@ -7868,6 +7952,10 @@
             "type": "boolean",
             "title": "Is Recurring"
           },
+          "edited": {
+            "type": "boolean",
+            "title": "Edited"
+          },
           "can_edit": {
             "type": "boolean",
             "title": "Can Edit"
@@ -7892,10 +7980,157 @@
           "color",
           "activity_id",
           "is_recurring",
+          "edited",
           "can_edit"
         ],
         "title": "Occurrence",
         "description": "One calendar entry: an occurrence of an event, or a member's birthday."
+      },
+      "OccurrenceEdit": {
+        "properties": {
+          "occurrence_key": {
+            "type": "string",
+            "title": "Occurrence Key"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "starts_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Starts At"
+          },
+          "ends_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ends At"
+          },
+          "start_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Date"
+          },
+          "end_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End Date"
+          }
+        },
+        "type": "object",
+        "required": [
+          "occurrence_key",
+          "title",
+          "starts_at",
+          "ends_at",
+          "start_date",
+          "end_date"
+        ],
+        "title": "OccurrenceEdit",
+        "description": "An edited occurrence; null fields are the series'."
+      },
+      "OccurrenceEditWrite": {
+        "properties": {
+          "title": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "starts_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Starts At"
+          },
+          "ends_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ends At"
+          },
+          "start_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Date"
+          },
+          "end_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End Date"
+          }
+        },
+        "type": "object",
+        "title": "OccurrenceEditWrite",
+        "description": "Edits one occurrence of a recurring event (contract section 5.6). Null keeps the\nseries' value; at least one field must be set.\n\n- ``title``: another title for this occurrence.\n- Timed events: ``starts_at`` and ``ends_at`` together (the same rules as the series').\n- All-day events: ``start_date``, and ``end_date`` (null keeps the series' length)."
       },
       "OccurrenceRef": {
         "properties": {

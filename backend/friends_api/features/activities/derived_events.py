@@ -12,7 +12,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from friends_api.features.activities.models import Activity
-from friends_api.features.events.lookup import cancelled_keys, zone
+from friends_api.features.events.lookup import NO_EXCEPTIONS, event_exceptions, zone
 from friends_api.features.events.models import Event
 from friends_api.features.events.recurrence import next_occurrence
 from friends_api.features.events.schemas import EventRef, OccurrenceRef
@@ -32,7 +32,7 @@ def next_occurrences(
     events = db.scalars(select(Event).where(Event.activity_id.in_(ids))).all()
     if not events:
         return {}
-    cancelled = cancelled_keys(db, (event.id for event in events))
+    exceptions = event_exceptions(db, (event.id for event in events))
     zones = {
         group_id: zone(name)
         for group_id, name in db.execute(
@@ -49,7 +49,8 @@ def next_occurrences(
             event.series(),
             now=now,
             today=now.astimezone(group_zone).date(),
-            cancelled=cancelled.get(event.id, ()),
+            cancelled=exceptions.get(event.id, NO_EXCEPTIONS).cancelled,
+            overrides=exceptions.get(event.id, NO_EXCEPTIONS).overrides(),
         )
         if span is None:
             continue

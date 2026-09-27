@@ -137,6 +137,7 @@ def test_a_weekly_thursday_stays_at_1900_local_across_the_dst_change(
         "color": None,
         "activity_id": None,
         "is_recurring": True,
+        "edited": False,
         "can_edit": True,
     }
 
@@ -411,6 +412,7 @@ def test_member_birthdays_are_virtual_all_day_occurrences(
             "color": None,
             "activity_id": None,
             "is_recurring": True,
+            "edited": False,
             "can_edit": False,
         }
         for key, day in (("20261002", "2026-10-02"), ("20271002", "2027-10-02"))

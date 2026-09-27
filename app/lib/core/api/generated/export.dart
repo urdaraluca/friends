@@ -73,6 +73,8 @@ export 'models/member_settings_update.dart';
 export 'models/my_availability.dart';
 export 'models/my_availability_update.dart';
 export 'models/occurrence.dart';
+export 'models/occurrence_edit.dart';
+export 'models/occurrence_edit_write.dart';
 export 'models/occurrence_ref.dart';
 export 'models/occurrence_source.dart';
 export 'models/password_change.dart';
