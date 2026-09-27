@@ -1804,7 +1804,7 @@ own phone, and the history feeds the recap ("the wheel decided 14 times").
 - Single-occurrence edits through `override_*` columns on `event_exceptions`. Built: section 5.6.
 - Email verification and password reset, once SMTP exists.
 - A Postgres move. UUIDs, UTC instants and plain SQL keep it cheap; `COLLATE NOCASE` becomes `citext`
-  or `lower()` indexes.
+  or `lower()` indexes. Every SQLite-specific spot and the data move: `docs/postgres.md`.
 
 ---
 
