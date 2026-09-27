@@ -5,6 +5,7 @@ import 'package:friends/core/auth/auth_controller.dart';
 import 'package:friends/core/forms/field_errors.dart';
 import 'package:friends/core/forms/validators.dart';
 import 'package:friends/core/widgets/form_widgets.dart';
+import 'package:friends/l10n/l10n.dart';
 import 'package:material_ui/material_ui.dart';
 
 /// `POST /me/password`. Other devices are signed out; this one keeps going
@@ -53,13 +54,8 @@ class _ChangePasswordFormState extends ConsumerState<ChangePasswordForm>
       _current.clear();
       _new.clear();
       _formKey.currentState!.reset();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Password changed. Your other devices have been signed out.',
-          ),
-        ),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(context.l10n.passwordChanged)));
     } on ApiException catch (e) {
       if (mounted) {
         showServerError(e, fields: _fields, codeFields: _codeFields);
@@ -83,7 +79,7 @@ class _ChangePasswordFormState extends ConsumerState<ChangePasswordForm>
             ],
             PasswordFormField(
               controller: _current,
-              label: 'Current password',
+              label: context.l10n.currentPassword,
               textInputAction: TextInputAction.next,
               validator: Validators.currentPassword,
               forceErrorText: serverError('current_password'),
@@ -92,8 +88,8 @@ class _ChangePasswordFormState extends ConsumerState<ChangePasswordForm>
             const SizedBox(height: 12),
             PasswordFormField(
               controller: _new,
-              label: 'New password',
-              helperText: 'At least 10 characters',
+              label: context.l10n.newPassword,
+              helperText: context.l10n.passwordHelper,
               autofillHints: const [AutofillHints.newPassword],
               validator: Validators.newPassword,
               forceErrorText: serverError('new_password'),
@@ -101,7 +97,7 @@ class _ChangePasswordFormState extends ConsumerState<ChangePasswordForm>
             ),
             const SizedBox(height: 16),
             SubmitButton(
-              label: 'Change password',
+              label: context.l10n.changePassword,
               busy: _saving,
               onPressed: _save,
             ),

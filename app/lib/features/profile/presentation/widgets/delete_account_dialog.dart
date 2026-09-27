@@ -5,6 +5,7 @@ import 'package:friends/core/auth/auth_controller.dart';
 import 'package:friends/core/forms/field_errors.dart';
 import 'package:friends/core/forms/validators.dart';
 import 'package:friends/core/widgets/form_widgets.dart';
+import 'package:friends/l10n/l10n.dart';
 import 'package:material_ui/material_ui.dart';
 
 /// Confirms account deletion with the password (`POST /me/deletion`). On
@@ -55,16 +56,14 @@ class _DeleteAccountDialogState extends ConsumerState<DeleteAccountDialog>
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     return AlertDialog(
-      title: const Text('Delete your account?'),
+      title: Text(context.l10n.deleteAccountTitle),
       content: Form(
         key: _formKey,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text(
-              'This cannot be undone. Enter your password to confirm.',
-            ),
+            Text(context.l10n.deleteAccountConfirm),
             const SizedBox(height: 16),
             if (formError case final message?) ...[
               FormMessageBanner(message: message),
@@ -72,7 +71,7 @@ class _DeleteAccountDialogState extends ConsumerState<DeleteAccountDialog>
             ],
             PasswordFormField(
               controller: _password,
-              label: 'Password',
+              label: context.l10n.password,
               validator: Validators.currentPassword,
               forceErrorText: serverError('password'),
               onChanged: (_) => clearServerError('password'),
@@ -83,7 +82,7 @@ class _DeleteAccountDialogState extends ConsumerState<DeleteAccountDialog>
       actions: [
         TextButton(
           onPressed: _deleting ? null : () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(context.l10n.cancel),
         ),
         FilledButton(
           style: FilledButton.styleFrom(
@@ -91,7 +90,7 @@ class _DeleteAccountDialogState extends ConsumerState<DeleteAccountDialog>
             foregroundColor: colors.onError,
           ),
           onPressed: _deleting ? null : _delete,
-          child: const Text('Delete account'),
+          child: Text(context.l10n.deleteAccount),
         ),
       ],
     );

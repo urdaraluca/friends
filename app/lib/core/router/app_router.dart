@@ -28,6 +28,7 @@ import 'package:friends/features/profile/presentation/profile_screen.dart';
 import 'package:friends/features/recap/presentation/recap_screen.dart';
 import 'package:friends/features/wheel/presentation/wheel_history_screen.dart';
 import 'package:friends/features/wheel/presentation/wheel_screen.dart';
+import 'package:friends/l10n/l10n.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -319,16 +320,16 @@ class NotFoundScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Not found')),
+      appBar: AppBar(title: Text(context.l10n.notFound)),
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text("This page doesn't exist."),
+            Text(context.l10n.pageNotFound),
             const SizedBox(height: 16),
             FilledButton(
               onPressed: () => context.go(Routes.home),
-              child: const Text('Go home'),
+              child: Text(context.l10n.goHome),
             ),
           ],
         ),

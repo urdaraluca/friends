@@ -1,12 +1,30 @@
 import 'package:friends/core/api/generated/export.dart';
 import 'package:friends/core/router/routes.dart';
+import 'package:friends/features/backlog/domain/activity_rules.dart';
+import 'package:friends/l10n/l10n.dart';
 import 'package:intl/intl.dart';
 
 /// A piece of a feed sentence; names and titles are bold.
 typedef FeedSpan = ({String text, bool bold});
 
-FeedSpan _plain(String text) => (text: text, bold: false);
-FeedSpan _bold(String text) => (text: text, bold: true);
+// Around a bold value inside a translated sentence; private-use characters,
+// so no name or title contains them.
+const _boldStart = '\u{E000}';
+const _boldEnd = '\u{E001}';
+
+String _bold(String text) => '$_boldStart$text$_boldEnd';
+
+/// [sentence] cut into spans: the parts marked by [_bold] bold, the rest
+/// plain. Each language orders the parts its own way.
+List<FeedSpan> _spans(String sentence) => [
+  for (final (index, part) in sentence.split(_boldStart).indexed)
+    if (index == 0)
+      (text: part, bold: false)
+    else ...[
+      (text: part.split(_boldEnd).first, bold: true),
+      (text: part.split(_boldEnd).skip(1).join(), bold: false),
+    ],
+].where((span) => span.text.isNotEmpty).toList();
 
 String? _data(FeedItem item, String key) {
   final data = item.data;
@@ -15,78 +33,71 @@ String? _data(FeedItem item, String key) {
   return value is String ? value : value?.toString();
 }
 
-const _statusLabels = {
-  'idea': 'Ideas',
-  'planning': 'Planning',
-  'scheduled': 'Scheduled',
-  'done': 'Done',
-  'dropped': 'Dropped',
+/// The column a status change moved an idea to, e.g. "Planning".
+String _statusLabel(String to) => switch (ActivityStatus.fromJson(to)) {
+  ActivityStatus.idea => currentL10n.feedStatusIdeas,
+  ActivityStatus.$unknown => to,
+  final status => status.label,
 };
 
-/// The sentence for [item]: "**Ana** added **Picnic**".
+/// The sentence for [item]: "**Ana** added **Picnic**", in the app's
+/// language.
 List<FeedSpan> feedSentence(FeedItem item) {
-  final actor = _bold(item.actor?.displayName ?? 'Someone');
+  final l10n = currentL10n;
+  final actor = _bold(item.actor?.displayName ?? l10n.someone);
   final title = item.subjectTitle;
-  final subject = _bold(title ?? 'something');
-  final quoted = _bold('“${title ?? '…'}”');
-  return switch (item.action) {
-    'group.created' => [actor, _plain(' created the group')],
-    'group.updated' => [actor, _plain(' updated the group')],
-    'group.ownership_transferred' => [
+  final subject = _bold(title ?? l10n.something);
+  final poll = _bold(l10n.quoted(title ?? '…'));
+  return _spans(switch (item.action) {
+    'group.created' => l10n.feedGroupCreated(actor),
+    'group.updated' => l10n.feedGroupUpdated(actor),
+    'group.ownership_transferred' => l10n.feedOwnershipTransferred(
       actor,
-      _plain(' made '),
       subject,
-      _plain(' the owner'),
-    ],
-    'member.joined' => [subject, _plain(' joined the group')],
-    'member.left' => [subject, _plain(' left the group')],
-    'member.removed' => [actor, _plain(' removed '), subject],
-    'member.role_changed' => [
-      actor,
-      _plain(' made '),
-      subject,
-      _plain(_data(item, 'to') == 'admin' ? ' an admin' : ' a member'),
-    ],
-    'activity.created' => [actor, _plain(' added '), subject],
-    'activity.updated' => [actor, _plain(' edited '), subject],
+    ),
+    'member.joined' => l10n.feedMemberJoined(subject),
+    'member.left' => l10n.feedMemberLeft(subject),
+    'member.removed' => l10n.feedMemberRemoved(actor, subject),
+    'member.role_changed' =>
+      _data(item, 'to') == 'admin'
+          ? l10n.feedMadeAdmin(actor, subject)
+          : l10n.feedMadeMember(actor, subject),
+    'activity.created' => l10n.feedActivityCreated(actor, subject),
+    'activity.updated' => l10n.feedActivityUpdated(actor, subject),
     'activity.status_changed' => switch (_data(item, 'to')) {
-      'done' => [actor, _plain(' marked '), subject, _plain(' as done')],
-      final to => [
+      'done' => l10n.feedActivityDone(actor, subject),
+      final to => l10n.feedActivityMoved(
         actor,
-        _plain(' moved '),
         subject,
-        _plain(' to ${_statusLabels[to] ?? to}'),
-      ],
+        to == null ? '' : _statusLabel(to),
+      ),
     },
-    'activity.deleted' => [actor, _plain(' deleted '), subject],
-    'activity.interest_added' => [actor, _plain(' is interested in '), subject],
-    'event.created' => [actor, _plain(' planned '), subject],
-    'event.updated' => [actor, _plain(' changed '), subject],
-    'event.deleted' => [actor, _plain(' called off '), subject],
-    'event.occurrence_cancelled' => [actor, _plain(' cancelled one '), subject],
-    'event.occurrence_edited' => [actor, _plain(' changed one '), subject],
-    'event.occurrence_restored' => [
+    'activity.deleted' => l10n.feedActivityDeleted(actor, subject),
+    'activity.interest_added' => l10n.feedInterestAdded(actor, subject),
+    'event.created' => l10n.feedEventCreated(actor, subject),
+    'event.updated' => l10n.feedEventUpdated(actor, subject),
+    'event.deleted' => l10n.feedEventDeleted(actor, subject),
+    'event.occurrence_cancelled' => l10n.feedOccurrenceCancelled(
       actor,
-      _plain(' brought back one '),
       subject,
-    ],
-    'poll.created' => [actor, _plain(' asked '), quoted],
-    'poll.updated' => [actor, _plain(' edited the poll '), quoted],
-    'poll.closed' => [actor, _plain(' closed the poll '), quoted],
-    'poll.reopened' => [actor, _plain(' reopened the poll '), quoted],
-    'poll.deleted' => [actor, _plain(' deleted the poll '), quoted],
-    'poll.option_added' => [
+    ),
+    'event.occurrence_edited' => l10n.feedOccurrenceEdited(actor, subject),
+    'event.occurrence_restored' => l10n.feedOccurrenceRestored(actor, subject),
+    'poll.created' => l10n.feedPollCreated(actor, poll),
+    'poll.updated' => l10n.feedPollUpdated(actor, poll),
+    'poll.closed' => l10n.feedPollClosed(actor, poll),
+    'poll.reopened' => l10n.feedPollReopened(actor, poll),
+    'poll.deleted' => l10n.feedPollDeleted(actor, poll),
+    'poll.option_added' => l10n.feedOptionAdded(
       actor,
-      _plain(' added '),
-      _bold(_data(item, 'label') ?? 'an option'),
-      _plain(' to '),
-      quoted,
-    ],
-    'poll.voted' => [actor, _plain(' voted in '), quoted],
-    'wheel.spun' => [actor, _plain(' spun the wheel: '), subject],
-    'wheel.accepted' => [actor, _plain(" said let's do "), subject],
-    _ => [actor, _plain(' did something')],
-  };
+      _bold(_data(item, 'label') ?? l10n.anOption),
+      poll,
+    ),
+    'poll.voted' => l10n.feedPollVoted(actor, poll),
+    'wheel.spun' => l10n.feedWheelSpun(actor, subject),
+    'wheel.accepted' => l10n.feedWheelAccepted(actor, subject),
+    _ => l10n.feedSomething(actor),
+  });
 }
 
 /// The screen [item] opens, or null.
@@ -108,15 +119,16 @@ String? feedTarget(String groupId, FeedItem item) {
 
 /// "just now", "5 min ago", "3 h ago", "yesterday", else the date.
 String feedTime(DateTime at, DateTime now) {
+  final l10n = currentL10n;
   final local = at.toLocal();
   final elapsed = now.difference(local);
-  if (elapsed.inMinutes < 1) return 'just now';
-  if (elapsed.inHours < 1) return '${elapsed.inMinutes} min ago';
+  if (elapsed.inMinutes < 1) return l10n.justNow;
+  if (elapsed.inHours < 1) return l10n.minutesAgo(elapsed.inMinutes);
   final today = DateTime(now.year, now.month, now.day);
   final day = DateTime(local.year, local.month, local.day);
-  if (day == today) return '${elapsed.inHours} h ago';
+  if (day == today) return l10n.hoursAgo(elapsed.inHours);
   if (day == DateTime(today.year, today.month, today.day - 1)) {
-    return 'yesterday, ${DateFormat.Hm().format(local)}';
+    return l10n.yesterdayAt(DateFormat.Hm().format(local));
   }
   return local.year == now.year
       ? DateFormat('EEE d MMM').format(local)

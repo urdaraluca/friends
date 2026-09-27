@@ -11,6 +11,7 @@ import 'package:friends/core/widgets/async_value_view.dart';
 import 'package:friends/features/profile/presentation/widgets/change_password_form.dart';
 import 'package:friends/features/profile/presentation/widgets/delete_account_dialog.dart';
 import 'package:friends/features/profile/presentation/widgets/profile_form.dart';
+import 'package:friends/l10n/l10n.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -28,11 +29,11 @@ class ProfileScreen extends ConsumerWidget {
         leading: context.canPop()
             ? null
             : IconButton(
-                tooltip: 'Home',
+                tooltip: context.l10n.home,
                 icon: const Icon(Icons.home_outlined),
                 onPressed: () => context.go(Routes.home),
               ),
-        title: const Text('Profile'),
+        title: Text(context.l10n.profile),
       ),
       body: user == null
           ? const LoadingView()
@@ -43,33 +44,34 @@ class ProfileScreen extends ConsumerWidget {
                   padding: const EdgeInsets.all(16),
                   children: [
                     _Section(
-                      title: 'Profile',
+                      title: context.l10n.profile,
                       subtitle: user.email,
                       child: ProfileForm(key: ValueKey(user.id), user: user),
                     ),
-                    const _Section(
-                      title: 'Password',
-                      child: ChangePasswordForm(),
+                    _Section(
+                      title: context.l10n.passwordSection,
+                      child: const ChangePasswordForm(),
                     ),
-                    const _Section(title: 'Sessions', child: _SessionActions()),
-                    const _Section(
-                      title: 'Delete account',
-                      child: _DeleteAccount(),
+                    _Section(
+                      title: context.l10n.sessions,
+                      child: const _SessionActions(),
+                    ),
+                    _Section(
+                      title: context.l10n.deleteAccount,
+                      child: const _DeleteAccount(),
                     ),
                     ListTile(
                       leading: const Icon(Icons.edit_calendar_outlined),
-                      title: const Text('My availability'),
-                      subtitle: const Text(
-                        'When you are free, for all your groups',
-                      ),
+                      title: Text(context.l10n.myAvailability),
+                      subtitle: Text(context.l10n.myAvailabilityHelp),
                       trailing: const Icon(Icons.chevron_right),
                       onTap: () =>
                           unawaited(context.push(Routes.myAvailability)),
                     ),
                     ListTile(
                       leading: const Icon(Icons.privacy_tip_outlined),
-                      title: const Text('Privacy'),
-                      subtitle: const Text('What Friends stores, and why'),
+                      title: Text(context.l10n.privacy),
+                      subtitle: Text(context.l10n.privacyHelp),
                       trailing: const Icon(Icons.open_in_new, size: 18),
                       onTap: () =>
                           unawaited(openLink(context, ref, privacyPolicyUrl())),
@@ -138,18 +140,16 @@ class _SessionActionsState extends ConsumerState<_SessionActions> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Log out everywhere?'),
-        content: const Text(
-          'This signs you out on every device, including this one.',
-        ),
+        title: Text(context.l10n.logOutEverywhereTitle),
+        content: Text(context.l10n.logOutEverywhereMessage),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+            child: Text(context.l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Log out everywhere'),
+            child: Text(context.l10n.logOutEverywhere),
           ),
         ],
       ),
@@ -166,12 +166,12 @@ class _SessionActionsState extends ConsumerState<_SessionActions> {
         OutlinedButton.icon(
           onPressed: _busy ? null : () => unawaited(_run((a) => a.logout())),
           icon: const Icon(Icons.logout),
-          label: const Text('Log out'),
+          label: Text(context.l10n.logOut),
         ),
         OutlinedButton.icon(
           onPressed: _busy ? null : () => unawaited(_logoutEverywhere()),
           icon: const Icon(Icons.devices),
-          label: const Text('Log out everywhere'),
+          label: Text(context.l10n.logOutEverywhere),
         ),
       ],
     );
@@ -187,11 +187,7 @@ class _DeleteAccount extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Your groups go to another member (or are deleted if you are '
-          'alone in them), and your profile is anonymized. What you added '
-          'stays, shown as "Deleted user".',
-        ),
+        Text(context.l10n.deleteAccountHelp),
         const SizedBox(height: 12),
         FilledButton.icon(
           style: FilledButton.styleFrom(
@@ -203,7 +199,7 @@ class _DeleteAccount extends StatelessWidget {
             builder: (context) => const DeleteAccountDialog(),
           ),
           icon: const Icon(Icons.delete_forever),
-          label: const Text('Delete my account'),
+          label: Text(context.l10n.deleteMyAccount),
         ),
       ],
     );

@@ -6,6 +6,7 @@ import 'package:friends/core/router/routes.dart';
 import 'package:friends/core/widgets/async_value_view.dart';
 import 'package:friends/features/feed/data/feed_providers.dart';
 import 'package:friends/features/feed/domain/feed_text.dart';
+import 'package:friends/l10n/l10n.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -26,11 +27,11 @@ class FeedScreen extends ConsumerWidget {
         leading: context.canPop()
             ? null
             : IconButton(
-                tooltip: 'Back',
+                tooltip: context.l10n.back,
                 icon: const Icon(Icons.arrow_back),
                 onPressed: () => context.go(Routes.groupHub(groupId)),
               ),
-        title: const Text("What's new"),
+        title: Text(context.l10n.whatsNew),
       ),
       body: AsyncValueView(
         value: feed,

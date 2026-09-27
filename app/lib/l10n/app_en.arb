@@ -1668,5 +1668,411 @@
   "nextYear": "Next year",
   "openAction": "Open",
   "recapReady": "Your recap is ready: see the highlights",
-  "dismiss": "Dismiss"
+  "dismiss": "Dismiss",
+  "something": "something",
+  "anOption": "an option",
+  "quoted": "“{text}”",
+  "@quoted": {
+    "placeholders": {
+      "text": {
+        "type": "String"
+      }
+    }
+  },
+  "feedStatusIdeas": "Ideas",
+  "feedGroupCreated": "{actor} created the group",
+  "@feedGroupCreated": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      }
+    }
+  },
+  "feedGroupUpdated": "{actor} updated the group",
+  "@feedGroupUpdated": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      }
+    }
+  },
+  "feedOwnershipTransferred": "{actor} made {subject} the owner",
+  "@feedOwnershipTransferred": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      },
+      "subject": {
+        "type": "String"
+      }
+    }
+  },
+  "feedMemberJoined": "{subject} joined the group",
+  "@feedMemberJoined": {
+    "placeholders": {
+      "subject": {
+        "type": "String"
+      }
+    }
+  },
+  "feedMemberLeft": "{subject} left the group",
+  "@feedMemberLeft": {
+    "placeholders": {
+      "subject": {
+        "type": "String"
+      }
+    }
+  },
+  "feedMemberRemoved": "{actor} removed {subject}",
+  "@feedMemberRemoved": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      },
+      "subject": {
+        "type": "String"
+      }
+    }
+  },
+  "feedMadeAdmin": "{actor} made {subject} an admin",
+  "@feedMadeAdmin": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      },
+      "subject": {
+        "type": "String"
+      }
+    }
+  },
+  "feedMadeMember": "{actor} made {subject} a member",
+  "@feedMadeMember": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      },
+      "subject": {
+        "type": "String"
+      }
+    }
+  },
+  "feedActivityCreated": "{actor} added {subject}",
+  "@feedActivityCreated": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      },
+      "subject": {
+        "type": "String"
+      }
+    }
+  },
+  "feedActivityUpdated": "{actor} edited {subject}",
+  "@feedActivityUpdated": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      },
+      "subject": {
+        "type": "String"
+      }
+    }
+  },
+  "feedActivityDone": "{actor} marked {subject} as done",
+  "@feedActivityDone": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      },
+      "subject": {
+        "type": "String"
+      }
+    }
+  },
+  "feedActivityMoved": "{actor} moved {subject} to {status}",
+  "@feedActivityMoved": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      },
+      "subject": {
+        "type": "String"
+      },
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "feedActivityDeleted": "{actor} deleted {subject}",
+  "@feedActivityDeleted": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      },
+      "subject": {
+        "type": "String"
+      }
+    }
+  },
+  "feedInterestAdded": "{actor} is interested in {subject}",
+  "@feedInterestAdded": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      },
+      "subject": {
+        "type": "String"
+      }
+    }
+  },
+  "feedEventCreated": "{actor} planned {subject}",
+  "@feedEventCreated": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      },
+      "subject": {
+        "type": "String"
+      }
+    }
+  },
+  "feedEventUpdated": "{actor} changed {subject}",
+  "@feedEventUpdated": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      },
+      "subject": {
+        "type": "String"
+      }
+    }
+  },
+  "feedEventDeleted": "{actor} called off {subject}",
+  "@feedEventDeleted": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      },
+      "subject": {
+        "type": "String"
+      }
+    }
+  },
+  "feedOccurrenceCancelled": "{actor} cancelled one {subject}",
+  "@feedOccurrenceCancelled": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      },
+      "subject": {
+        "type": "String"
+      }
+    }
+  },
+  "feedOccurrenceEdited": "{actor} changed one {subject}",
+  "@feedOccurrenceEdited": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      },
+      "subject": {
+        "type": "String"
+      }
+    }
+  },
+  "feedOccurrenceRestored": "{actor} brought back one {subject}",
+  "@feedOccurrenceRestored": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      },
+      "subject": {
+        "type": "String"
+      }
+    }
+  },
+  "feedPollCreated": "{actor} asked {poll}",
+  "@feedPollCreated": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      },
+      "poll": {
+        "type": "String"
+      }
+    }
+  },
+  "feedPollUpdated": "{actor} edited the poll {poll}",
+  "@feedPollUpdated": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      },
+      "poll": {
+        "type": "String"
+      }
+    }
+  },
+  "feedPollClosed": "{actor} closed the poll {poll}",
+  "@feedPollClosed": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      },
+      "poll": {
+        "type": "String"
+      }
+    }
+  },
+  "feedPollReopened": "{actor} reopened the poll {poll}",
+  "@feedPollReopened": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      },
+      "poll": {
+        "type": "String"
+      }
+    }
+  },
+  "feedPollDeleted": "{actor} deleted the poll {poll}",
+  "@feedPollDeleted": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      },
+      "poll": {
+        "type": "String"
+      }
+    }
+  },
+  "feedOptionAdded": "{actor} added {option} to {poll}",
+  "@feedOptionAdded": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      },
+      "option": {
+        "type": "String"
+      },
+      "poll": {
+        "type": "String"
+      }
+    }
+  },
+  "feedPollVoted": "{actor} voted in {poll}",
+  "@feedPollVoted": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      },
+      "poll": {
+        "type": "String"
+      }
+    }
+  },
+  "feedWheelSpun": "{actor} spun the wheel: {subject}",
+  "@feedWheelSpun": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      },
+      "subject": {
+        "type": "String"
+      }
+    }
+  },
+  "feedWheelAccepted": "{actor} said let's do {subject}",
+  "@feedWheelAccepted": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      },
+      "subject": {
+        "type": "String"
+      }
+    }
+  },
+  "feedSomething": "{actor} did something",
+  "@feedSomething": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      }
+    }
+  },
+  "justNow": "just now",
+  "minutesAgo": "{count} min ago",
+  "@minutesAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "hoursAgo": "{count} h ago",
+  "@hoursAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "yesterdayAt": "yesterday, {time}",
+  "@yesterdayAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "defaultCurrency": "EUR",
+  "passwordSection": "Password",
+  "sessions": "Sessions",
+  "deleteAccount": "Delete account",
+  "myAvailabilityHelp": "When you are free, for all your groups",
+  "privacy": "Privacy",
+  "privacyHelp": "What Friends stores, and why",
+  "logOutEverywhereTitle": "Log out everywhere?",
+  "logOutEverywhereMessage": "This signs you out on every device, including this one.",
+  "logOutEverywhere": "Log out everywhere",
+  "logOut": "Log out",
+  "deleteAccountHelp": "Your groups go to another member (or are deleted if you are alone in them), and your profile is anonymized. What you added stays, shown as \"Deleted user\".",
+  "deleteMyAccount": "Delete my account",
+  "passwordChanged": "Password changed. Your other devices have been signed out.",
+  "currentPassword": "Current password",
+  "newPassword": "New password",
+  "changePassword": "Change password",
+  "deleteAccountTitle": "Delete your account?",
+  "deleteAccountConfirm": "This cannot be undone. Enter your password to confirm.",
+  "birthdayBothOrNeither": "Pick both a month and a day, or neither.",
+  "birthdayNeedsDay": "Pick a month and a day for the year.",
+  "birthdayYearRange": "Enter a year between 1900 and {max}.",
+  "@birthdayYearRange": {
+    "placeholders": {
+      "max": {
+        "type": "String"
+      }
+    }
+  },
+  "birthdayNoSuchDay": "That day does not exist in {year}.",
+  "@birthdayNoSuchDay": {
+    "placeholders": {
+      "year": {
+        "type": "String"
+      }
+    }
+  },
+  "profileSaved": "Profile saved",
+  "birthdayHelp": "Members see the day and month in their group calendars, never the year. To hide it in a group, turn off \"Show my birthday\" in that group's Group tab.",
+  "monthLabel": "Month",
+  "dayLabel": "Day",
+  "yearLabel": "Year",
+  "language": "Language",
+  "deviceLanguage": "The device's language",
+  "languageHelp": "For the app; emails and server messages stay in English",
+  "saveProfile": "Save profile",
+  "notFound": "Not found",
+  "pageNotFound": "This page doesn't exist.",
+  "goHome": "Go home"
 }

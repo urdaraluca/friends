@@ -136,7 +136,9 @@ class _GroupFormState extends ConsumerState<GroupForm> with ServerErrorsMixin {
     _name = TextEditingController(text: group?.name);
     _description = TextEditingController(text: group?.description);
     _emoji = TextEditingController(text: group?.emoji);
-    _currency = TextEditingController(text: group?.currency ?? 'EUR');
+    _currency = TextEditingController(
+      text: group?.currency ?? currentL10n.defaultCurrency,
+    );
     _timezone = TextEditingController(text: group?.timezone);
     _color = group == null ? groupColorPresets.keys.first : group.color;
     _membersCanInvite = group?.membersCanInvite ?? true;

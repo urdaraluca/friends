@@ -8,12 +8,14 @@ import 'package:friends/core/auth/auth_controller.dart';
 import 'package:friends/core/device/device_info.dart';
 import 'package:friends/core/forms/field_errors.dart';
 import 'package:friends/core/forms/validators.dart';
+import 'package:friends/core/i18n/app_locale.dart';
 import 'package:friends/core/widgets/form_widgets.dart';
 import 'package:friends/l10n/l10n.dart';
+import 'package:intl/intl.dart';
 import 'package:material_ui/material_ui.dart';
 
-/// Edits display name, birthday (month and day, optional year) and timezone
-/// with `PUT /me`.
+/// Edits display name, birthday (month and day, optional year), timezone
+/// and the app's language with `PUT /me`.
 class ProfileForm extends ConsumerStatefulWidget {
   const new({required this.user, super.key});
 
@@ -25,20 +27,12 @@ class ProfileForm extends ConsumerStatefulWidget {
 
 class _ProfileFormState extends ConsumerState<ProfileForm>
     with ServerErrorsMixin {
-  static const _fields = {'display_name', 'birthday', 'timezone'};
-  static const _months = [
-    'January',
-    'February',
-    'March',
-    'April',
-    'May',
-    'June',
-    'July',
-    'August',
-    'September',
-    'October',
-    'November',
-    'December',
+  static const _fields = {'display_name', 'birthday', 'timezone', 'locale'};
+
+  /// January to December, in the app's language.
+  static List<String> get _months => [
+    for (final month in DateFormat.MMMM().dateSymbols.STANDALONEMONTHS)
+      toBeginningOfSentenceCase(month),
   ];
 
   final _formKey = GlobalKey<FormState>();
@@ -47,6 +41,9 @@ class _ProfileFormState extends ConsumerState<ProfileForm>
   late final TextEditingController _timezone;
   int? _month;
   int? _day;
+
+  /// One of [appLanguages], or null for the device's language.
+  String? _locale;
   bool _saving = false;
 
   @override
@@ -58,6 +55,8 @@ class _ProfileFormState extends ConsumerState<ProfileForm>
     _timezone = TextEditingController(text: user.timezone);
     _month = user.birthday?.month;
     _day = user.birthday?.day;
+    final language = user.locale?.split(RegExp('[-_]')).first.toLowerCase();
+    _locale = appLanguages.containsKey(language) ? language : null;
   }
 
   @override
@@ -89,15 +88,15 @@ class _ProfileFormState extends ConsumerState<ProfileForm>
   String? _validateBirthday() {
     final year = _year.text.trim();
     if ((_month == null) != (_day == null)) {
-      return 'Pick both a month and a day, or neither.';
+      return context.l10n.birthdayBothOrNeither;
     }
     if (year.isEmpty) return null;
     final value = int.tryParse(year);
-    if (_month == null) return 'Pick a month and a day for the year.';
+    if (_month == null) return context.l10n.birthdayNeedsDay;
     if (value == null || value < 1900 || value > DateTime.now().year) {
-      return 'Enter a year between 1900 and ${DateTime.now().year}.';
+      return context.l10n.birthdayYearRange('${DateTime.now().year}');
     }
-    if (_day! > _maxDay) return 'That day does not exist in $value.';
+    if (_day! > _maxDay) return context.l10n.birthdayNoSuchDay('$value');
     return null;
   }
 
@@ -117,15 +116,15 @@ class _ProfileFormState extends ConsumerState<ProfileForm>
               birthday: month == null || day == null
                   ? null
                   : Birthday(month: month, day: day, year: _yearValue),
+              locale: _locale,
               // PUT is the complete new state: keep what this form doesn't
               // edit.
-              locale: widget.user.locale,
               avatarUrl: widget.user.avatarUrl,
             ),
           );
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('Profile saved')));
+            .showSnackBar(SnackBar(content: Text(context.l10n.profileSaved)));
       }
     } on ApiException catch (e) {
       if (mounted) showServerError(e, fields: _fields);
@@ -149,7 +148,7 @@ class _ProfileFormState extends ConsumerState<ProfileForm>
           ],
           TextFormField(
             controller: _displayName,
-            decoration: const InputDecoration(labelText: 'Display name'),
+            decoration: InputDecoration(labelText: context.l10n.displayName),
             textCapitalization: TextCapitalization.words,
             validator: Validators.required(
               context.l10n.enterDisplayName,
@@ -159,12 +158,13 @@ class _ProfileFormState extends ConsumerState<ProfileForm>
             onChanged: (_) => clearServerError('display_name'),
           ),
           const SizedBox(height: 16),
-          Text('Birthday', style: Theme.of(context).textTheme.labelLarge),
+          Text(
+            context.l10n.birthday,
+            style: Theme.of(context).textTheme.labelLarge,
+          ),
           const SizedBox(height: 4),
           Text(
-            'Members see the day and month in their group calendars, never '
-            'the year. To hide it in a group, turn off "Show my birthday" in '
-            "that group's Group tab.",
+            context.l10n.birthdayHelp,
             style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(height: 8),
@@ -175,11 +175,13 @@ class _ProfileFormState extends ConsumerState<ProfileForm>
                 flex: 3,
                 child: DropdownButtonFormField<int?>(
                   initialValue: _month,
-                  decoration: const InputDecoration(labelText: 'Month'),
+                  decoration: InputDecoration(
+                    labelText: context.l10n.monthLabel,
+                  ),
                   items: [
                     const DropdownMenuItem(child: Text('—')),
-                    for (var m = 1; m <= 12; m++)
-                      DropdownMenuItem(value: m, child: Text(_months[m - 1])),
+                    for (final (index, name) in _months.indexed)
+                      DropdownMenuItem(value: index + 1, child: Text(name)),
                   ],
                   onChanged: (value) {
                     clearServerError('birthday');
@@ -200,7 +202,7 @@ class _ProfileFormState extends ConsumerState<ProfileForm>
                   // Rebuilt when the month changes, so the days fit it.
                   key: ValueKey('day-$_month'),
                   initialValue: _day,
-                  decoration: const InputDecoration(labelText: 'Day'),
+                  decoration: InputDecoration(labelText: context.l10n.dayLabel),
                   items: [
                     const DropdownMenuItem(child: Text('—')),
                     for (var d = 1; d <= _daysInMonth; d++)
@@ -217,9 +219,9 @@ class _ProfileFormState extends ConsumerState<ProfileForm>
                 flex: 2,
                 child: TextFormField(
                   controller: _year,
-                  decoration: const InputDecoration(
-                    labelText: 'Year',
-                    helperText: 'Optional',
+                  decoration: InputDecoration(
+                    labelText: context.l10n.yearLabel,
+                    helperText: context.l10n.optional,
                   ),
                   keyboardType: TextInputType.number,
                   inputFormatters: [
@@ -253,9 +255,9 @@ class _ProfileFormState extends ConsumerState<ProfileForm>
           const SizedBox(height: 16),
           TextFormField(
             controller: _timezone,
-            decoration: const InputDecoration(
-              labelText: 'Timezone',
-              helperText: 'IANA name, e.g. Europe/Bucharest',
+            decoration: InputDecoration(
+              labelText: context.l10n.timezoneLabel,
+              helperText: context.l10n.timezoneHelper,
             ),
             autocorrect: false,
             validator: Validators.required(context.l10n.enterTimezone, max: 64),
@@ -274,11 +276,35 @@ class _ProfileFormState extends ConsumerState<ProfileForm>
                   setState(() => _timezone.text = deviceZone);
                 },
                 icon: const Icon(Icons.my_location),
-                label: Text('Use device timezone ($deviceZone)'),
+                label: Text(context.l10n.useDeviceTimezone(deviceZone)),
               ),
             ),
           const SizedBox(height: 16),
-          SubmitButton(label: 'Save profile', busy: _saving, onPressed: _save),
+          DropdownButtonFormField<String?>(
+            initialValue: _locale,
+            decoration: InputDecoration(
+              labelText: context.l10n.language,
+              helperText: context.l10n.languageHelp,
+              errorText: serverError('locale'),
+            ),
+            items: [
+              DropdownMenuItem(child: Text(context.l10n.deviceLanguage)),
+              // Each language in its own name.
+              for (final MapEntry(key: tag, value: name)
+                  in appLanguages.entries)
+                DropdownMenuItem(value: tag, child: Text(name)),
+            ],
+            onChanged: (value) {
+              clearServerError('locale');
+              setState(() => _locale = value);
+            },
+          ),
+          const SizedBox(height: 16),
+          SubmitButton(
+            label: context.l10n.saveProfile,
+            busy: _saving,
+            onPressed: _save,
+          ),
         ],
       ),
     );
