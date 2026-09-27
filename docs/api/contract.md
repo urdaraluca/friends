@@ -419,7 +419,7 @@ users
   birthday_day       smallint null
   birthday_year      smallint null          -- optional; only the user ever sees it
   timezone           varchar(64) not null default 'UTC'
-  locale             varchar(16) null       -- BCP 47; informational in the MVP (English only)
+  locale             varchar(16) null       -- BCP 47; the app's language (section 16)
   token_version      int not null default 0 -- incremented = every access token dies at once
   last_login_at      ts null                -- written by POST /auth/login only
   deleted_at         ts null
@@ -2102,3 +2102,20 @@ FeedItem { id: uuid, action: str, actor: UserPublic | null, subject_type: str | 
            data: object, created_at: ts }
 FeedPage { items: FeedItem[], next_cursor: str | null }
 ```
+
+---
+
+## 16. Languages (issue #18)
+
+The app speaks English and Romanian. The server stays language-neutral:
+- `users.locale` (`Me.locale`, set with `PUT /me`) stores the language the user picked in the
+  profile, as a BCP 47 tag (`en`, `ro`), or null to follow the device. The server stores it as given
+  and never interprets it.
+- Error bodies stay in English. The app shows its own message per `code` (section 2), so
+  `detail` and `errors[].message` are for developers and logs. The only exception is a single
+  `validation_error` without a client-side check, whose message the app shows as it is.
+- Emails, the privacy page and the OpenAPI descriptions are in English.
+
+The app picks its language from `Me.locale` when it names a supported language, else from the
+device, else English. Dates, numbers and plural forms follow that language, and a new group's
+default currency is EUR in English and RON in Romanian.

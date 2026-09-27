@@ -32,4 +32,5 @@ The API client in `lib/core/api/generated/` is swagger_parser output: regenerate
 | Send a date / an instant | `DateOnly.of(y, m, d)` (a UTC midnight; `DateOnly.from` for a date read from the API) / `ApiInstant.of(dateTime)` (`core/api/`) |
 | Navigate | `Routes` path builders (`core/router/routes.dart`); add routes in `core/router/app_router.dart` |
 | Invite codes | `InviteCode.parse` (any spelling or a pasted `…/join/<code>` link) |
+| Show text to the user | `context.l10n.someKey` (`currentL10n` where there is no `BuildContext`): add the key to `lib/l10n/app_en.arb` **and** `app_ro.arb` (placeholders and ICU plurals; Romanian has `one`, `few` and `other`), then `flutter gen-l10n` (`flutter pub get` also runs it). The generated code in `lib/l10n/generated/` is gitignored. `test/l10n/l10n_test.dart` checks that both files have the same keys and placeholders |
 | Test against the real network stack | `TestBackend` + `FakeHttpClientAdapter` (`test/helpers/`); `FakeAuthController` for router and screen tests |

@@ -64,7 +64,7 @@ jobs:
       - name: Format
         run: >
           dart format --output=none --set-exit-if-changed
-          $(find lib test -name '*.dart' ! -name '*.g.dart' ! -name '*.freezed.dart' ! -path 'lib/core/api/generated/*')
+          $(find lib test -name '*.dart' ! -name '*.g.dart' ! -name '*.freezed.dart' ! -path 'lib/core/api/generated/*' ! -path 'lib/l10n/generated/*')
       - run: flutter analyze --fatal-infos
       - run: flutter test --coverage
       - uses: actions/upload-artifact@v7
