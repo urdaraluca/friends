@@ -138,7 +138,9 @@ class AuthController extends _$AuthController {
       await apiCall(
         () => ref
             .read(publicAuthClientProvider)
-            .logout(body: RefreshRequest(refreshToken: refreshToken)),
+            .logout(
+              body: RefreshRequest(refreshToken: bodyToken(refreshToken)),
+            ),
       );
     } on ApiException {
       // Best effort: the session is already dropped locally.

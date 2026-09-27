@@ -13,7 +13,7 @@ abstract class TokenPair with _$TokenPair {
     @JsonKey(name: 'access_token')
     required String accessToken,
     @JsonKey(name: 'refresh_token')
-    required String refreshToken,
+    required String? refreshToken,
 
     /// Access token lifetime in seconds.
     @JsonKey(name: 'access_expires_in')

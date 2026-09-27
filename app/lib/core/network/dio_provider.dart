@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:friends/core/auth/auth_controller.dart';
 import 'package:friends/core/auth/token_holder.dart';
 import 'package:friends/core/auth/token_refresher.dart';
+import 'package:friends/core/auth/token_store.dart';
 import 'package:friends/core/config/env.dart';
 import 'package:friends/core/network/auth_interceptor.dart';
 import 'package:friends/core/network/problem_interceptor.dart';
@@ -31,8 +32,14 @@ BaseOptions apiBaseOptions(String baseUrl) => BaseOptions(
   listFormat: ListFormat.multi,
 );
 
+/// The header asking for cookie mode (contract section 4.11).
+const refreshTransportHeader = 'X-Refresh-Token-Transport';
+
 Dio _newDio(Ref ref) {
   final dio = Dio(apiBaseOptions(ref.watch(apiBaseUrlProvider)));
+  if (ref.watch(refreshCookieModeProvider)) {
+    dio.options.headers[refreshTransportHeader] = 'cookie';
+  }
   final adapter = ref.watch(httpClientAdapterProvider);
   if (adapter != null) dio.httpClientAdapter = adapter;
   ref.onDispose(dio.close);

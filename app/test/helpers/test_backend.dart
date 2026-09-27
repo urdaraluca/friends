@@ -11,6 +11,7 @@ import 'package:friends/features/groups/data/last_group_store.dart';
 import 'package:friends/features/invites/data/invite_sharer.dart';
 import 'package:friends/features/recap/data/recap_providers.dart';
 import 'package:material_ui/material_ui.dart' show Rect;
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'api_fixtures.dart';
 import 'fake_http_adapter.dart';
@@ -74,6 +75,23 @@ class FakeRecapSharer extends RecapSharer {
   }) async => shared.add((png: png, text: text));
 }
 
+/// A [SharedPreferencesAsync] in memory (only what the app uses).
+class FakePrefs implements SharedPreferencesAsync {
+  final Map<String, Object> data = {};
+
+  @override
+  Future<bool?> getBool(String key) async => data[key] as bool?;
+
+  @override
+  Future<void> setBool(String key, bool value) async => data[key] = value;
+
+  @override
+  Future<void> remove(String key) async => data.remove(key);
+
+  @override
+  Object? noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
 /// A clock tests move by hand.
 class FakeClock {
   new([DateTime? now]) : now = now ?? DateTime.utc(2026, 10);
@@ -98,8 +116,18 @@ class FakeClock {
 /// Pass a [store] to share it between two backends: two browser tabs share
 /// one refresh token (local storage) but each has its own access token.
 class TestBackend {
-  new({String? storedRefreshToken, InMemoryTokenStore? store})
-    : store = store ?? InMemoryTokenStore(storedRefreshToken);
+  new({
+    String? storedRefreshToken,
+    InMemoryTokenStore? store,
+    this.cookieMode = false,
+  }) : store = store ?? InMemoryTokenStore(storedRefreshToken);
+
+  /// Cookie mode (contract section 4.11): the app's store is then a
+  /// [CookieSessionStore] over [prefs], with [store] as its legacy store.
+  final bool cookieMode;
+
+  /// The cookie-mode session marker's storage.
+  final prefs = FakePrefs();
 
   final adapter = FakeHttpClientAdapter();
   final InMemoryTokenStore store;
@@ -123,7 +151,10 @@ class TestBackend {
   List<Override> get overrides => [
     apiBaseUrlProvider.overrideWithValue('http://api.test'),
     httpClientAdapterProvider.overrideWithValue(adapter),
-    tokenStoreProvider.overrideWithValue(store),
+    refreshCookieModeProvider.overrideWithValue(cookieMode),
+    tokenStoreProvider.overrideWithValue(
+      cookieMode ? CookieSessionStore(prefs: prefs, legacy: store) : store,
+    ),
     tokenHolderProvider.overrideWithValue(holder),
     deviceLabelProvider.overrideWithValue('web'),
     deviceTimezoneProvider.overrideWith((ref) async => 'Europe/Bucharest'),

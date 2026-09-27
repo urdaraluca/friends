@@ -155,6 +155,7 @@
           "auth"
         ],
         "summary": "Refresh Tokens",
+        "description": "Rotates the refresh token. In cookie mode (``X-Refresh-Token-Transport: cookie``) the\ntoken comes from the refresh cookie and the new one goes back into it.",
         "operationId": "refresh_tokens",
         "requestBody": {
           "content": {
@@ -206,7 +207,7 @@
           "auth"
         ],
         "summary": "Logout",
-        "description": "Ends the session that owns this refresh token. Always succeeds (idempotent).",
+        "description": "Ends the session that owns this refresh token (or the refresh cookie's). Always\nsucceeds (idempotent).",
         "operationId": "logout",
         "requestBody": {
           "content": {
@@ -8893,16 +8894,20 @@
       "RefreshRequest": {
         "properties": {
           "refresh_token": {
-            "type": "string",
-            "maxLength": 128,
-            "minLength": 1,
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 128,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Refresh Token"
           }
         },
         "type": "object",
-        "required": [
-          "refresh_token"
-        ],
         "title": "RefreshRequest",
         "description": "Also the body of /auth/logout."
       },
@@ -9096,7 +9101,14 @@
             "title": "Access Token"
           },
           "refresh_token": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Refresh Token"
           },
           "token_type": {

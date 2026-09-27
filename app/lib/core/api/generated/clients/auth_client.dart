@@ -32,7 +32,10 @@ abstract class AuthClient {
     @Body() required LoginRequest body,
   });
 
-  /// Refresh Tokens
+  /// Refresh Tokens.
+  ///
+  /// Rotates the refresh token. In cookie mode (``X-Refresh-Token-Transport: cookie``) the.
+  /// token comes from the refresh cookie and the new one goes back into it.
   @POST('/api/v1/auth/refresh')
   Future<TokenPair> refreshTokens({
     @Body() required RefreshRequest body,
@@ -40,7 +43,8 @@ abstract class AuthClient {
 
   /// Logout.
   ///
-  /// Ends the session that owns this refresh token. Always succeeds (idempotent).
+  /// Ends the session that owns this refresh token (or the refresh cookie's). Always.
+  /// succeeds (idempotent).
   @POST('/api/v1/auth/logout')
   Future<void> logout({
     @Body() required RefreshRequest body,

@@ -56,7 +56,7 @@ def _issue_tokens(
     session_cap = session_started_at + timedelta(days=ctx.settings.refresh_session_max_days)
     expires_at = min(now + timedelta(days=ctx.settings.refresh_token_ttl_days), session_cap)
     if expires_at <= now:  # the session reached its absolute cap
-        raise _refresh_invalid()
+        raise refresh_invalid()
     token, token_hash = new_refresh_token()
     row = RefreshToken(
         user_id=user.id,
@@ -141,7 +141,7 @@ def refresh_session(db: Session, ctx: AuthContext, presented: str) -> TokenPair:
     )
     user = db.get(User, row.user_id) if row is not None else None
     if row is None or row.revoked_at is not None or user is None or not user.is_active:
-        raise _refresh_invalid()
+        raise refresh_invalid()
 
     if row.used_at is not None:
         successor = db.get(RefreshToken, row.replaced_by_id) if row.replaced_by_id else None
@@ -158,7 +158,7 @@ def refresh_session(db: Session, ctx: AuthContext, presented: str) -> TokenPair:
         # The client lost the response carrying `successor`: replace it.
         successor.revoked_at = now
     elif row.expires_at <= now:
-        raise _refresh_invalid()
+        raise refresh_invalid()
 
     pair, new_row = _issue_tokens(
         db,
@@ -174,7 +174,7 @@ def refresh_session(db: Session, ctx: AuthContext, presented: str) -> TokenPair:
     return pair
 
 
-def _refresh_invalid() -> AuthError:
+def refresh_invalid() -> AuthError:
     return AuthError("Session expired, please sign in again.", code="refresh_invalid")
 
 

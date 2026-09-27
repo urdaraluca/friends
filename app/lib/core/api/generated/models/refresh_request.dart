@@ -12,7 +12,7 @@ part 'refresh_request.g.dart';
 abstract class RefreshRequest with _$RefreshRequest {
   const factory RefreshRequest({
     @JsonKey(name: 'refresh_token')
-    required String refreshToken,
+    String? refreshToken,
   }) = _RefreshRequest;
   
   factory RefreshRequest.fromJson(Map<String, Object?> json) => _$RefreshRequestFromJson(json);

@@ -32,7 +32,8 @@ class LoginRequest(RequestModel):
 class RefreshRequest(RequestModel):
     """Also the body of /auth/logout."""
 
-    refresh_token: Annotated[str, StringConstraints(min_length=1, max_length=128)]
+    refresh_token: Annotated[str, StringConstraints(min_length=1, max_length=128)] | None = None
+    """Null in cookie mode (section 4.11): the refresh cookie is used instead."""
 
 
 class PasswordChange(RequestModel):
@@ -46,7 +47,8 @@ class AccountDeletion(RequestModel):
 
 class TokenPair(BaseModel):
     access_token: str
-    refresh_token: str
+    refresh_token: str | None
+    """Null in cookie mode (section 4.11): it is in the ``HttpOnly`` refresh cookie instead."""
     token_type: Literal["bearer"] = "bearer"  # noqa: S105 - OAuth token type, not a secret
     access_expires_in: int = Field(description="Access token lifetime in seconds.")
     refresh_expires_at: datetime

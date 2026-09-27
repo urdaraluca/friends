@@ -24,7 +24,7 @@ Map<String, Object?> meJson({
 
 Map<String, Object?> tokenPairJson({
   String access = 'access-1',
-  String refresh = 'refresh-1',
+  String? refresh = 'refresh-1',
   int expiresIn = 900,
 }) => {
   'access_token': access,

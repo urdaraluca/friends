@@ -1,6 +1,7 @@
-from fastapi import APIRouter, status
+from fastapi import APIRouter, Request, Response, status
 
 from friends_api.deps import Auth, CurrentPrincipal, CurrentUser, DbSession
+from friends_api.features.auth import cookies
 from friends_api.features.auth import service as auth_service
 from friends_api.features.auth.schemas import AccountDeletion, PasswordChange, TokenPair
 from friends_api.features.availability import service as availability_service
@@ -28,10 +29,15 @@ def update_me(body: MeUpdate, db: DbSession, user: CurrentUser) -> Me:
 
 @router.post("/password")
 def change_password(
-    body: PasswordChange, db: DbSession, auth: Auth, principal: CurrentPrincipal
+    body: PasswordChange,
+    db: DbSession,
+    auth: Auth,
+    principal: CurrentPrincipal,
+    request: Request,
+    response: Response,
 ) -> TokenPair:
     """Changes the password, signs out all other sessions and returns new tokens for this one."""
-    return auth_service.change_password(
+    tokens = auth_service.change_password(
         db,
         auth,
         principal.user,
@@ -39,13 +45,22 @@ def change_password(
         new_password=body.new_password,
         session_id=principal.claims.session_id,
     )
+    return cookies.deliver(request, response, auth.settings, tokens)
 
 
 @router.post("/deletion", status_code=status.HTTP_204_NO_CONTENT)
-def delete_account(body: AccountDeletion, db: DbSession, auth: Auth, user: CurrentUser) -> None:
+def delete_account(
+    body: AccountDeletion,
+    db: DbSession,
+    auth: Auth,
+    user: CurrentUser,
+    request: Request,
+    response: Response,
+) -> None:
     """Deletes the account: owned groups go to the oldest admin (or member), or are deleted if
     you are alone in them; you leave every group; your profile is anonymized."""
     service.delete_account(db, auth, user, body.password)
+    cookies.forget(request, response, auth.settings)
 
 
 @router.get("/calendar")

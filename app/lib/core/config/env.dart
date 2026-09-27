@@ -27,6 +27,12 @@ abstract final class Env {
     );
   }
 
+  /// Whether the refresh token travels in an `HttpOnly` cookie (contract
+  /// section 4.11): the web build served by the backend itself, whose API is
+  /// same-origin. Mobile builds and a `flutter run` against another port keep
+  /// it in the request body.
+  static bool get useRefreshCookie => kIsWeb && _apiBaseUrl.isEmpty;
+
   /// Path of `API_BASE_URL` without a trailing slash (e.g. `/friends`), for
   /// mobile builds whose backend is served under a subpath: App Links then
   /// arrive as `/friends/join/<code>`. Empty on web, where the browser strips

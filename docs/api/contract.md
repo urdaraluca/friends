@@ -860,6 +860,34 @@ Over the limit → 429 `rate_limited` with `Retry-After` (integer seconds until 
   database rows, so users stay signed in. That makes rotation a safe emergency lever.
 - In prod, startup also fails without `PUBLIC_APP_URL`.
 
+### 4.11 Cookie mode for the web app (issue #18)
+
+The web app keeps its refresh token out of page scripts' reach: in an `HttpOnly` cookie rather than
+local storage.
+- **Opt-in:** a request with the header `X-Refresh-Token-Transport: cookie`. Without it,
+  everything works as in sections 4.3–4.8 (the mobile apps).
+- **Where the token goes:** in cookie mode, the endpoints that issue tokens put the refresh token in
+  the cookie, and their bodies have `refresh_token: null`. They are `register`, `login`, `refresh`
+  and `POST /me/password`.
+- **The cookie:**
+  - named `friends_refresh`;
+  - `HttpOnly`, `SameSite=Strict`;
+  - `Path=<PUBLIC_APP_URL path>/api/v1/auth`, so a subpath (section 1.1) is included;
+  - `Secure` when `PUBLIC_APP_URL` is `https`;
+  - `Max-Age` until `refresh_expires_at`.
+- **Reading it:** `refresh` and `logout` take the body's `refresh_token` when there is one.
+  Otherwise, in cookie mode only, they take the cookie's. The cookie alone, **without the header, is
+  ignored**:
+  - a cross-site form can't send the header;
+  - cross-site scripts would need a CORS preflight, which production refuses;
+  - `SameSite=Strict` keeps the cookie off cross-site requests anyway.
+
+  No token at all → 401 `refresh_invalid`.
+- **Clearing it:** in cookie mode, `logout`, `logout-all` and `POST /me/deletion` also delete the
+  cookie (`Max-Age=0`).
+- **When the app uses it:** only the web build served by the backend itself, when `API_BASE_URL`
+  is empty and the API is same-origin. A local `flutter run` against another port keeps body mode.
+
 ---
 
 ## 5. Recurrence and birthdays
@@ -1345,7 +1373,7 @@ The Docker HEALTHCHECK calls `http://127.0.0.1:8000/api/v1/health`.
 |---|---|---|---|---|---|
 | `POST /auth/register` | `register` | public, RL:register | `RegisterRequest` | 201 `AuthSession` | 403 `registration_closed`; 404 `not_found` (invite); 409 `email_taken`; 410 `invite_*`; 422 `limit_reached`, `weak_password` |
 | `POST /auth/login` | `login` | public, RL:login | `LoginRequest` | 200 `AuthSession` | 401 `invalid_credentials` |
-| `POST /auth/refresh` | `refresh_tokens` | public, RL:refresh | `RefreshRequest` | 200 `TokenPair` | 401 `refresh_invalid`, `refresh_reuse_detected` |
+| `POST /auth/refresh` | `refresh_tokens` | public, RL:refresh | `RefreshRequest` (or the refresh cookie, section 4.11) | 200 `TokenPair` | 401 `refresh_invalid`, `refresh_reuse_detected` |
 | `POST /auth/logout` | `logout` | public | `RefreshRequest` | 204 always; revokes the token's family | – |
 | `POST /auth/logout-all` | `logout_all` | user | – | 204; `token_version += 1`, all families revoked | – |
 
@@ -1544,8 +1572,8 @@ BirthdayPublic    { month: int, day: int }
 RegisterRequest   { email: str, password: str (10..128), display_name: str (1..50), timezone: str?,
                     device_label: str? (<=100), invite_code: str? }
 LoginRequest      { email: str, password: str (1..128), device_label: str? (<=100) }
-RefreshRequest    { refresh_token: str (1..128) }                    # also the body of /auth/logout
-TokenPair         { access_token: str, refresh_token: str, token_type: str ("bearer"),
+RefreshRequest    { refresh_token: str? (1..128; null in cookie mode, section 4.11) }  # also /auth/logout
+TokenPair         { access_token: str, refresh_token: str? (null in cookie mode), token_type: str ("bearer"),
                     access_expires_in: int (seconds), refresh_expires_at: datetime }
 AuthSession       { user: Me, tokens: TokenPair, joined_group: GroupSummary? }
 
@@ -1793,7 +1821,7 @@ own phone, and the history feeds the recap ("the wheel decided 14 times").
   if needed.
 
 **Smaller items**
-- An HttpOnly-cookie auth mode for web, now possible because of same-origin hosting.
+- An HttpOnly-cookie auth mode for web, now possible because of same-origin hosting. Built: section 4.11.
 - iOS Universal Links (`apple-app-site-association`, served like `assetlinks.json`) and TestFlight,
   once a Mac and an Apple account exist.
 - TMDB/OMDb auto-fill of `attributes` (needs an API key).
@@ -1874,9 +1902,11 @@ swagger_parser:
    `ProblemException(status, code, detail, errors)`, and the UI maps `errors[].field` onto form fields.
 
 **Auth behaviour in the client**
-- The access token lives only in memory. The refresh token goes in `flutter_secure_storage`. On web
-  that only obfuscates it, which is accepted for the MVP given same-origin hosting and 15-minute access
-  tokens.
+- The access token lives only in memory.
+- On mobile, the refresh token goes in `flutter_secure_storage`.
+- The same-origin web build uses cookie mode (section 4.11): the refresh token stays in an
+  `HttpOnly` cookie. Local storage only keeps a marker that a session exists, so a reload knows to
+  refresh.
 - The auth interceptor is a `QueuedInterceptorsWrapper` with a single-flight refresher that uses a bare
   Dio.
   - It refreshes when the token expires within 30 s, and once on **401 `token_expired`**, then retries

@@ -72,7 +72,7 @@ class TokenRefresher {
     final TokenPair tokens;
     try {
       tokens = await _authClient.refreshTokens(
-        body: RefreshRequest(refreshToken: refreshToken),
+        body: RefreshRequest(refreshToken: bodyToken(refreshToken)),
       );
     } on DioException catch (e, stackTrace) {
       final error = ApiException.fromDioException(e);
@@ -88,14 +88,18 @@ class TokenRefresher {
 
   /// Stores a new token pair: after login, register, refresh or a password
   /// change (which returns the only pair that is still valid).
+  ///
+  /// In cookie mode the pair has no refresh token (it is in the cookie): the
+  /// store then only records that a session exists.
   Future<void> save(TokenPair tokens) async {
     _generation++;
-    _refreshToken = tokens.refreshToken;
+    final refreshToken = tokens.refreshToken ?? CookieSessionStore.marker;
+    _refreshToken = refreshToken;
     _holder.set(
       tokens.accessToken,
       expiresIn: Duration(seconds: tokens.accessExpiresIn),
     );
-    await _store.writeRefreshToken(tokens.refreshToken);
+    await _store.writeRefreshToken(refreshToken);
   }
 
   /// Forgets both tokens.
@@ -122,6 +126,11 @@ class TokenRefresher {
     _onSessionExpired();
   }
 }
+
+/// The refresh token to send for a [stored] one: none for the cookie-mode
+/// marker (the server reads the cookie), else the token itself.
+String? bodyToken(String stored) =>
+    stored == CookieSessionStore.marker ? null : stored;
 
 /// The app-wide [TokenRefresher], on the bare Dio.
 @Riverpod(keepAlive: true)
