@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 # Friends API image. Built natively for linux/arm64 in CI (Raspberry Pi 4/5); also builds on amd64.
-FROM ghcr.io/astral-sh/uv:0.12.19 AS uv
+FROM ghcr.io/astral-sh/uv:0.12.21 AS uv
 
 # The Flutter web build, served at / from /app/web (contract section 1.1). CI replaces this stage
 # with the real build through a named context: `--build-context web=<app/build/web>`
