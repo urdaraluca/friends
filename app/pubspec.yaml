@@ -24,7 +24,7 @@ dependencies:
   material_ui: ^1.4.0
   retrofit: ^4.10.0
   riverpod_annotation: ^4.0.7
-  share_plus: ^13.0.0
+  share_plus: ^13.3.0
   shared_preferences: ^2.5.5
   table_calendar: ^3.2.1
   url_launcher: ^6.3.2
@@ -39,7 +39,7 @@ dev_dependencies:
   mocktail: ^1.0.5
   retrofit_generator: ^10.2.11
   riverpod_generator: ^4.0.9
-  swagger_parser: ^1.44.3
+  swagger_parser: ^1.45.0
   very_good_analysis: ^11.0.0
 flutter:
   uses-material-design: true
