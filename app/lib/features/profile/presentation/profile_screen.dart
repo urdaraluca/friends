@@ -61,6 +61,13 @@ class ProfileScreen extends ConsumerWidget {
                       child: const _DeleteAccount(),
                     ),
                     ListTile(
+                      leading: const Icon(Icons.palette_outlined),
+                      title: Text(context.l10n.appearance),
+                      subtitle: Text(context.l10n.appearanceHelp),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => unawaited(context.push(Routes.appearance)),
+                    ),
+                    ListTile(
                       leading: const Icon(Icons.edit_calendar_outlined),
                       title: Text(context.l10n.myAvailability),
                       subtitle: Text(context.l10n.myAvailabilityHelp),

@@ -3,13 +3,13 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:friends/core/api/generated/export.dart';
 import 'package:friends/core/router/routes.dart';
-import 'package:friends/core/theme/app_theme.dart';
 import 'package:friends/core/widgets/async_value_view.dart';
 import 'package:friends/core/widgets/profile_avatar_button.dart';
 import 'package:friends/features/groups/data/group_providers.dart';
 import 'package:friends/features/groups/data/last_group_store.dart';
 import 'package:friends/features/groups/presentation/widgets/group_avatar.dart';
 import 'package:friends/features/groups/presentation/widgets/group_not_found_view.dart';
+import 'package:friends/features/groups/presentation/widgets/group_themed.dart';
 import 'package:friends/features/invites/presentation/join_with_code_dialog.dart';
 import 'package:friends/l10n/l10n.dart';
 import 'package:go_router/go_router.dart';
@@ -113,12 +113,8 @@ class _GroupScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = AppTheme.seededFrom(
-      HexColor.tryParse(group.color),
-      Theme.of(context).brightness,
-    );
-    return Theme(
-      data: theme,
+    return GroupColorTheme(
+      color: group.color,
       child: Scaffold(
         appBar: AppBar(
           titleSpacing: 8,

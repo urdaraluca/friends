@@ -154,6 +154,9 @@ abstract final class Routes {
   static const register = '/register';
   static const profile = '/profile';
 
+  /// Colours and dark mode.
+  static const appearance = '/appearance';
+
   /// API health check, for debugging. Reachable in every auth state.
   static const health = '/health';
 

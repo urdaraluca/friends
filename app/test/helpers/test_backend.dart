@@ -7,6 +7,7 @@ import 'package:friends/core/auth/token_holder.dart';
 import 'package:friends/core/auth/token_store.dart';
 import 'package:friends/core/device/device_info.dart';
 import 'package:friends/core/network/dio_provider.dart';
+import 'package:friends/core/theme/appearance.dart';
 import 'package:friends/features/groups/data/last_group_store.dart';
 import 'package:friends/features/invites/data/invite_sharer.dart';
 import 'package:friends/features/recap/data/recap_providers.dart';
@@ -49,6 +50,18 @@ class InMemoryLastGroupStore implements LastGroupStore {
   Future<void> forget(String groupId) async {
     if (this.groupId == groupId) this.groupId = null;
   }
+}
+
+/// An [AppearanceStore] in memory.
+class InMemoryAppearanceStore implements AppearanceStore {
+  AppearanceSettings? settings;
+
+  @override
+  Future<AppearanceSettings?> read() async => settings;
+
+  @override
+  Future<void> write(AppearanceSettings settings) async =>
+      this.settings = settings;
 }
 
 /// An [InviteSharer] that records what would have been shared.
@@ -137,6 +150,9 @@ class TestBackend {
   /// The last opened group (`/` goes back to it).
   final lastGroup = InMemoryLastGroupStore();
 
+  /// Appearance settings saved on this device.
+  final appearance = InMemoryAppearanceStore();
+
   /// What the share buttons shared.
   final sharer = FakeInviteSharer();
 
@@ -159,6 +175,7 @@ class TestBackend {
     deviceLabelProvider.overrideWithValue('web'),
     deviceTimezoneProvider.overrideWith((ref) async => 'Europe/Bucharest'),
     lastGroupStoreProvider.overrideWithValue(lastGroup),
+    appearanceStoreProvider.overrideWithValue(appearance),
     inviteSharerProvider.overrideWithValue(sharer),
     recapClockProvider.overrideWithValue(() => today),
     recapSharerProvider.overrideWithValue(recapSharer),

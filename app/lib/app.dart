@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:friends/core/i18n/app_locale.dart';
 import 'package:friends/core/router/app_router.dart';
 import 'package:friends/core/theme/app_theme.dart';
+import 'package:friends/core/theme/appearance.dart';
 import 'package:friends/l10n/l10n.dart';
 import 'package:intl/intl.dart';
 import 'package:material_ui/material_ui.dart';
@@ -11,11 +12,13 @@ class FriendsApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final appearance = ref.watch(appearanceProvider);
     return MaterialApp.router(
       onGenerateTitle: (context) => context.l10n.appTitle,
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.light,
-      darkTheme: AppTheme.dark,
+      theme: AppTheme.of(appearance.colors, Brightness.light),
+      darkTheme: AppTheme.of(appearance.colors, Brightness.dark),
+      themeMode: appearance.mode,
       localizationsDelegates: appLocalizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       // The profile's language, else the device's (English when the device
