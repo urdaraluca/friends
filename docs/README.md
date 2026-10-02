@@ -5,6 +5,7 @@
 - [adr/0003-client-codegen.md](adr/0003-client-codegen.md): client codegen (swagger_parser + retrofit + freezed, committed client), the auth/network layer, and the M4 wire-rule spike results.
 - [adr/0004-availability.md](adr/0004-availability.md): the availability heatmap: per-user answers, scoring, and why busy is never attributed.
 - [adr/0005-recap.md](adr/0005-recap.md): the monthly and yearly recap: periods in the group's timezone, planner score, no cache table.
+- [adr/0006-group-kinds-and-books.md](adr/0006-group-kinds-and-books.md): group kinds (general, movie night, book club) and the book archive: queues and one-tap handovers.
 - [api/contract.md](api/contract.md): **the API v1 contract**, and the single source of truth for implementers. It covers entities, auth, recurrence, custom fields, authorization, endpoints, schemas and the wheel.
 - [api/rrule_cases.json](api/rrule_cases.json): shared recurrence fixtures, used by both pytest and `flutter test`.
 - `../backend/openapi.json`: the generated OpenAPI snapshot. CI checks that it matches the code, and the Dart client is generated from it.

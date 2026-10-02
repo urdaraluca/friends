@@ -92,6 +92,20 @@ void main() {
       expect(fieldText(tester, 'Timezone'), 'Europe/Bucharest');
       expect(find.text('Members can invite'), findsNothing);
 
+      expect(
+        find.text('Plans of every kind: movies, trips, food and more.'),
+        findsOneWidget,
+      );
+      await tester.tap(find.widgetWithText(ChoiceChip, 'Movie night'));
+      await tester.pump();
+      expect(
+        find.text('A library of movies. The ones most people want come first.'),
+        findsOneWidget,
+      );
+      expect(
+        find.text('A Movie night category with genre, rating and year'),
+        findsOneWidget,
+      );
       await tester.enterText(field('Name'), '  Movie night ');
       await tester.enterText(field('Emoji'), '🎬');
       await tester.enterText(field('Currency'), 'ron');
@@ -104,6 +118,7 @@ void main() {
         'name': 'Movie night',
         'currency': 'RON',
         'members_can_invite': true,
+        'kind': 'movie_night',
         'seed_default_categories': false,
         'description': null,
         'emoji': '🎬',
@@ -193,6 +208,13 @@ void main() {
 
       await tester.enterText(field('Name'), 'Film club');
       await tester.enterText(field('Description'), '');
+      expect(
+        find.textContaining(
+          'Changing it changes the tabs, not the categories.',
+        ),
+        findsOneWidget,
+      );
+      await tester.tap(find.widgetWithText(ChoiceChip, 'Book club'));
       await tester.tap(find.text('Members can invite'));
       await tester.tap(find.text('Save'));
       await tester.pumpAndSettle();
@@ -202,6 +224,7 @@ void main() {
         'currency': 'EUR',
         'timezone': 'Europe/Bucharest',
         'members_can_invite': false,
+        'kind': 'book_club',
         'description': null,
         'emoji': '🎬',
         'color': '#1E88E5',

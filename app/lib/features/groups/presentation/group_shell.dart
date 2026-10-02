@@ -17,8 +17,8 @@ import 'package:material_ui/material_ui.dart';
 
 /// The frame around a group's tabs (`/groups/:groupId/…`, a plain
 /// `ShellRoute`): an app bar with the group switcher and my avatar, the
-/// bottom navigation (Backlog, Calendar, Wheel, Group), and a theme seeded
-/// from the group's colour.
+/// bottom navigation (Backlog, Books in a book club, Calendar, Wheel,
+/// Group), and a theme seeded from the group's colour.
 ///
 /// Remembers the group as the last one opened (`LastGroupStore`), and
 /// shows "Group not found" when the group answers 404.
@@ -113,6 +113,9 @@ class _GroupScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // A Books link still works in a group that isn't a book club (the kind
+    // changed, or a link was shared): the tab shows while it is open.
+    final tabs = tabsOf(group.kind, showBooks: tab == GroupTab.books);
     return GroupColorTheme(
       color: group.color,
       child: Scaffold(
@@ -123,35 +126,62 @@ class _GroupScaffold extends StatelessWidget {
         ),
         body: child,
         bottomNavigationBar: NavigationBar(
-          selectedIndex: tab.index,
+          selectedIndex: tabs.indexOf(tab),
           onDestinationSelected: (index) =>
-              context.go(Routes.groupTab(group.id, GroupTab.values[index])),
+              context.go(Routes.groupTab(group.id, tabs[index])),
           destinations: [
-            NavigationDestination(
-              icon: const Icon(Icons.checklist),
-              label: context.l10n.tabBacklog,
-            ),
-            NavigationDestination(
-              icon: const Icon(Icons.calendar_month_outlined),
-              selectedIcon: const Icon(Icons.calendar_month),
-              label: context.l10n.tabCalendar,
-            ),
-            NavigationDestination(
-              icon: const Icon(Icons.casino_outlined),
-              selectedIcon: const Icon(Icons.casino),
-              label: context.l10n.tabWheel,
-            ),
-            NavigationDestination(
-              icon: const Icon(Icons.groups_outlined),
-              selectedIcon: const Icon(Icons.groups),
-              label: context.l10n.tabGroup,
-            ),
+            for (final tab in tabs) _destination(context, tab, group.kind),
           ],
         ),
       ),
     );
   }
+
+  static NavigationDestination _destination(
+    BuildContext context,
+    GroupTab tab,
+    GroupKind kind,
+  ) => switch (tab) {
+    GroupTab.backlog => NavigationDestination(
+      icon: Icon(
+        kind == GroupKind.movieNight ? Icons.movie_outlined : Icons.checklist,
+      ),
+      label: kind == GroupKind.movieNight
+          ? context.l10n.tabMovies
+          : context.l10n.tabBacklog,
+    ),
+    GroupTab.books => NavigationDestination(
+      icon: const Icon(Icons.menu_book_outlined),
+      selectedIcon: const Icon(Icons.menu_book),
+      label: context.l10n.tabBooks,
+    ),
+    GroupTab.calendar => NavigationDestination(
+      icon: const Icon(Icons.calendar_month_outlined),
+      selectedIcon: const Icon(Icons.calendar_month),
+      label: context.l10n.tabCalendar,
+    ),
+    GroupTab.wheel => NavigationDestination(
+      icon: const Icon(Icons.casino_outlined),
+      selectedIcon: const Icon(Icons.casino),
+      label: context.l10n.tabWheel,
+    ),
+    GroupTab.group => NavigationDestination(
+      icon: const Icon(Icons.groups_outlined),
+      selectedIcon: const Icon(Icons.groups),
+      label: context.l10n.tabGroup,
+    ),
+  };
 }
+
+/// A group's bottom tabs, in order: Books comes second in a book club (or
+/// when [showBooks]), and isn't there otherwise.
+List<GroupTab> tabsOf(GroupKind kind, {bool showBooks = false}) => [
+  GroupTab.backlog,
+  if (kind == GroupKind.bookClub || showBooks) GroupTab.books,
+  GroupTab.calendar,
+  GroupTab.wheel,
+  GroupTab.group,
+];
 
 /// The app bar title of a group: its avatar and name, opening a menu with
 /// my other groups, "All groups", "New group" and "Join with code".

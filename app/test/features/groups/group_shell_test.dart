@@ -81,6 +81,26 @@ void main() {
       );
     });
 
+    testWidgets('a movie night calls the backlog Movies and sorts it by '
+        'most interest', (tester) async {
+      backend.stubGroup(group: groupJson(kind: 'movie_night'));
+      await open(tester, Routes.groupBacklog(Ids.groupId));
+
+      expect(
+        find.descendant(
+          of: find.byType(NavigationBar),
+          matching: find.text('Movies'),
+        ),
+        findsOneWidget,
+      );
+      final query = backend.adapter
+          .requestsTo('GET', ApiPaths.activities(Ids.groupId))
+          .last
+          .query;
+      expect(query, contains('sort=interest_count'));
+      expect(query, contains('order=desc'));
+    });
+
     testWidgets('the theme is seeded from the group colour', (tester) async {
       backend.stubGroup(group: groupJson(color: '#43A047'));
       await open(tester, Routes.groupBacklog(Ids.groupId));

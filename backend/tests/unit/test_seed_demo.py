@@ -39,7 +39,7 @@ def test_seed_demo_creates_users_a_group_and_about_120_activities(
     assert sorted(roles) == sorted([Role.OWNER, Role.ADMIN, Role.MEMBER])
 
     categories = db_session.scalars(select(Category)).all()
-    assert len(categories) == 12  # 7 defaults and 5 subcategories
+    assert len(categories) == 13  # 8 defaults and 5 subcategories
     activities = db_session.scalars(select(Activity)).all()
     assert 100 <= len(activities) <= 140
     assert set(Counter(a.status for a in activities)) == set(ActivityStatus)

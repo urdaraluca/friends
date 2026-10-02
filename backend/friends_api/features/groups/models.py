@@ -14,6 +14,16 @@ class Role(StrEnum):
     MEMBER = "member"
 
 
+class GroupKind(StrEnum):
+    """What the group is for (contract section 17.1).
+
+    It picks the categories a new group gets, and the app's tabs (a book club has Books)."""
+
+    GENERAL = "general"
+    MOVIE_NIGHT = "movie_night"
+    BOOK_CLUB = "book_club"
+
+
 class Group(IdMixin, TimestampMixin, Base):
     __tablename__ = "groups"
 
@@ -27,6 +37,7 @@ class Group(IdMixin, TimestampMixin, Base):
     timezone: Mapped[str] = mapped_column(String(64))
     """Default for events; month/year boundaries for the recap."""
     members_can_invite: Mapped[bool] = mapped_column(default=True)
+    kind: Mapped[GroupKind] = mapped_column(str_enum(GroupKind, 12), default=GroupKind.GENERAL)
     created_by_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("users.id", ondelete="SET NULL"), index=True
     )

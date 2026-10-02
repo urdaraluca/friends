@@ -251,6 +251,7 @@ FieldError { field: str, message: str, type: str }
 | RRULE `INTERVAL` / `COUNT` | 1..99 / 1..730 | 422 `invalid_rrule` |
 | `estimated_cost` | 0..10,000,000 (whole units) | 422 `validation_error` |
 | `q` (search) | 1..100 characters | 422 `validation_error` |
+| Books per group | 1000 | 422 `limit_reached` |
 
 ### 1.10 Storage conventions (SQLite)
 
@@ -370,6 +371,8 @@ codes for each endpoint.
 | `owner_must_transfer` | 409 | The owner tries to leave while the group has other members, or anyone tries to change the owner's role (use `transfer-ownership` instead). |
 | `poll_closed` | 409 | A vote or new option on a closed poll (manually closed, or `closes_at` has passed). |
 | `result_deleted` | 409 | Accepting a spin whose result activity has since been deleted. |
+| `own_book` | 409 | Joining the queue for a book you own (section 17). |
+| `already_holding` | 409 | Joining the queue for a book you already have (section 17). |
 | `invite_expired` | 410 | The invite's `expires_at` has passed. |
 | `invite_revoked` | 410 | The invite was revoked. |
 | `invite_exhausted` | 410 | `use_count` has reached `max_uses`. |
@@ -451,6 +454,7 @@ groups
   currency           char(3) not null default 'EUR'  -- default currency for activity costs
   timezone           varchar(64) not null   -- default for events; month/year boundaries for the recap
   members_can_invite bool not null default true
+  kind               varchar(12) not null default 'general'  -- GroupKind (section 17.1)
   created_by_id      uuid null -> users SET NULL
   created_at, updated_at
 
@@ -674,6 +678,9 @@ or endpoint for it; the recap and notifications will build on it. For `member.*`
 | `poll.voted` | poll | `{"option_ids": [uuid, …]}` |
 | `wheel.spun` | spin | `{"result_activity_id": uuid, "candidate_count": int}` |
 | `wheel.accepted` | spin | `{"activity_id": uuid}` |
+| `book.added`, `book.deleted`, `book.returned`, `book.queue_joined`, `book.queue_left` | book | `{"title": str}` |
+| `book.updated` | book | `{"title": str, "fields": [...]}` |
+| `book.lent` | book | `{"title": str, "to": uuid, "to_name": str}` (the recipient's display name then) |
 
 ---
 
@@ -1227,10 +1234,14 @@ never contains nulls.
 
 ### 6.5 Default categories (seeded when a group is created with `seed_default_categories=true`)
 
-All are top-level. `created_by` is the group creator, and positions are 0..6 in this order. Each one
-is logged as `category.created` by the creator, after `group.created` and `member.joined`:
+All are top-level. `created_by` is the group creator, and positions follow the order below,
+from 0. Each one is logged as `category.created` by the creator, after `group.created` and
+`member.joined`. Which ones depends on the group's `kind` (section 17.1):
+- `general`: all eight below;
+- `movie_night`: only Movie night;
+- `book_club`: only Book club.
 
-| position | name | color | icon | field_defs |
+| position (general) | name | color | icon | field_defs |
 |---|---|---|---|---|
 | 0 | Movie night | `#7E57C2` | `movie` | see below |
 | 1 | Food & drinks | `#EF6C00` | `food` | `[]` |
@@ -1239,6 +1250,18 @@ is logged as `category.created` by the creator, after `group.created` and `membe
 | 4 | Trips | `#00838F` | `trips` | `[]` |
 | 5 | Culture | `#AD1457` | `culture` | `[]` |
 | 6 | Sports | `#C62828` | `sports` | `[]` |
+| 7 | Book club | `#6D4C41` | `book` | see below |
+
+Book club `field_defs` (books the club might read together; the books members own and lend are
+the archive, section 17), exactly:
+```json
+[
+  {"key": "author", "label": "Author", "type": "text", "options": null, "min": null, "max": null, "show_on_card": true},
+  {"key": "year", "label": "Year", "type": "year", "options": null, "min": null, "max": null, "show_on_card": false},
+  {"key": "pages", "label": "Pages", "type": "number", "options": null, "min": 1, "max": 10000, "show_on_card": false},
+  {"key": "link", "label": "Link", "type": "url", "options": null, "min": null, "max": null, "show_on_card": false}
+]
+```
 
 Movie night `field_defs`, exactly:
 ```json
@@ -1256,8 +1279,8 @@ Movie night `field_defs`, exactly:
 - Subcategories (such as genre buckets) are optional, and none are seeded.
 - Auto-filling from IMDb/OMDb/TMDB is out of scope.
 - **Icon keys** known to the app: `movie, food, outdoors, games, trips, culture, sports, music, party,
-  home, star`. The server only checks the length (40 or fewer). Unknown keys and emojis are shown as
-  given, or as a default icon.
+  home, star, book`. The server only checks the length (40 or fewer). Unknown keys and emojis are
+  shown as given, or as a default icon.
 
 ---
 
@@ -1339,8 +1362,10 @@ In one transaction:
 1. Delete the user's `activity_interests` on this group's activities.
 2. Delete the user's `poll_votes` on this group's polls.
 3. Set `owner_id = null` (with `version + 1`) on this group's activities the user owns.
-4. Delete the membership.
-5. Log `member.left {reason}` or `member.removed`.
+4. Books (section 17.4): delete the user's queue entries in this group; this group's books the user
+   holds go back to their owners; the books the user owns in this group are deleted.
+5. Delete the membership.
+6. Log `member.left {reason}` or `member.removed`.
 
 Authored content (`created_by`) is kept.
 
@@ -1549,6 +1574,7 @@ section 1.4. Response models list every field.
 ```
 # ---- enums ----
 Role              = owner | admin | member
+GroupKind         = general | movie_night | book_club                     # section 17.1
 AssignableRole    = admin | member
 ActivityStatus    = idea | planning | scheduled | done | dropped
 ActivitySort      = created_at | due_date | title | interest_count | estimated_cost
@@ -1586,16 +1612,17 @@ PasswordChange    { current_password: str (1..128), new_password: str (10..128) 
 AccountDeletion   { password: str (1..128) }
 
 # ---- groups and members ----
-GroupSummary      { id: uuid, name: str, emoji: str?, color: str?, member_count: int, my_role: Role,
-                    created_at: datetime }
-Group             { id, name, emoji?, color?, member_count, my_role, created_at,          # = GroupSummary fields
+GroupSummary      { id: uuid, name: str, emoji: str?, color: str?, member_count: int, kind: GroupKind,
+                    my_role: Role, created_at: datetime }
+Group             { id, name, emoji?, color?, member_count, kind, my_role, created_at,    # = GroupSummary fields
                     description: str?, currency: str, timezone: str, members_can_invite: bool,
                     created_by: UserPublic?, updated_at: datetime }
 GroupCreate       { name: str (1..60), description: str? (<=500), emoji: str? (<=16), color: Color?,
                     currency: str = "EUR", timezone: str? (null -> caller's timezone),
-                    members_can_invite: bool = true, seed_default_categories: bool = true }
+                    members_can_invite: bool = true, kind: GroupKind = general,
+                    seed_default_categories: bool = true }   # the categories for kind (section 6.5)
 GroupUpdate       { name: str (1..60), description: str?, emoji: str?, color: Color?, currency: str,
-                    timezone: str, members_can_invite: bool }
+                    timezone: str, kind: GroupKind? (null keeps it), members_can_invite: bool }
 TransferOwnership { user_id: uuid }
 Member            { user: UserPublic, role: Role, joined_at: datetime,
                     birthday: BirthdayPublic?,   # null unless set and show_birthday is on (always shown on your own row)
@@ -2078,19 +2105,23 @@ What happened in a group, newest first, built from `group_log` (section 3.2).
 | `poll.option_added` | `label` |
 | `wheel.spun` | `result_activity_id`, `candidate_count` |
 | `wheel.accepted` | `activity_id` |
+| `book.added`, `book.returned` | `{}` |
+| `book.lent` | `to_name` |
 
 Left out:
-- categories: setup work, and a new group logs its seven defaults;
+- categories: setup work, and a new group logs its defaults;
 - invites;
 - personal settings (`member.settings_updated`);
 - removed interest;
-- the options of a vote.
+- the options of a vote;
+- book edits, deletions and queues.
 
 **Subjects**
 - `subject_title` is the subject's **current** title:
   - an activity's or event's title, a poll's question, the group's name;
   - a member's display name;
-  - a spin's result title.
+  - a spin's result title;
+  - a book's title.
 - Once the subject is deleted, `subject_title` falls back to the title that was logged (`title` or
   `question`), and `subject_exists` is false.
 
@@ -2119,3 +2150,89 @@ The app speaks English and Romanian. The server stays language-neutral:
 The app picks its language from `Me.locale` when it names a supported language, else from the
 device, else English. Dates, numbers and plural forms follow that language, and a new group's
 default currency is EUR in English and RON in Romanian.
+
+---
+
+## 17. Group kinds and the book archive
+
+Some groups are for one thing: a weekly movie night, a book club. Decisions:
+[ADR 0006](../adr/0006-group-kinds-and-books.md).
+
+### 17.1 Group kinds
+
+`groups.kind` (`GroupKind`): `general` (the default), `movie_night` or `book_club`.
+- On create, it picks the default categories (section 6.5).
+- Admins can change it with `PUT /groups/{id}` (`kind: null` keeps it). That changes what the app
+  shows, never the categories.
+- The app reads it:
+  - `movie_night`: the backlog tab is called Movies and sorts by most interest, so the group's
+    votes ("I'm interested") decide what to watch next;
+  - `book_club`: a Books tab shows the archive.
+- The API doesn't restrict anything by kind: every group has an archive, and any group can have
+  any category.
+
+### 17.2 Storage
+
+```
+books
+  id            uuid pk
+  group_id      uuid not null -> groups CASCADE
+  owner_id      uuid not null -> users CASCADE    -- who added it; it leaves the group with them
+  title         varchar(200) NOCASE not null
+  author        varchar(120) null
+  description   varchar(5000) null
+  holder_id     uuid null -> users SET NULL       -- who has it now; null: with its owner
+  held_since    ts null                           -- null with its owner
+  created_at, updated_at
+  INDEX ix_books_group_title (group_id, title)
+
+book_queue                                        -- who is waiting to borrow it
+  book_id       uuid -> books CASCADE  ┐ pk
+  user_id       uuid -> users CASCADE  ┘ (indexed)
+  joined_at     ts not null                       -- the queue's order (then user_id)
+```
+
+### 17.3 Endpoints (tag `books`)
+
+| Endpoint | operationId | Auth | Request | Success | Extra errors |
+|---|---|---|---|---|---|
+| `GET /groups/{group_id}/books` | `list_books` | member | – | 200 `Book[]`, by title (case-insensitive), then id | – |
+| `POST /groups/{group_id}/books` | `create_book` | member | `BookWrite` | 201 `Book`. The caller owns it and has it. Logged `book.added`. | 422 `limit_reached` |
+| `GET /books/{book_id}` | `get_book` | member | – | 200 `Book` | – |
+| `PUT /books/{book_id}` | `update_book` | owner or admin+ | `BookWrite` (the complete new state) | 200 `Book`. Logged `book.updated {fields}` on a real change. | 403 |
+| `DELETE /books/{book_id}` | `delete_book` | owner or admin+ | – | 204. Its queue goes with it. Logged `book.deleted`. | 403 |
+| `PUT /books/{book_id}/queue` | `join_book_queue` | member | – | 200 `Book`. Joins the end of the queue; idempotent (keeps the place). | 409 `own_book`, `already_holding` |
+| `DELETE /books/{book_id}/queue` | `leave_book_queue` | member | – | 200 `Book` (idempotent) | – |
+| `POST /books/{book_id}/handover` | `hand_over_book` | owner, holder or admin+ | `Handover` | 200 `Book` (below) | 403; 422 `invalid_reference` (`to_user_id`) |
+
+**Handing over.** The owner, whoever has the book now, or an admin+ says who has it next. Nothing
+checks that it really changed hands; the members say so.
+- `to_user_id` is a member: they become the holder (`held_since = now`) and leave the queue.
+  Logged `book.lent {to, to_name}`. Any member may get it, not only the first in the queue; the app
+  offers the first one.
+- `to_user_id` is null or the owner: the book is back with its owner (`holder_id` and
+  `held_since` null). Logged `book.returned`, unless it was with its owner already.
+- `to_user_id` is the current holder: nothing changes.
+- Not a member of the group (or unknown): 422 `invalid_reference` on `to_user_id`.
+
+### 17.4 Membership end
+
+When a member leaves, is removed or deletes their account (section 7.5):
+- their queue entries in the group are deleted;
+- the group's books they hold count as back with their owners (sort it out in person);
+- the books they own in the group are deleted: they take their books with them.
+
+```
+GroupKind      = general | movie_night | book_club
+BookWrite      { title: str (1..200), author: str? (<=120), description: str? (<=5000) }
+Handover       { to_user_id: uuid? }                 # null: back to the owner
+BookQueueEntry { user: UserPublic, joined_at: ts }
+Book           { id: uuid, group_id: uuid, title: str, author: str?, description: str?,
+                 owner: UserPublic?,                  # null only while the owner's account is being deleted
+                 holder: UserPublic?,                 # null: with its owner
+                 held_since: ts?, queue: BookQueueEntry[] (first come, first served),
+                 in_my_queue: bool,
+                 can_edit: bool,                      # edit and delete: the owner or admin+
+                 can_hand_over: bool,                 # the owner, the holder or admin+
+                 created_at: ts, updated_at: ts }
+```

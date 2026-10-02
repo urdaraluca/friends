@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 
 from friends_api.features.categories.models import Category
 from friends_api.features.group_log.service import log_event
+from friends_api.features.groups.models import GroupKind
 
 MOVIE_NIGHT_FIELD_DEFS: Final[list[dict[str, Any]]] = [
     {
@@ -72,23 +73,79 @@ MOVIE_NIGHT_FIELD_DEFS: Final[list[dict[str, Any]]] = [
 ]
 """Verbatim from the contract."""
 
-DEFAULT_CATEGORIES: Final[list[tuple[str, str, str, list[dict[str, Any]]]]] = [
-    # (name, color, icon, field_defs); the list index is the position.
-    ("Movie night", "#7E57C2", "movie", MOVIE_NIGHT_FIELD_DEFS),
-    ("Food & drinks", "#EF6C00", "food", []),
-    ("Outdoors", "#2E7D32", "outdoors", []),
-    ("Games", "#1565C0", "games", []),
-    ("Trips", "#00838F", "trips", []),
-    ("Culture", "#AD1457", "culture", []),
-    ("Sports", "#C62828", "sports", []),
+BOOK_CLUB_FIELD_DEFS: Final[list[dict[str, Any]]] = [
+    {
+        "key": "author",
+        "label": "Author",
+        "type": "text",
+        "options": None,
+        "min": None,
+        "max": None,
+        "show_on_card": True,
+    },
+    {
+        "key": "year",
+        "label": "Year",
+        "type": "year",
+        "options": None,
+        "min": None,
+        "max": None,
+        "show_on_card": False,
+    },
+    {
+        "key": "pages",
+        "label": "Pages",
+        "type": "number",
+        "options": None,
+        "min": 1,
+        "max": 10000,
+        "show_on_card": False,
+    },
+    {
+        "key": "link",
+        "label": "Link",
+        "type": "url",
+        "options": None,
+        "min": None,
+        "max": None,
+        "show_on_card": False,
+    },
 ]
+"""Books the club might read together; verbatim from the contract."""
+
+type CategorySeed = tuple[str, str, str, list[dict[str, Any]]]
+"""(name, color, icon, field_defs)."""
+
+MOVIE_NIGHT: Final[CategorySeed] = ("Movie night", "#7E57C2", "movie", MOVIE_NIGHT_FIELD_DEFS)
+BOOK_CLUB: Final[CategorySeed] = ("Book club", "#6D4C41", "book", BOOK_CLUB_FIELD_DEFS)
+
+DEFAULT_CATEGORIES: Final[dict[GroupKind, list[CategorySeed]]] = {
+    # The list index is the position.
+    GroupKind.GENERAL: [
+        MOVIE_NIGHT,
+        ("Food & drinks", "#EF6C00", "food", []),
+        ("Outdoors", "#2E7D32", "outdoors", []),
+        ("Games", "#1565C0", "games", []),
+        ("Trips", "#00838F", "trips", []),
+        ("Culture", "#AD1457", "culture", []),
+        ("Sports", "#C62828", "sports", []),
+        BOOK_CLUB,
+    ],
+    GroupKind.MOVIE_NIGHT: [MOVIE_NIGHT],
+    GroupKind.BOOK_CLUB: [BOOK_CLUB],
+}
 
 
 def seed_default_categories(
-    db: Session, group_id: uuid.UUID, created_by_id: uuid.UUID | None
+    db: Session,
+    group_id: uuid.UUID,
+    created_by_id: uuid.UUID | None,
+    *,
+    kind: GroupKind = GroupKind.GENERAL,
 ) -> list[Category]:
-    """Adds the 7 top-level defaults, each logged as ``category.created`` by ``created_by_id``
-    like any other category (contract sections 1.7, 3.2). Flushes; the caller commits."""
+    """Adds the top-level defaults for ``kind``, each logged as ``category.created`` by
+    ``created_by_id`` like any other category (contract sections 1.7, 3.2). Flushes; the caller
+    commits."""
     categories = [
         Category(
             group_id=group_id,
@@ -100,7 +157,7 @@ def seed_default_categories(
             field_defs=[dict(field_def) for field_def in field_defs],
             created_by_id=created_by_id,
         )
-        for position, (name, color, icon, field_defs) in enumerate(DEFAULT_CATEGORIES)
+        for position, (name, color, icon, field_defs) in enumerate(DEFAULT_CATEGORIES[kind])
     ]
     db.add_all(categories)
     db.flush()

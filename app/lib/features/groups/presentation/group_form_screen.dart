@@ -14,6 +14,7 @@ import 'package:friends/core/widgets/form_widgets.dart';
 import 'package:friends/features/groups/data/group_providers.dart';
 import 'package:friends/features/groups/data/groups_controller.dart';
 import 'package:friends/features/groups/domain/group_colors.dart';
+import 'package:friends/features/groups/domain/group_kinds.dart';
 import 'package:friends/features/groups/domain/group_permissions.dart';
 import 'package:friends/features/groups/presentation/widgets/group_not_found_view.dart';
 import 'package:friends/l10n/l10n.dart';
@@ -123,6 +124,7 @@ class _GroupFormState extends ConsumerState<GroupForm> with ServerErrorsMixin {
   late final TextEditingController _currency;
   late final TextEditingController _timezone;
   String? _color;
+  late GroupKind _kind;
   bool _seedDefaultCategories = true;
   late bool _membersCanInvite;
   bool _saving = false;
@@ -142,6 +144,10 @@ class _GroupFormState extends ConsumerState<GroupForm> with ServerErrorsMixin {
     _timezone = TextEditingController(text: group?.timezone);
     _color = group == null ? groupColorPresets.keys.first : group.color;
     _membersCanInvite = group?.membersCanInvite ?? true;
+    _kind = switch (group?.kind) {
+      null || GroupKind.$unknown => GroupKind.general,
+      final kind => kind,
+    };
     if (group == null) unawaited(_useDeviceTimezone());
   }
 
@@ -185,6 +191,7 @@ class _GroupFormState extends ConsumerState<GroupForm> with ServerErrorsMixin {
             color: _color,
             currency: Validators.normalizeCurrency(_currency.text),
             timezone: _timezone.text.trim(),
+            kind: _kind,
             seedDefaultCategories: _seedDefaultCategories,
           ),
         );
@@ -199,6 +206,7 @@ class _GroupFormState extends ConsumerState<GroupForm> with ServerErrorsMixin {
             color: _color,
             currency: Validators.normalizeCurrency(_currency.text),
             timezone: _timezone.text.trim(),
+            kind: _kind,
             membersCanInvite: _membersCanInvite,
           ),
         );
@@ -230,6 +238,24 @@ class _GroupFormState extends ConsumerState<GroupForm> with ServerErrorsMixin {
             FormMessageBanner(message: message),
             const SizedBox(height: 16),
           ],
+          Text(
+            context.l10n.groupKindLabel,
+            style: Theme.of(context).textTheme.titleSmall,
+          ),
+          const SizedBox(height: 8),
+          GroupKindPicker(
+            selected: _kind,
+            onSelected: (kind) => setState(() => _kind = kind),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            [
+              _kind.help,
+              if (!_creating) context.l10n.groupKindChangeNote,
+            ].join(' '),
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          const SizedBox(height: 16),
           TextFormField(
             controller: _name,
             decoration: InputDecoration(labelText: context.l10n.nameLabel),
@@ -333,7 +359,11 @@ class _GroupFormState extends ConsumerState<GroupForm> with ServerErrorsMixin {
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
               title: Text(context.l10n.addDefaultCategories),
-              subtitle: Text(context.l10n.addDefaultCategoriesHelp),
+              subtitle: Text(switch (_kind) {
+                GroupKind.movieNight => context.l10n.addMovieCategoryHelp,
+                GroupKind.bookClub => context.l10n.addBookCategoryHelp,
+                _ => context.l10n.addDefaultCategoriesHelp,
+              }),
               value: _seedDefaultCategories,
               onChanged: (value) =>
                   setState(() => _seedDefaultCategories = value),
@@ -405,6 +435,33 @@ class _ColorSwatches extends StatelessWidget {
                 ),
               ),
             ),
+          ),
+      ],
+    );
+  }
+}
+
+/// What a group is for: anything, a movie night or a book club (contract
+/// section 17.1).
+class GroupKindPicker extends StatelessWidget {
+  const new({required this.selected, required this.onSelected, super.key});
+
+  final GroupKind selected;
+  final ValueChanged<GroupKind> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        for (final kind in GroupKind.$valuesDefined)
+          ChoiceChip(
+            avatar: Icon(kind.icon, size: 18),
+            label: Text(kind.label),
+            selected: kind == selected,
+            showCheckmark: false,
+            onSelected: (_) => onSelected(kind),
           ),
       ],
     );

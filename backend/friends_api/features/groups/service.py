@@ -72,6 +72,7 @@ def to_summary(db: Session, group: Group, membership: Membership) -> GroupSummar
         emoji=group.emoji,
         color=group.color,
         member_count=member_count(db, group.id),
+        kind=group.kind,
         my_role=membership.role,
         created_at=group.created_at,
     )
@@ -161,6 +162,7 @@ def create_group(db: Session, user: User, body: GroupCreate) -> GroupAccess:
         currency=body.currency,
         timezone=body.timezone or user.timezone,
         members_can_invite=body.members_can_invite,
+        kind=body.kind,
         created_by_id=user.id,
     )
     db.add(group)
@@ -186,7 +188,8 @@ def create_group(db: Session, user: User, body: GroupCreate) -> GroupAccess:
     )
     db.flush()
     if body.seed_default_categories:
-        seed_default_categories(db, group.id, user.id)  # logs a category.created row each
+        # Logs a category.created row each.
+        seed_default_categories(db, group.id, user.id, kind=body.kind)
     return GroupAccess(group=group, membership=membership)
 
 
@@ -196,6 +199,8 @@ def update_group(db: Session, access: GroupAccess, body: GroupUpdate) -> None:
     group = access.group
     changed: list[str] = []
     for field, value in body.model_dump().items():
+        if field == "kind" and value is None:
+            continue  # null keeps it
         if getattr(group, field) != value:
             setattr(group, field, value)
             changed.append(field)

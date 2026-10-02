@@ -2103,5 +2103,158 @@
   "groupColoursHelp": "Inside a group, use the group's own colour",
   "previewGroupName": "Movie night",
   "previewActivity": "Board games at Ana's",
-  "previewWhen": "Saturday at 7 pm"
+  "previewWhen": "Saturday at 7 pm",
+  "tabBooks": "Books",
+  "tabMovies": "Movies",
+  "groupKindLabel": "What's it for?",
+  "groupKindGeneral": "Anything",
+  "groupKindMovieNight": "Movie night",
+  "groupKindBookClub": "Book club",
+  "groupKindGeneralHelp": "Plans of every kind: movies, trips, food and more.",
+  "groupKindMovieNightHelp": "A library of movies. The ones most people want come first.",
+  "groupKindBookClubHelp": "A shared shelf to borrow each other's books, and books to read together.",
+  "groupKindChangeNote": "Changing it changes the tabs, not the categories.",
+  "addMovieCategoryHelp": "A Movie night category with genre, rating and year",
+  "addBookCategoryHelp": "A Book club category with author, year and pages",
+  "booksSearchHint": "Search titles and authors",
+  "bookFilterAll": "All",
+  "bookFilterAvailable": "Available",
+  "bookFilterMine": "Mine",
+  "bookFilterWithMe": "I have",
+  "bookFilterWaiting": "I'm waiting",
+  "addBook": "Add a book",
+  "noBooksYet": "No books yet",
+  "noBooksHelp": "Add the books you can lend, and see who has what.",
+  "noBooksMatch": "No books match.",
+  "bookAvailableAt": "Available, with {owner}",
+  "@bookAvailableAt": {
+    "placeholders": {
+      "owner": {
+        "type": "String"
+      }
+    }
+  },
+  "bookHeldBy": "{holder} has it",
+  "@bookHeldBy": {
+    "placeholders": {
+      "holder": {
+        "type": "String"
+      }
+    }
+  },
+  "bookHeldBySince": "{holder} has it since {date}",
+  "@bookHeldBySince": {
+    "placeholders": {
+      "holder": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "bookWithYou": "You have it",
+  "bookWithYouSince": "You have it since {date}",
+  "@bookWithYouSince": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "bookWaitingCount": "{count, plural, =1{1 waiting} other{{count} waiting}}",
+  "@bookWaitingCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "yourQueuePlace": "Your place in line: {position}",
+  "@yourQueuePlace": {
+    "placeholders": {
+      "position": {
+        "type": "int"
+      }
+    }
+  },
+  "bookOwnerLabel": "Owner",
+  "whereItIs": "Where it is",
+  "waitingList": "Waiting list",
+  "nobodyWaiting": "Nobody is waiting.",
+  "joinWaitingList": "Join the waiting list",
+  "leaveWaitingList": "Leave the waiting list",
+  "lendTo": "Lend to {name}",
+  "@lendTo": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "lendToSomeoneElse": "Someone else…",
+  "backWithOwner": "Back with {owner}",
+  "@backWithOwner": {
+    "placeholders": {
+      "owner": {
+        "type": "String"
+      }
+    }
+  },
+  "whoHasItNow": "Who has it now?",
+  "nowHasIt": "{name} has it now",
+  "@nowHasIt": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteBookTitle": "Delete this book?",
+  "deleteBookMessage": "It leaves the archive, with its waiting list.",
+  "bookDeleted": "Book deleted",
+  "newBook": "New book",
+  "editBook": "Edit book",
+  "authorLabel": "Author",
+  "bookSaved": "Book saved",
+  "bookNotFound": "This book isn't in the archive anymore.",
+  "ownBookError": "It's your book.",
+  "alreadyHoldingError": "You have it already.",
+  "bookLimitReached": "This group has 1000 books already.",
+  "feedBookAdded": "{actor} put {subject} on the shelf",
+  "@feedBookAdded": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      },
+      "subject": {
+        "type": "String"
+      }
+    }
+  },
+  "feedBookLent": "{actor} lent {subject} to {name}",
+  "@feedBookLent": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      },
+      "subject": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "feedBookReturned": "{actor} marked {subject} as returned",
+  "@feedBookReturned": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      },
+      "subject": {
+        "type": "String"
+      }
+    }
+  }
 }

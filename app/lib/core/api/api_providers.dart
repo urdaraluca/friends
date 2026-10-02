@@ -96,3 +96,7 @@ RecapClient recapClient(Ref ref) => ref.watch(friendsApiProvider).recap;
 /// A group's feed.
 @Riverpod(keepAlive: true)
 FeedClient feedClient(Ref ref) => ref.watch(friendsApiProvider).feed;
+
+/// A group's book archive.
+@Riverpod(keepAlive: true)
+BooksClient booksClient(Ref ref) => ref.watch(friendsApiProvider).books;

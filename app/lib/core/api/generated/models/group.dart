@@ -4,6 +4,7 @@
 
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import 'group_kind.dart';
 import 'role.dart';
 import 'user_public.dart';
 
@@ -19,6 +20,7 @@ abstract class Group with _$Group {
     required String? color,
     @JsonKey(name: 'member_count')
     required int memberCount,
+    required GroupKind kind,
     @JsonKey(name: 'my_role')
     required Role myRole,
     @JsonKey(name: 'created_at')

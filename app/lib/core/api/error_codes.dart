@@ -55,6 +55,12 @@ abstract final class ErrorCodes {
   /// 409: a vote or new option on a closed poll.
   static const pollClosed = 'poll_closed';
 
+  /// 409: joining the queue for a book you own.
+  static const ownBook = 'own_book';
+
+  /// 409: joining the queue for a book you already have.
+  static const alreadyHolding = 'already_holding';
+
   /// 409: accepting a spin whose result activity was deleted.
   static const resultDeleted = 'result_deleted';
 
@@ -122,6 +128,8 @@ abstract final class ErrorCodes {
     versionConflict,
     ownerMustTransfer,
     pollClosed,
+    ownBook,
+    alreadyHolding,
     resultDeleted,
     inviteExpired,
     inviteRevoked,

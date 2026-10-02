@@ -84,6 +84,46 @@ DEFAULTS = [
     ("Trips", "#00838F", "trips"),
     ("Culture", "#AD1457", "culture"),
     ("Sports", "#C62828", "sports"),
+    ("Book club", "#6D4C41", "book"),
+]
+
+BOOK_CLUB_FIELD_DEFS = [
+    {
+        "key": "author",
+        "label": "Author",
+        "type": "text",
+        "options": None,
+        "min": None,
+        "max": None,
+        "show_on_card": True,
+    },
+    {
+        "key": "year",
+        "label": "Year",
+        "type": "year",
+        "options": None,
+        "min": None,
+        "max": None,
+        "show_on_card": False,
+    },
+    {
+        "key": "pages",
+        "label": "Pages",
+        "type": "number",
+        "options": None,
+        "min": 1,
+        "max": 10000,
+        "show_on_card": False,
+    },
+    {
+        "key": "link",
+        "label": "Link",
+        "type": "url",
+        "options": None,
+        "min": None,
+        "max": None,
+        "show_on_card": False,
+    },
 ]
 
 
@@ -132,17 +172,39 @@ def test_the_default_categories_match_the_contract_exactly(client: TestClient) -
     assert [(c["name"], c["color"], c["icon"], c["position"]) for c in categories] == [
         (name, color, icon, position) for position, (name, color, icon) in enumerate(DEFAULTS)
     ]
-    movie_night = categories[0]
+    movie_night, book_club = categories[0], categories[-1]
     assert movie_night["field_defs"] == MOVIE_NIGHT_FIELD_DEFS
     assert movie_night["effective_field_defs"] == MOVIE_NIGHT_FIELD_DEFS
+    assert book_club["field_defs"] == BOOK_CLUB_FIELD_DEFS
     for category in categories:
         assert category["parent_id"] is None
         assert category["subcategories"] == []
         assert category["effective_color"] == category["color"]
         assert category["created_by"]["id"] == owner.id
         assert category["can_edit"] is category["can_delete"] is True
-        if category is not movie_night:
+        if category not in (movie_night, book_club):
             assert category["field_defs"] == []
+
+
+@pytest.mark.parametrize(
+    ("kind", "expected"),
+    [
+        ("movie_night", [("Movie night", MOVIE_NIGHT_FIELD_DEFS)]),
+        ("book_club", [("Book club", BOOK_CLUB_FIELD_DEFS)]),
+    ],
+)
+def test_a_group_kind_gets_its_own_categories(
+    client: TestClient, kind: str, expected: list[tuple[str, list[dict[str, Any]]]]
+) -> None:
+    owner = register(client)
+    group = create_group(client, owner, kind=kind)
+
+    categories = list_categories(client, owner, group["id"])
+
+    assert group["kind"] == kind
+    assert [(c["name"], c["field_defs"], c["position"]) for c in categories] == [
+        (name, field_defs, position) for position, (name, field_defs) in enumerate(expected)
+    ]
 
 
 def test_each_default_category_is_logged_as_created(
@@ -322,8 +384,8 @@ def test_names_are_unique_among_siblings_ignoring_case(
 
 def test_categories_are_limited_to_100_per_group(client: TestClient) -> None:
     owner = register(client)
-    group = create_group(client, owner)  # 7 defaults
-    for i in range(93):
+    group = create_group(client, owner)  # 8 defaults
+    for i in range(92):
         create_category(client, owner, group["id"], name=f"C{i}")
 
     response = post_category(client, owner, group["id"], name="One too many", color="#000000")

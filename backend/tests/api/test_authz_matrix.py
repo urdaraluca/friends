@@ -20,6 +20,7 @@ from tests.factories import (
     Account,
     add_member,
     create_activity,
+    create_book,
     create_event,
     create_group,
     create_invite,
@@ -41,6 +42,7 @@ GROUP_UPDATE = {"name": "G", "currency": "EUR", "timezone": "UTC", "members_can_
 CATEGORY_WRITE = {"name": "Board games", "color": "#123456"}
 POLL_UPDATE = {"question": "Which one?", "closes_at": None}
 EVENT_WRITE = {"kind": "one_time", "title": "Picnic", "all_day": True, "start_date": "2026-10-03"}
+BOOK_WRITE = {"title": "Dune", "author": "Frank Herbert"}
 
 # operationId -> request body. A plain member (not creator/owner) must get 403.
 RESTRICTED: dict[str, Callable[[World], dict[str, Any] | None]] = {
@@ -65,6 +67,10 @@ RESTRICTED: dict[str, Callable[[World], dict[str, Any] | None]] = {
     "cancel_occurrence": lambda w: None,
     "restore_occurrence": lambda w: None,
     "edit_occurrence": lambda w: {"title": "Moved"},
+    "update_book": lambda w: BOOK_WRITE,
+    "delete_book": lambda w: None,
+    # A plain member who neither owns nor holds the book.
+    "hand_over_book": lambda w: {"to_user_id": None},
 }
 
 # Routes any member may use (non-members still get 404).
@@ -98,6 +104,11 @@ MEMBER_LEVEL = {
     "list_group_feed",
     "create_event",
     "get_event",
+    "list_books",
+    "create_book",
+    "get_book",
+    "join_book_queue",
+    "leave_book_queue",
 }
 
 BODIES: dict[str, Callable[[World], dict[str, Any] | None]] = {
@@ -113,6 +124,7 @@ BODIES: dict[str, Callable[[World], dict[str, Any] | None]] = {
     "add_poll_option": lambda w: {"label": "Another one"},
     "set_my_vote": lambda w: {"option_ids": [w.ids["option_id"]]},
     "create_event": lambda w: EVENT_WRITE,
+    "create_book": lambda w: BOOK_WRITE,
 }
 
 # operationId -> query parameters the route requires.
@@ -155,6 +167,7 @@ def world(client: TestClient) -> World:
         ends_at="2026-10-01T19:00:00Z",
         rrule="FREQ=WEEKLY;BYDAY=TH",
     )
+    book = create_book(client, owner, group["id"])
     return World(
         owner=owner,
         member=member,
@@ -171,6 +184,7 @@ def world(client: TestClient) -> World:
             "poll_id": poll["id"],
             "option_id": poll["options"][0]["id"],
             "event_id": event["id"],
+            "book_id": book["id"],
             # Not a UUID: the cancel and restore routes also take a (valid) occurrence key.
             "occurrence_key": "20261008T160000Z",
         },

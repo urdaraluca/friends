@@ -53,6 +53,8 @@ String _problemMessage(ProblemException problem) {
     ErrorCodes.versionConflict => l10n.errorVersionConflict,
     ErrorCodes.ownerMustTransfer => l10n.errorOwnerMustTransfer,
     ErrorCodes.pollClosed => l10n.errorPollClosed,
+    ErrorCodes.ownBook => l10n.ownBookError,
+    ErrorCodes.alreadyHolding => l10n.alreadyHoldingError,
     ErrorCodes.resultDeleted => l10n.errorResultDeleted,
     ErrorCodes.inviteExpired => l10n.errorInviteExpired,
     ErrorCodes.inviteRevoked => l10n.errorInviteRevoked,

@@ -116,6 +116,23 @@ abstract final class Routes {
   static String wheelHistory(String groupId) =>
       '${groupTab(groupId, GroupTab.wheel)}/history';
 
+  /// Path parameter holding a book's ID.
+  static const bookIdParam = 'bookId';
+
+  /// `/groups/<id>/books`: the book archive.
+  static String groupBooks(String groupId) => groupTab(groupId, GroupTab.books);
+
+  /// `/groups/<id>/books/new`: the new-book form.
+  static String newBook(String groupId) => '${groupBooks(groupId)}/new';
+
+  /// `/groups/<id>/books/<bookId>`: a book, its holder and its queue.
+  static String book(String groupId, String bookId) =>
+      '${groupBooks(groupId)}/${Uri.encodeComponent(bookId)}';
+
+  /// `/groups/<id>/books/<bookId>/edit`.
+  static String editBook(String groupId, String bookId) =>
+      '${book(groupId, bookId)}/edit';
+
   /// Route pattern of [groupFeed].
   static const groupFeedPattern = '$groupPattern/feed';
 
@@ -267,12 +284,15 @@ abstract final class Routes {
   }
 }
 
-/// The bottom tabs of a group (`GroupShell`), in their order.
+/// The bottom tabs of a group (`GroupShell`). [books] is only in a book
+/// club, as the second tab (`tabsOf` in `group_shell.dart`); the others are
+/// always there, in this order.
 enum GroupTab {
   backlog('backlog'),
   calendar('calendar'),
   wheel('wheel'),
-  group('group');
+  group('group'),
+  books('books');
 
   new(this.segment);
 

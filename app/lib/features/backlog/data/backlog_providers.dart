@@ -5,6 +5,7 @@ import 'package:friends/core/auth/auth_controller.dart';
 import 'package:friends/features/backlog/domain/activity_filter.dart';
 import 'package:friends/features/backlog/domain/category_index.dart';
 import 'package:friends/features/backlog/presentation/widgets/attribute_filter.dart';
+import 'package:friends/features/groups/data/group_providers.dart';
 import 'package:material_ui/material_ui.dart' show immutable;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -35,12 +36,18 @@ Future<Activity> activity(Ref ref, String activityId) {
 
 /// The backlog's filters and sort for a group. Kept for the session, so
 /// they survive switching tabs and opening an activity.
+///
+/// A movie night starts sorted by most interest: the group's votes decide
+/// what to watch next (contract section 17.1).
 @Riverpod(keepAlive: true)
 class BacklogFilter extends _$BacklogFilter {
   @override
   ActivityFilter build(String groupId) {
     ref.watch(currentUserIdProvider);
-    return const ActivityFilter();
+    final kind = ref.read(groupProvider(groupId)).value?.kind;
+    return kind == GroupKind.movieNight
+        ? const ActivityFilter(sort: ActivitySort.interestCount)
+        : const ActivityFilter();
   }
 
   // A setter-like method: Riverpod notifiers expose state changes as calls.

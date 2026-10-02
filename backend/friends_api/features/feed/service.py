@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from friends_api.core.pagination import paginate
 from friends_api.features.activities.models import Activity
+from friends_api.features.books.models import Book
 from friends_api.features.categories.models import Category
 from friends_api.features.events.models import Event
 from friends_api.features.feed.schemas import FeedItem, FeedPage
@@ -47,11 +48,21 @@ FEED_DATA: dict[str, tuple[str, ...]] = {
     "poll.voted": (),
     "wheel.spun": ("result_activity_id", "candidate_count"),
     "wheel.accepted": ("activity_id",),
+    "book.added": (),
+    "book.lent": ("to_name",),
+    "book.returned": (),
 }
 """The actions in the feed, and the ``data`` keys members see for each. Left out: categories
-(setup, and a new group logs its defaults), invites, personal settings and removed interest."""
+(setup, and a new group logs its defaults), invites, personal settings, removed interest, and
+book edits, deletions and queues."""
 
-_LOGGED_TITLE = {"activity": "title", "event": "title", "poll": "question", "category": "name"}
+_LOGGED_TITLE = {
+    "activity": "title",
+    "event": "title",
+    "poll": "question",
+    "category": "name",
+    "book": "title",
+}
 
 
 def _ids(rows: Iterable[GroupLog], subject_type: str) -> set[uuid.UUID]:
@@ -66,6 +77,7 @@ def _titles(db: Session, rows: list[GroupLog]) -> dict[tuple[str, uuid.UUID], st
         ("event", Event, Event.title),
         ("poll", Poll, Poll.question),
         ("category", Category, Category.name),
+        ("book", Book, Book.title),
     ]
     for subject_type, model, column in lookups:
         ids = _ids(rows, subject_type)

@@ -4,6 +4,8 @@
 
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import 'group_kind.dart';
+
 part 'group_update.freezed.dart';
 part 'group_update.g.dart';
 
@@ -18,6 +20,7 @@ abstract class GroupUpdate with _$GroupUpdate {
     String? description,
     String? emoji,
     String? color,
+    GroupKind? kind,
   }) = _GroupUpdate;
   
   factory GroupUpdate.fromJson(Map<String, Object?> json) => _$GroupUpdateFromJson(json);

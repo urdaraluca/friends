@@ -245,7 +245,7 @@ def test_group_changes_are_logged(client: TestClient, db_session: Session) -> No
     assert actions == [
         "group.created",
         "member.joined",
-        *["category.created"] * 7,  # the default categories
+        *["category.created"] * 8,  # the default categories
         "invite.created",
         "member.joined",
         "group.updated",

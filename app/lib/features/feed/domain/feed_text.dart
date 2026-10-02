@@ -96,6 +96,13 @@ List<FeedSpan> feedSentence(FeedItem item) {
     'poll.voted' => l10n.feedPollVoted(actor, poll),
     'wheel.spun' => l10n.feedWheelSpun(actor, subject),
     'wheel.accepted' => l10n.feedWheelAccepted(actor, subject),
+    'book.added' => l10n.feedBookAdded(actor, subject),
+    'book.lent' => l10n.feedBookLent(
+      actor,
+      subject,
+      _bold(_data(item, 'to_name') ?? l10n.someone),
+    ),
+    'book.returned' => l10n.feedBookReturned(actor, subject),
     _ => l10n.feedSomething(actor),
   });
 }
@@ -112,6 +119,7 @@ String? feedTarget(String groupId, FeedItem item) {
       null => null,
     },
     'spin' => Routes.wheelHistory(groupId),
+    'book' => Routes.book(groupId, id),
     'member' || 'group' => Routes.groupHub(groupId),
     _ => null,
   };

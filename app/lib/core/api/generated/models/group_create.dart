@@ -4,6 +4,8 @@
 
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import 'group_kind.dart';
+
 part 'group_create.freezed.dart';
 part 'group_create.g.dart';
 
@@ -16,6 +18,8 @@ abstract class GroupCreate with _$GroupCreate {
     @JsonKey(name: 'members_can_invite')
     @Default(true)
     bool membersCanInvite,
+    @Default(GroupKind.general)
+    GroupKind kind,
     @JsonKey(name: 'seed_default_categories')
     @Default(true)
     bool seedDefaultCategories,

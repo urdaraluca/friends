@@ -17,6 +17,7 @@ const Map<String, IconData> categoryIcons = {
   'party': Icons.celebration_outlined,
   'home': Icons.home_outlined,
   'star': Icons.star_outline,
+  'book': Icons.menu_book_outlined,
 };
 
 /// A category's icon: a known key, an emoji, or a default.

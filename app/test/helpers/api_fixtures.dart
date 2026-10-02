@@ -58,6 +58,8 @@ abstract final class Ids {
   static const otherActivityId = '0190c3a5-0000-7000-8000-0000000000e2';
   static const pollId = '0190c3a5-0000-7000-8000-0000000000f1';
   static const eventId = '0190c3a5-0000-7000-8000-0000000000f2';
+  static const bookId = '0190c3a5-0000-7000-8000-0000000000b1';
+  static const otherBookId = '0190c3a5-0000-7000-8000-0000000000b2';
 }
 
 Map<String, Object?> groupSummaryJson({
@@ -67,12 +69,14 @@ Map<String, Object?> groupSummaryJson({
   String? color,
   int memberCount = 2,
   String myRole = 'member',
+  String kind = 'general',
 }) => {
   'id': id,
   'name': name,
   'emoji': emoji,
   'color': color,
   'member_count': memberCount,
+  'kind': kind,
   'my_role': myRole,
   'created_at': '2026-09-01T10:00:00Z',
 };
@@ -84,6 +88,7 @@ Map<String, Object?> groupJson({
   String? color = '#1E88E5',
   int memberCount = 2,
   String myRole = 'member',
+  String kind = 'general',
   String? description,
   String currency = 'EUR',
   String timezone = 'Europe/Bucharest',
@@ -96,6 +101,7 @@ Map<String, Object?> groupJson({
     color: color,
     memberCount: memberCount,
     myRole: myRole,
+    kind: kind,
   ),
   'description': description,
   'currency': currency,
@@ -221,6 +227,10 @@ abstract final class ApiPaths {
   static const myCalendar = '$me/calendar';
   static String recap(String groupId) => '${group(groupId)}/recap';
   static String feed(String groupId) => '${group(groupId)}/feed';
+  static String books(String groupId) => '${group(groupId)}/books';
+  static String book(String id) => '/api/v1/books/$id';
+  static String bookQueue(String id) => '${book(id)}/queue';
+  static String handover(String id) => '${book(id)}/handover';
   static String groupAvailability(String groupId) =>
       '${group(groupId)}/availability';
 }
@@ -847,4 +857,40 @@ Map<String, Object?> feedItemJson({
   'subject_exists': subjectExists,
   'data': data,
   'created_at': createdAt,
+};
+
+/// A `Book` (contract section 17): Ana's, with her by default.
+Map<String, Object?> bookJson({
+  String id = Ids.bookId,
+  String title = 'Dune',
+  String? author = 'Frank Herbert',
+  String? description,
+  Map<String, Object?>? owner,
+  Map<String, Object?>? holder,
+  String? heldSince,
+  List<Map<String, Object?>> queue = const [],
+  bool inMyQueue = false,
+  bool canEdit = true,
+  bool canHandOver = true,
+}) => {
+  'id': id,
+  'group_id': Ids.groupId,
+  'title': title,
+  'author': author,
+  'description': description,
+  'owner': owner ?? userPublicJson(),
+  'holder': holder,
+  'held_since': heldSince,
+  'queue': queue,
+  'in_my_queue': inMyQueue,
+  'can_edit': canEdit,
+  'can_hand_over': canHandOver,
+  'created_at': '2026-09-01T10:00:00Z',
+  'updated_at': '2026-09-01T10:00:00Z',
+};
+
+/// A `BookQueueEntry` for [userId].
+Map<String, Object?> queueEntryJson(String userId, String displayName) => {
+  'user': userPublicJson(id: userId, displayName: displayName),
+  'joined_at': '2026-09-20T10:00:00Z',
 };

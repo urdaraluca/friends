@@ -10,6 +10,7 @@ from friends_api.core.db import utcnow
 from friends_api.demo.activities import add_interests, create_activities
 from friends_api.demo.availability import create_availability
 from friends_api.demo.base import create_base
+from friends_api.demo.books import create_books
 from friends_api.demo.categories import create_subcategories
 from friends_api.demo.context import DEMO_SEED, DemoContext
 from friends_api.demo.events import create_events
@@ -31,6 +32,8 @@ STEPS: list[Step] = [
     create_spins,
     # -- one step per line --
     create_availability,
+    # -- one step per line --
+    create_books,
     # -- last: moves the log rows to the moments the steps above backdated --
     create_history,
 ]

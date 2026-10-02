@@ -188,3 +188,15 @@ def create_poll(
     assert response.status_code == 201, response.text
     body: dict[str, Any] = response.json()
     return body
+
+
+def create_book(
+    client: TestClient, account: Account, group_id: str, **fields: Any
+) -> dict[str, Any]:
+    payload = {"title": f"Book {next(_sequence)}", "author": "Someone", **fields}
+    response = client.post(
+        f"/api/v1/groups/{group_id}/books", headers=account.headers, json=payload
+    )
+    assert response.status_code == 201, response.text
+    body: dict[str, Any] = response.json()
+    return body

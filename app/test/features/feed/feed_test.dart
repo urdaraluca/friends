@@ -94,6 +94,37 @@ void main() {
         _sentence(_item(action: 'wheel.accepted', subjectType: 'spin')),
         "Ana said let's do Picnic",
       );
+      expect(
+        _sentence(
+          _item(
+            action: 'book.lent',
+            subjectType: 'book',
+            subjectTitle: 'Dune',
+            data: {'to_name': 'Bea'},
+          ),
+        ),
+        'Ana lent Dune to Bea',
+      );
+      expect(
+        _sentence(
+          _item(
+            action: 'book.added',
+            subjectType: 'book',
+            subjectTitle: 'Dune',
+          ),
+        ),
+        'Ana put Dune on the shelf',
+      );
+      expect(
+        _sentence(
+          _item(
+            action: 'book.returned',
+            subjectType: 'book',
+            subjectTitle: 'Dune',
+          ),
+        ),
+        'Ana marked Dune as returned',
+      );
       // A deleted account.
       final item = FeedItem.fromJson({...feedItemJson(), 'actor': null});
       expect(_sentence(item), 'Someone added Picnic');

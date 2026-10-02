@@ -214,6 +214,17 @@ IDEAS: dict[str | None, tuple[list[Idea], tuple[int, int] | None]] = {
         ],
         (5, 30),
     ),
+    "Book club": (
+        [
+            Idea("Piranesi", {"author": "Susanna Clarke", "year": 2020, "pages": 272}),
+            Idea("Klara and the Sun", {"author": "Kazuo Ishiguro", "year": 2021, "pages": 303}),
+            Idea("The Remains of the Day", {"author": "Kazuo Ishiguro", "year": 1989}),
+            Idea("Project Hail Mary", {"author": "Andy Weir", "year": 2021, "pages": 476}),
+            Idea("Solenoid", {"author": "Mircea Cărtărescu", "year": 2015, "pages": 640}),
+            Idea("The Left Hand of Darkness", {"author": "Ursula K. Le Guin", "year": 1969}),
+        ],
+        None,
+    ),
     None: (
         [
             Idea("Learn to juggle"),

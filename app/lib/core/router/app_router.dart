@@ -12,6 +12,9 @@ import 'package:friends/features/backlog/presentation/activity_detail_screen.dar
 import 'package:friends/features/backlog/presentation/activity_form_screen.dart';
 import 'package:friends/features/backlog/presentation/backlog_screen.dart';
 import 'package:friends/features/backlog/presentation/categories_screen.dart';
+import 'package:friends/features/books/presentation/book_detail_screen.dart';
+import 'package:friends/features/books/presentation/book_form_screen.dart';
+import 'package:friends/features/books/presentation/books_screen.dart';
 import 'package:friends/features/calendar/presentation/calendar_screen.dart';
 import 'package:friends/features/calendar/presentation/event_detail_screen.dart';
 import 'package:friends/features/calendar/presentation/event_form_screen.dart';
@@ -303,6 +306,37 @@ GoRouter router(Ref ref) {
             pageBuilder: (context, state) => NoTransitionPage(
               child: GroupHubScreen(groupId: _groupId(state)),
             ),
+          ),
+          GoRoute(
+            path: GroupTab.books.pattern,
+            pageBuilder: (context, state) =>
+                NoTransitionPage(child: BooksScreen(groupId: _groupId(state))),
+            routes: [
+              GoRoute(
+                path: 'new',
+                parentNavigatorKey: rootNavigatorKey,
+                builder: (context, state) =>
+                    BookFormScreen.create(groupId: _groupId(state)),
+              ),
+              GoRoute(
+                path: ':${Routes.bookIdParam}',
+                parentNavigatorKey: rootNavigatorKey,
+                builder: (context, state) => BookDetailScreen(
+                  groupId: _groupId(state),
+                  bookId: state.pathParameters[Routes.bookIdParam]!,
+                ),
+                routes: [
+                  GoRoute(
+                    path: 'edit',
+                    parentNavigatorKey: rootNavigatorKey,
+                    builder: (context, state) => BookFormScreen.edit(
+                      groupId: _groupId(state),
+                      bookId: state.pathParameters[Routes.bookIdParam]!,
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ],
       ),
