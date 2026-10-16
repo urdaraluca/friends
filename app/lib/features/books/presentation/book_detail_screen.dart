@@ -11,7 +11,11 @@ import 'package:friends/core/widgets/async_value_view.dart';
 import 'package:friends/core/widgets/confirm_dialog.dart';
 import 'package:friends/core/widgets/user_avatar.dart';
 import 'package:friends/features/books/data/books_providers.dart';
+import 'package:friends/features/books/domain/book_genres.dart';
+import 'package:friends/features/books/domain/book_languages.dart';
 import 'package:friends/features/books/domain/book_status.dart';
+import 'package:friends/features/books/presentation/widgets/book_cover.dart';
+import 'package:friends/features/books/presentation/widgets/star_rating.dart';
 import 'package:friends/features/groups/data/group_providers.dart';
 import 'package:friends/features/groups/presentation/widgets/group_themed.dart';
 import 'package:friends/l10n/l10n.dart';
@@ -19,8 +23,9 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:material_ui/material_ui.dart';
 
-/// A book (`/groups/:groupId/books/:bookId`): who owns it, who has it, the
-/// waiting list, and the buttons to pass it on.
+/// A book (`/groups/:groupId/books/:bookId`): its cover and details, the
+/// group's ratings, who owns it, who has it, the waiting list, and the
+/// buttons to pass it on.
 class BookDetailScreen extends ConsumerWidget {
   const new({required this.groupId, required this.bookId, super.key});
 
@@ -216,20 +221,100 @@ class _BookBodyState extends ConsumerState<_BookBody> {
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
       children: [
-        Text(book.title, style: textTheme.headlineSmall),
-        if (book.author case final author?) ...[
-          const SizedBox(height: 4),
-          Text(
-            author,
-            style: textTheme.titleMedium?.copyWith(
-              color: colors.onSurfaceVariant,
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            BookCover(book: book, width: 112),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(book.title, style: textTheme.headlineSmall),
+                  if (book.author case final author?) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      author,
+                      style: textTheme.titleMedium?.copyWith(
+                        color: colors.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 8),
+                  RatingSummary(
+                    average: book.ratingAverage,
+                    count: book.ratingCount,
+                    style: textTheme.bodyMedium,
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      if (book.genre case final genre?)
+                        Chip(
+                          avatar: const Icon(Icons.category_outlined),
+                          label: Text(genre.label),
+                        ),
+                      if (book.language case final language?)
+                        Chip(
+                          avatar: const Icon(Icons.translate),
+                          label: Text(bookLanguageName(language)),
+                        ),
+                    ],
+                  ),
+                  if (book.isbn case final isbn?) ...[
+                    const SizedBox(height: 8),
+                    SelectableText(
+                      l10n.isbnValue(isbn),
+                      style: textTheme.bodySmall?.copyWith(
+                        color: colors.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
         if (book.description case final description?) ...[
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           Text(description, style: textTheme.bodyLarge),
         ],
+        const SizedBox(height: 16),
+        Card(
+          margin: EdgeInsets.zero,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(l10n.yourRating, style: textTheme.titleMedium),
+                const SizedBox(height: 4),
+                StarRating(
+                  value: book.myRating,
+                  // Always buttons (no jump while saving); taps then wait.
+                  onChanged: (stars) {
+                    if (_busy) return;
+                    unawaited(
+                      _run(
+                        () => stars == null
+                            ? _controller.unrate(book)
+                            : _controller.rate(book, stars),
+                      ),
+                    );
+                  },
+                ),
+                Text(
+                  book.myRating == null ? l10n.rateHelp : l10n.unrateHelp,
+                  style: textTheme.bodySmall?.copyWith(
+                    color: colors.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
         const SizedBox(height: 16),
         Card(
           margin: EdgeInsets.zero,

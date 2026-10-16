@@ -66,5 +66,9 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>Friends uses the camera to scan a book's barcode and to photograph its cover.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Friends lets you pick a photo of a book's cover.</string>
 </dict>
 </plist>

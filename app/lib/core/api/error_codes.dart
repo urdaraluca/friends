@@ -61,6 +61,18 @@ abstract final class ErrorCodes {
   /// 409: joining the queue for a book you already have.
   static const alreadyHolding = 'already_holding';
 
+  /// 409: asking for the ISBN cover of a book without an ISBN.
+  static const noIsbn = 'no_isbn';
+
+  /// 422: not a valid ISBN-10 or ISBN-13 (`GET /books/isbn/{isbn}`).
+  static const invalidIsbn = 'invalid_isbn';
+
+  /// 422: a book cover that isn't a JPEG, PNG or WebP image up to 2 MiB.
+  static const invalidImage = 'invalid_image';
+
+  /// 503: neither book catalogue answered the ISBN lookup.
+  static const lookupUnavailable = 'lookup_unavailable';
+
   /// 409: accepting a spin whose result activity was deleted.
   static const resultDeleted = 'result_deleted';
 
@@ -130,6 +142,10 @@ abstract final class ErrorCodes {
     pollClosed,
     ownBook,
     alreadyHolding,
+    noIsbn,
+    invalidIsbn,
+    invalidImage,
+    lookupUnavailable,
     resultDeleted,
     inviteExpired,
     inviteRevoked,

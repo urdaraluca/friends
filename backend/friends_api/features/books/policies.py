@@ -8,8 +8,8 @@ from friends_api.features.groups.models import Membership
 
 
 def can_edit_book(actor: Membership, book: Book) -> bool:
-    """Edit or delete the book."""
-    return actor.is_admin or actor.user_id == book.owner_id
+    """Edit or delete the book, and its cover: its owner, whoever added it, or an admin+."""
+    return actor.is_admin or actor.user_id in (book.owner_id, book.added_by_id)
 
 
 def can_hand_over_book(actor: Membership, book: Book) -> bool:

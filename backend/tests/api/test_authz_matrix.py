@@ -17,6 +17,7 @@ from fastapi.routing import APIRoute, RouteContext, iter_route_contexts
 from fastapi.testclient import TestClient
 
 from tests.factories import (
+    TINY_JPEG,
     Account,
     add_member,
     create_activity,
@@ -71,6 +72,9 @@ RESTRICTED: dict[str, Callable[[World], dict[str, Any] | None]] = {
     "delete_book": lambda w: None,
     # A plain member who neither owns nor holds the book.
     "hand_over_book": lambda w: {"to_user_id": None},
+    "upload_book_cover": lambda w: None,
+    "use_isbn_cover": lambda w: None,
+    "delete_book_cover": lambda w: None,
 }
 
 # Routes any member may use (non-members still get 404).
@@ -109,6 +113,9 @@ MEMBER_LEVEL = {
     "get_book",
     "join_book_queue",
     "leave_book_queue",
+    "get_book_cover",
+    "rate_book",
+    "unrate_book",
 }
 
 BODIES: dict[str, Callable[[World], dict[str, Any] | None]] = {
@@ -125,6 +132,12 @@ BODIES: dict[str, Callable[[World], dict[str, Any] | None]] = {
     "set_my_vote": lambda w: {"option_ids": [w.ids["option_id"]]},
     "create_event": lambda w: EVENT_WRITE,
     "create_book": lambda w: BOOK_WRITE,
+    "rate_book": lambda w: {"stars": 4},
+}
+
+# operationId -> multipart files the route takes instead of a JSON body.
+FILES: dict[str, dict[str, tuple[str, bytes, str]]] = {
+    "upload_book_cover": {"file": ("cover.jpg", TINY_JPEG, "image/jpeg")},
 }
 
 # operationId -> query parameters the route requires.
@@ -168,6 +181,12 @@ def world(client: TestClient) -> World:
         rrule="FREQ=WEEKLY;BYDAY=TH",
     )
     book = create_book(client, owner, group["id"])
+    cover = client.put(
+        f"/api/v1/books/{book['id']}/cover",
+        headers=owner.headers,
+        files={"file": ("cover.jpg", TINY_JPEG, "image/jpeg")},
+    )
+    assert cover.status_code == 200, cover.text
     return World(
         owner=owner,
         member=member,
@@ -209,6 +228,8 @@ def call(
     body_factory = BODIES.get(route.name or "")
     body = body_factory(world) if body_factory else None
     params = QUERIES.get(route.name or "")
+    if files := FILES.get(route.name or ""):
+        return client.request(method, path, headers=account.headers, files=files)
     return client.request(method, path, headers=account.headers, json=body, params=params)
 
 

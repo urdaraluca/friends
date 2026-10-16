@@ -3,11 +3,12 @@
 import uuid
 from typing import Annotated
 
-from fastapi import Depends
+from fastapi import Depends, Request
 
 from friends_api.core.errors import NotFound
 from friends_api.deps import CurrentUser, DbSession
 from friends_api.features.books import service
+from friends_api.features.books.isbn import BookLookup
 from friends_api.features.books.service import BookAccess
 
 
@@ -21,3 +22,11 @@ def load_book(book_id: uuid.UUID, db: DbSession, user: CurrentUser) -> BookAcces
 
 
 BookMember = Annotated[BookAccess, Depends(load_book)]
+
+
+def get_book_lookup(request: Request) -> BookLookup:
+    lookup: BookLookup = request.app.state.book_lookup
+    return lookup
+
+
+IsbnLookupClient = Annotated[BookLookup, Depends(get_book_lookup)]

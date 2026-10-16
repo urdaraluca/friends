@@ -4,6 +4,7 @@
 
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import 'book_genre.dart';
 import 'book_queue_entry.dart';
 import 'user_public.dart';
 
@@ -19,6 +20,11 @@ abstract class Book with _$Book {
     required String title,
     required String? author,
     required String? description,
+    required String? isbn,
+    required BookGenre? genre,
+    required String? language,
+    @JsonKey(name: 'cover_updated_at')
+    required DateTime? coverUpdatedAt,
     required UserPublic? owner,
     required UserPublic? holder,
     @JsonKey(name: 'held_since')
@@ -26,6 +32,12 @@ abstract class Book with _$Book {
     required List<BookQueueEntry> queue,
     @JsonKey(name: 'in_my_queue')
     required bool inMyQueue,
+    @JsonKey(name: 'rating_average')
+    required num? ratingAverage,
+    @JsonKey(name: 'rating_count')
+    required int ratingCount,
+    @JsonKey(name: 'my_rating')
+    required int? myRating,
     @JsonKey(name: 'can_edit')
     required bool canEdit,
     @JsonKey(name: 'can_hand_over')

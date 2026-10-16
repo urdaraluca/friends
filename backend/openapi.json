@@ -4625,7 +4625,7 @@
           "books"
         ],
         "summary": "Create Book",
-        "description": "Any member. The caller owns the book, and it is with them.",
+        "description": "Any member. The book is theirs and with them, unless the body names other members.",
         "operationId": "create_book",
         "security": [
           {
@@ -4649,7 +4649,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/BookWrite"
+                "$ref": "#/components/schemas/BookCreate"
               }
             }
           }
@@ -4661,6 +4661,64 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Book"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Error (RFC 9457 problem details)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (RFC 9457 problem details)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/books/isbn/{isbn}": {
+      "get": {
+        "tags": [
+          "books"
+        ],
+        "summary": "Look Up Isbn",
+        "description": "What the book catalogues know about an ISBN-10 or ISBN-13.",
+        "operationId": "look_up_isbn",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "isbn",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Isbn"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IsbnLookup"
                 }
               }
             }
@@ -4750,7 +4808,7 @@
           "books"
         ],
         "summary": "Update Book",
-        "description": "The owner or an admin.",
+        "description": "The owner, whoever added it or an admin.",
         "operationId": "update_book",
         "security": [
           {
@@ -4817,7 +4875,7 @@
           "books"
         ],
         "summary": "Delete Book",
-        "description": "The owner or an admin.",
+        "description": "The owner, whoever added it or an admin.",
         "operationId": "delete_book",
         "security": [
           {
@@ -5014,6 +5072,390 @@
             }
           }
         },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Book"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Error (RFC 9457 problem details)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (RFC 9457 problem details)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/books/{book_id}/cover": {
+      "get": {
+        "tags": [
+          "books"
+        ],
+        "summary": "Get Book Cover",
+        "description": "The book's cover image.",
+        "operationId": "get_book_cover",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "book_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Book Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The cover image.",
+            "content": {
+              "image/jpeg": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "image/webp": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "The cover hasn't changed (If-None-Match)."
+          },
+          "422": {
+            "description": "Error (RFC 9457 problem details)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (RFC 9457 problem details)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "books"
+        ],
+        "summary": "Upload Book Cover",
+        "description": "The owner, whoever added it or an admin. Replaces the cover.",
+        "operationId": "upload_book_cover",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "book_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Book Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_book_cover"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Book"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Error (RFC 9457 problem details)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (RFC 9457 problem details)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "books"
+        ],
+        "summary": "Delete Book Cover",
+        "description": "The owner, whoever added it or an admin. Removes the cover (idempotent).",
+        "operationId": "delete_book_cover",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "book_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Book Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Book"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Error (RFC 9457 problem details)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (RFC 9457 problem details)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/books/{book_id}/cover/isbn": {
+      "post": {
+        "tags": [
+          "books"
+        ],
+        "summary": "Use Isbn Cover",
+        "description": "The owner, whoever added it or an admin. The cover the book catalogues have for its ISBN.",
+        "operationId": "use_isbn_cover",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "book_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Book Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Book"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Error (RFC 9457 problem details)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (RFC 9457 problem details)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/books/{book_id}/rating": {
+      "put": {
+        "tags": [
+          "books"
+        ],
+        "summary": "Rate Book",
+        "description": "Any member. Sets the caller's stars, 1 to 5.",
+        "operationId": "rate_book",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "book_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Book Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RatingWrite"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Book"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Error (RFC 9457 problem details)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (RFC 9457 problem details)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "books"
+        ],
+        "summary": "Unrate Book",
+        "description": "Any member. Removes the caller's stars (idempotent).",
+        "operationId": "unrate_book",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "book_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Book Id"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -6071,6 +6513,22 @@
         ],
         "title": "BirthdayPublic"
       },
+      "Body_upload_book_cover": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "File",
+            "description": "A JPEG, PNG or WebP image, up to 2 MB.",
+            "format": "binary"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_upload_book_cover"
+      },
       "Book": {
         "properties": {
           "id": {
@@ -6108,6 +6566,50 @@
               }
             ],
             "title": "Description"
+          },
+          "isbn": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Isbn"
+          },
+          "genre": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BookGenre"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "language": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
+          },
+          "cover_updated_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cover Updated At"
           },
           "owner": {
             "anyOf": [
@@ -6152,6 +6654,32 @@
             "type": "boolean",
             "title": "In My Queue"
           },
+          "rating_average": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rating Average"
+          },
+          "rating_count": {
+            "type": "integer",
+            "title": "Rating Count"
+          },
+          "my_rating": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "My Rating"
+          },
           "can_edit": {
             "type": "boolean",
             "title": "Can Edit"
@@ -6178,17 +6706,146 @@
           "title",
           "author",
           "description",
+          "isbn",
+          "genre",
+          "language",
+          "cover_updated_at",
           "owner",
           "holder",
           "held_since",
           "queue",
           "in_my_queue",
+          "rating_average",
+          "rating_count",
+          "my_rating",
           "can_edit",
           "can_hand_over",
           "created_at",
           "updated_at"
         ],
         "title": "Book"
+      },
+      "BookCreate": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Title"
+          },
+          "author": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Author"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 5000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "isbn": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 20
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Isbn"
+          },
+          "genre": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BookGenre"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "language": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2,
+                "minLength": 2,
+                "pattern": "^[a-zA-Z]{2}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
+          },
+          "owner_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner Id"
+          },
+          "holder_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Holder Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "title"
+        ],
+        "title": "BookCreate"
+      },
+      "BookGenre": {
+        "type": "string",
+        "enum": [
+          "fiction",
+          "fantasy",
+          "sci_fi",
+          "mystery_thriller",
+          "romance",
+          "horror",
+          "classics",
+          "history",
+          "biography",
+          "non_fiction",
+          "self_help",
+          "poetry",
+          "children",
+          "young_adult",
+          "comics",
+          "other"
+        ],
+        "title": "BookGenre",
+        "description": "A book's genre (contract section 17.2). The app translates the names."
       },
       "BookQueueEntry": {
         "properties": {
@@ -6239,6 +6896,54 @@
               }
             ],
             "title": "Description"
+          },
+          "isbn": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 20
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Isbn"
+          },
+          "genre": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BookGenre"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "language": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2,
+                "minLength": 2,
+                "pattern": "^[a-zA-Z]{2}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
+          },
+          "owner_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner Id"
           }
         },
         "type": "object",
@@ -6246,7 +6951,7 @@
           "title"
         ],
         "title": "BookWrite",
-        "description": "A new book (the caller owns it), or the complete new state of one."
+        "description": "A new book, or the complete new state of one."
       },
       "CalendarResponse": {
         "properties": {
@@ -8214,6 +8919,84 @@
         ],
         "title": "InviteStatus"
       },
+      "IsbnLookup": {
+        "properties": {
+          "isbn": {
+            "type": "string",
+            "title": "Isbn"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "author": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Author"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "genre": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BookGenre"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "language": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
+          },
+          "cover_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cover Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "isbn",
+          "title",
+          "author",
+          "description",
+          "genre",
+          "language",
+          "cover_url"
+        ],
+        "title": "IsbnLookup",
+        "description": "What the book catalogues know about an ISBN; the app fills its form with it."
+      },
       "Link": {
         "properties": {
           "url": {
@@ -9218,6 +10001,21 @@
         ],
         "title": "PollUpdate",
         "description": "The complete new state (``allow_multiple`` can't change)."
+      },
+      "RatingWrite": {
+        "properties": {
+          "stars": {
+            "type": "integer",
+            "maximum": 5.0,
+            "minimum": 1.0,
+            "title": "Stars"
+          }
+        },
+        "type": "object",
+        "required": [
+          "stars"
+        ],
+        "title": "RatingWrite"
       },
       "Recap": {
         "properties": {

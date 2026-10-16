@@ -304,6 +304,7 @@ FieldError { field: str, message: str, type: str }
 | `APP_VERSION` / `GIT_SHA` | `dev` / `unknown` | set by the image build | reported by `/health` |
 | `FORWARDED_ALLOW_IPS` | – | `*` (safe only with the `127.0.0.1` port bind) | read by uvicorn (`--proxy-headers`) |
 | `METRICS_TOKEN` | unset | optional, a long random string | enables `GET /api/v1/metrics` (section 1.13); unset, it is a 404 |
+| `GOOGLE_BOOKS_API_KEY` | unset | recommended, a Google Cloud API key with the Books API enabled | the ISBN lookup (section 17.5); without it, Google's shared anonymous quota, which is often used up |
 
 ### 1.12 CLI (`python -m friends_api.cli <command>`)
 
@@ -373,10 +374,13 @@ codes for each endpoint.
 | `result_deleted` | 409 | Accepting a spin whose result activity has since been deleted. |
 | `own_book` | 409 | Joining the queue for a book you own (section 17). |
 | `already_holding` | 409 | Joining the queue for a book you already have (section 17). |
+| `no_isbn` | 409 | Asking for the ISBN cover of a book without an ISBN (section 17.5). |
 | `invite_expired` | 410 | The invite's `expires_at` has passed. |
 | `invite_revoked` | 410 | The invite was revoked. |
 | `invite_exhausted` | 410 | `use_count` has reached `max_uses`. |
-| `invalid_reference` | 422 | An ID in the body (`category_id`, `parent_id`, `owner_id`, `activity_id`, `user_id`, `option_ids`, `activity_ids`) doesn't exist in this group, or the user isn't a member. `errors[]` names the field. |
+| `invalid_reference` | 422 | An ID in the body (`category_id`, `parent_id`, `owner_id`, `holder_id`, `activity_id`, `user_id`, `option_ids`, `activity_ids`) doesn't exist in this group, or the user isn't a member. `errors[]` names the field. |
+| `invalid_isbn` | 422 | `GET /books/isbn/{isbn}` with something that isn't a valid ISBN-10 or ISBN-13 (section 17.5). |
+| `invalid_image` | 422 | A book cover that isn't a JPEG, PNG or WebP image, or is over 2 MiB (section 17.5). |
 | `category_depth_exceeded` | 422 | A third level, or giving a parent to a category that has subcategories. |
 | `field_key_conflict` | 422 | A custom-field key is used both by a category and by its parent or one of its subcategories. |
 | `field_type_change` | 422 | An existing custom-field key was given a different type. |
@@ -388,6 +392,7 @@ codes for each endpoint.
 | `limit_reached` | 422 | A count limit from section 1.9 would be exceeded, or a poll would have fewer than 2 options. |
 | `rate_limited` | 429 | Too many requests (section 4.9); comes with `Retry-After`. |
 | `internal_error` | 500 | An unhandled server error. |
+| `lookup_unavailable` | 503 | Neither book catalogue answered the ISBN lookup (section 17.5); try again later. |
 
 Removed from the drafts: `already_member` (accepting is idempotent) and `too_many_options` (replaced
 by `limit_reached`).
@@ -854,6 +859,7 @@ Returns 204. Apple requires in-app account deletion; the profile screen offers i
 | `register` | `POST /auth/register` | 5 per hour per IP |
 | `refresh` | `POST /auth/refresh` | 30 per minute per IP |
 | `invites` | `GET /invites/{code}`, `POST /invites/{code}/accept` (shared) | 20 per minute per IP |
+| `isbn_lookup` | `GET /books/isbn/{isbn}` | 30 per minute per IP |
 
 Over the limit → 429 `rate_limited` with `Retry-After` (integer seconds until a slot frees up).
 `/health` is never rate-limited. There is no per-email failure bucket.
@@ -2156,7 +2162,8 @@ default currency is EUR in English and RON in Romanian.
 ## 17. Group kinds and the book archive
 
 Some groups are for one thing: a weekly movie night, a book club. Decisions:
-[ADR 0006](../adr/0006-group-kinds-and-books.md).
+[ADR 0006](../adr/0006-group-kinds-and-books.md); covers, ISBN lookup and ratings:
+[ADR 0007](../adr/0007-book-covers-isbn-and-ratings.md).
 
 ### 17.1 Group kinds
 
@@ -2177,10 +2184,14 @@ Some groups are for one thing: a weekly movie night, a book club. Decisions:
 books
   id            uuid pk
   group_id      uuid not null -> groups CASCADE
-  owner_id      uuid not null -> users CASCADE    -- who added it; it leaves the group with them
+  owner_id      uuid not null -> users CASCADE    -- whose book it is; it leaves the group with them
+  added_by_id   uuid null -> users SET NULL       -- who put it on the shelf; they may edit it too
   title         varchar(200) NOCASE not null
   author        varchar(120) null
   description   varchar(5000) null
+  isbn          varchar(13) null                  -- ISBN-13, digits only
+  genre         varchar(20) null                  -- BookGenre
+  language      varchar(2) null                   -- ISO 639-1, lowercase
   holder_id     uuid null -> users SET NULL       -- who has it now; null: with its owner
   held_since    ts null                           -- null with its owner
   created_at, updated_at
@@ -2190,6 +2201,18 @@ book_queue                                        -- who is waiting to borrow it
   book_id       uuid -> books CASCADE  ┐ pk
   user_id       uuid -> users CASCADE  ┘ (indexed)
   joined_at     ts not null                       -- the queue's order (then user_id)
+
+book_covers                                       -- at most one per book
+  book_id       uuid pk -> books CASCADE
+  content_type  varchar(20) not null              -- image/jpeg, image/png or image/webp
+  data          blob not null                     -- at most 2 MiB
+  updated_at    ts not null
+
+book_ratings                                      -- a member's stars for a book
+  book_id       uuid -> books CASCADE  ┐ pk
+  user_id       uuid -> users CASCADE  ┘ (indexed)
+  stars         smallint not null CHECK 1..5
+  rated_at      ts not null
 ```
 
 ### 17.3 Endpoints (tag `books`)
@@ -2197,13 +2220,32 @@ book_queue                                        -- who is waiting to borrow it
 | Endpoint | operationId | Auth | Request | Success | Extra errors |
 |---|---|---|---|---|---|
 | `GET /groups/{group_id}/books` | `list_books` | member | – | 200 `Book[]`, by title (case-insensitive), then id | – |
-| `POST /groups/{group_id}/books` | `create_book` | member | `BookWrite` | 201 `Book`. The caller owns it and has it. Logged `book.added`. | 422 `limit_reached` |
+| `POST /groups/{group_id}/books` | `create_book` | member | `BookCreate` | 201 `Book` (below). Logged `book.added`, then `book.lent` when someone other than the owner has it. | 422 `limit_reached`, `invalid_reference` (`owner_id`, `holder_id`) |
 | `GET /books/{book_id}` | `get_book` | member | – | 200 `Book` | – |
-| `PUT /books/{book_id}` | `update_book` | owner or admin+ | `BookWrite` (the complete new state) | 200 `Book`. Logged `book.updated {fields}` on a real change. | 403 |
-| `DELETE /books/{book_id}` | `delete_book` | owner or admin+ | – | 204. Its queue goes with it. Logged `book.deleted`. | 403 |
+| `PUT /books/{book_id}` | `update_book` | owner, adder or admin+ | `BookWrite` (the complete new state; `owner_id: null` keeps the owner) | 200 `Book` (below). Logged `book.updated {fields}` on a real change (`owner` for a new owner). | 403; 422 `invalid_reference` (`owner_id`) |
+| `DELETE /books/{book_id}` | `delete_book` | owner, adder or admin+ | – | 204. Its queue goes with it. Logged `book.deleted`. | 403 |
 | `PUT /books/{book_id}/queue` | `join_book_queue` | member | – | 200 `Book`. Joins the end of the queue; idempotent (keeps the place). | 409 `own_book`, `already_holding` |
 | `DELETE /books/{book_id}/queue` | `leave_book_queue` | member | – | 200 `Book` (idempotent) | – |
 | `POST /books/{book_id}/handover` | `hand_over_book` | owner, holder or admin+ | `Handover` | 200 `Book` (below) | 403; 422 `invalid_reference` (`to_user_id`) |
+| `PUT /books/{book_id}/rating` | `rate_book` | member | `RatingWrite` | 200 `Book`. Sets the caller's stars; the owner may rate too. Not logged. | – |
+| `DELETE /books/{book_id}/rating` | `unrate_book` | member | – | 200 `Book` (idempotent) | – |
+| `GET /books/{book_id}/cover` | `get_book_cover` | member | – | 200 the image (its own content type), with an `ETag`; 304 on a matching `If-None-Match` | 404 `not_found` without a cover |
+| `PUT /books/{book_id}/cover` | `upload_book_cover` | owner, adder or admin+ | multipart `file` | 200 `Book`. Replaces the cover. Not logged. | 403; 422 `invalid_image` |
+| `POST /books/{book_id}/cover/isbn` | `use_isbn_cover` | owner, adder or admin+ | – | 200 `Book`. The cover the catalogues have for the book's ISBN (section 17.5). | 403; 404 `not_found`; 409 `no_isbn` |
+| `DELETE /books/{book_id}/cover` | `delete_book_cover` | owner, adder or admin+ | – | 200 `Book` (idempotent) | 403 |
+| `GET /books/isbn/{isbn}` | `look_up_isbn` | signed in | – | 200 `IsbnLookup` (section 17.5) | 404 `not_found`; 422 `invalid_isbn`; 429; 503 `lookup_unavailable` |
+
+**Adding a book.** Any member adds books, their own or someone else's: `owner_id` (null: the
+caller) and `holder_id` (null or the owner: with its owner) must be members of the group. A holder
+gets `held_since = now`, as with a handover. Whoever added the book (`added_by_id`) may edit,
+delete and photograph it like its owner, so a member who adds a friend's book can fix it and give
+it a cover.
+
+**Changing the owner.** `PUT` with another member's `owner_id`. If the new owner had the book, it is
+back with its owner; they also leave its queue.
+
+**Ratings.** One per member and book, 1 to 5 stars. `Book.rating_average` is the mean rounded to
+one decimal (null with no ratings), `rating_count` how many there are, `my_rating` the caller's.
 
 **Handing over.** The owner, whoever has the book now, or an admin+ says who has it next. Nothing
 checks that it really changed hands; the members say so.
@@ -2218,21 +2260,63 @@ checks that it really changed hands; the members say so.
 ### 17.4 Membership end
 
 When a member leaves, is removed or deletes their account (section 7.5):
-- their queue entries in the group are deleted;
+- their queue entries and ratings in the group are deleted;
 - the group's books they hold count as back with their owners (sort it out in person);
 - the books they own in the group are deleted: they take their books with them.
 
+### 17.5 Covers and the ISBN lookup
+
+**Covers** are stored in the database (`book_covers`), so the nightly backup has them. An upload
+must be a JPEG, PNG or WebP image (checked by its first bytes, not its declared type) of at most
+2 MiB; anything else is a 422 `invalid_image`. The app downsizes photos to about 1200 px first.
+`Book.cover_updated_at` says whether there is one and when it changed, so clients know when to
+fetch it again. `GET /books/{id}/cover` needs the same sign-in as any other route (the app reads
+it with its API client), and answers `Cache-Control: private, no-cache` with an `ETag`.
+
+**The lookup** (`GET /books/isbn/{isbn}`) takes an ISBN-10 or ISBN-13 with or without hyphens and
+spaces; a wrong length, character or check digit is a 422 `invalid_isbn`. It asks:
+1. Google Books (`www.googleapis.com/books/v1/volumes?q=isbn:…`): title, authors, description,
+   categories, language, thumbnail. Without `GOOGLE_BOOKS_API_KEY` it uses Google's anonymous
+   quota, which is shared and often used up (429), so set a key in production.
+2. Open Library, when Google doesn't know the book or leaves out the description, language or
+   cover: `api/books?jscmd=data` (title, authors, subjects, cover), then the edition
+   (`/isbn/{isbn}.json`, its language) and its work (`/works/…json`, description and subjects).
+
+Google's answer wins; Open Library fills the gaps. The genre is a guess from the categories and
+subjects: each counts for its most specific genre, the most named wins, and plain "fiction" only
+when nothing more specific is named. Neither knowing the ISBN is a 404; neither answering (a
+network error or a 4xx/5xx from both) is a 503 `lookup_unavailable`. Requests time out after 5 s
+and are rate limited to 30 a minute per IP.
+
+`POST /books/{id}/cover/isbn` downloads the lookup's cover, or else Open Library's cover by ISBN
+(`covers.openlibrary.org/b/isbn/{isbn}-L.jpg?default=false`). The server only ever fetches from
+Google Books' and Open Library's hosts: no URL a client sends is fetched.
+
 ```
 GroupKind      = general | movie_night | book_club
-BookWrite      { title: str (1..200), author: str? (<=120), description: str? (<=5000) }
+BookGenre      = fiction | fantasy | sci_fi | mystery_thriller | romance | horror | classics
+               | history | biography | non_fiction | self_help | poetry | children
+               | young_adult | comics | other
+BookWrite      { title: str (1..200), author: str? (<=120), description: str? (<=5000),
+                 isbn: str?,                          # ISBN-10 or -13, stored as ISBN-13
+                 genre: BookGenre?, language: str?,   # ISO 639-1, two letters
+                 owner_id: uuid? }                    # a member; null: the caller (create) or unchanged (update)
+BookCreate     = BookWrite + { holder_id: uuid? }     # a member; null or the owner: with its owner
 Handover       { to_user_id: uuid? }                 # null: back to the owner
+RatingWrite    { stars: int (1..5) }
 BookQueueEntry { user: UserPublic, joined_at: ts }
 Book           { id: uuid, group_id: uuid, title: str, author: str?, description: str?,
+                 isbn: str?, genre: BookGenre?, language: str?,
+                 cover_updated_at: ts?,               # null: no cover
                  owner: UserPublic?,                  # null only while the owner's account is being deleted
                  holder: UserPublic?,                 # null: with its owner
                  held_since: ts?, queue: BookQueueEntry[] (first come, first served),
                  in_my_queue: bool,
-                 can_edit: bool,                      # edit and delete: the owner or admin+
+                 rating_average: float?,              # one decimal; null: no ratings
+                 rating_count: int, my_rating: int?,
+                 can_edit: bool,                      # edit, delete and the cover: the owner, the adder or admin+
                  can_hand_over: bool,                 # the owner, the holder or admin+
                  created_at: ts, updated_at: ts }
+IsbnLookup     { isbn: str, title: str, author: str?, description: str?, genre: BookGenre?,
+                 language: str?, cover_url: str? }    # an https image to preview
 ```

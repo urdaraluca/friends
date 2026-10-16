@@ -29,14 +29,51 @@ enum BookFilter {
   };
 }
 
-/// Whether [book]'s title or author contains [query] (case-insensitive);
-/// a blank query matches everything.
+/// Whether [book]'s title or author contains [query] (case-insensitive), or
+/// its ISBN does (hyphens and spaces ignored); a blank query matches
+/// everything.
 bool bookMatchesQuery(Book book, String query) {
   final q = query.trim().toLowerCase();
   if (q.isEmpty) return true;
+  final digits = q.replaceAll(RegExp(r'[\s-]'), '');
   return book.title.toLowerCase().contains(q) ||
-      (book.author?.toLowerCase().contains(q) ?? false);
+      (book.author?.toLowerCase().contains(q) ?? false) ||
+      (digits.length >= 4 && (book.isbn?.contains(digits) ?? false));
 }
+
+/// How the archive is ordered.
+enum BookSort {
+  /// By title, as the API returns it.
+  title,
+
+  /// Best rated first (by average, then by how many rated it); unrated books
+  /// last, by title.
+  rating;
+
+  String get label => switch (this) {
+    title => currentL10n.bookSortTitle,
+    rating => currentL10n.bookSortRating,
+  };
+
+  /// [books] (in title order) in this order.
+  List<Book> apply(List<Book> books) => switch (this) {
+    title => books,
+    rating => [...books]..sort(_byRating),
+  };
+}
+
+int _byRating(Book a, Book b) {
+  final byAverage = (b.ratingAverage ?? -1).compareTo(a.ratingAverage ?? -1);
+  if (byAverage != 0) return byAverage;
+  final byCount = b.ratingCount.compareTo(a.ratingCount);
+  if (byCount != 0) return byCount;
+  // List.sort isn't stable: keep title order among equals.
+  return a.title.toLowerCase().compareTo(b.title.toLowerCase());
+}
+
+/// "4.3" for a rating average, in the current locale.
+String formatRating(num average) =>
+    NumberFormat('0.0', currentL10n.localeName).format(average);
 
 /// My place in [book]'s queue (from 1), or null when I'm not in it.
 int? queuePosition(Book book, String? me) {

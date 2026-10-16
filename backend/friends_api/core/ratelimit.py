@@ -52,6 +52,7 @@ class RateLimits:
         self.register = SlidingWindowLimiter(5, 3600, clock)
         self.refresh = SlidingWindowLimiter(30, 60, clock)
         self.invites = SlidingWindowLimiter(20, 60, clock)
+        self.isbn_lookup = SlidingWindowLimiter(30, 60, clock)
 
 
 def client_ip(request: Request) -> str:

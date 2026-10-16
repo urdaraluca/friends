@@ -13,3 +13,5 @@ swagger_parser:
   # no annotation, so json_serializable's default (include nulls) applies. See ADR 0003.
   include_if_null: false
   mark_files_as_generated: true
+  # Uploads take a dio MultipartFile (bytes), not dart:io File, so they also work on the web.
+  use_multipart_file: true

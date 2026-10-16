@@ -64,7 +64,8 @@ class FakeHttpClientAdapter implements HttpClientAdapter {
     if (requestStream != null) {
       final bytes = <int>[];
       await requestStream.forEach(bytes.addAll);
-      body = utf8.decode(bytes);
+      // Multipart uploads carry binary parts.
+      body = utf8.decode(bytes, allowMalformed: true);
     }
     final request = RecordedRequest(options, body);
     requests.add(request);

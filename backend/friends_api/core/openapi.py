@@ -2,6 +2,7 @@
 
 Every operation documents its errors as ``Problem`` (``application/problem+json``), including
 422, and FastAPI's default ``HTTPValidationError`` / ``ValidationError`` schemas are removed.
+File uploads also say ``format: binary``, so the generated client takes a file.
 """
 
 from typing import Any
@@ -31,6 +32,12 @@ def build_openapi(app: FastAPI) -> dict[str, Any]:
     problem_schema = Problem.model_json_schema(ref_template="#/components/schemas/{model}")
     components.update(problem_schema.pop("$defs", {}))
     components["Problem"] = problem_schema
+    for component in components.values():
+        for prop in component.get("properties", {}).values():
+            # OpenAPI 3.1 marks uploads with contentMediaType; the Dart generator only knows
+            # the 3.0 ``format: binary`` and would type an upload as a String.
+            if prop.get("contentMediaType") == "application/octet-stream":
+                prop["format"] = "binary"
 
     for path_item in schema.get("paths", {}).values():
         for operation in path_item.values():

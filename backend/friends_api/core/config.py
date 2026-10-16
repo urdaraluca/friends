@@ -81,6 +81,10 @@ class Settings(BaseSettings):
     """Enables ``GET /api/v1/metrics`` for scrapers sending ``Authorization: Bearer <token>``.
     Unset: the endpoint is a 404."""
 
+    google_books_api_key: str | None = None
+    """Optional key for the ISBN lookup's Google Books requests (contract section 17.5); it
+    works without one, within Google's anonymous quota."""
+
     @field_validator("cors_origins", "android_cert_sha256", mode="before")
     @classmethod
     def _split_csv(cls, value: object) -> object:

@@ -231,6 +231,10 @@ abstract final class ApiPaths {
   static String book(String id) => '/api/v1/books/$id';
   static String bookQueue(String id) => '${book(id)}/queue';
   static String handover(String id) => '${book(id)}/handover';
+  static String bookRating(String id) => '${book(id)}/rating';
+  static String bookCover(String id) => '${book(id)}/cover';
+  static String bookIsbnCover(String id) => '${book(id)}/cover/isbn';
+  static String isbnLookup(String isbn) => '/api/v1/books/isbn/$isbn';
   static String groupAvailability(String groupId) =>
       '${group(groupId)}/availability';
 }
@@ -865,11 +869,18 @@ Map<String, Object?> bookJson({
   String title = 'Dune',
   String? author = 'Frank Herbert',
   String? description,
+  String? isbn,
+  String? genre,
+  String? language,
+  String? coverUpdatedAt,
   Map<String, Object?>? owner,
   Map<String, Object?>? holder,
   String? heldSince,
   List<Map<String, Object?>> queue = const [],
   bool inMyQueue = false,
+  double? ratingAverage,
+  int ratingCount = 0,
+  int? myRating,
   bool canEdit = true,
   bool canHandOver = true,
 }) => {
@@ -878,11 +889,18 @@ Map<String, Object?> bookJson({
   'title': title,
   'author': author,
   'description': description,
+  'isbn': isbn,
+  'genre': genre,
+  'language': language,
+  'cover_updated_at': coverUpdatedAt,
   'owner': owner ?? userPublicJson(),
   'holder': holder,
   'held_since': heldSince,
   'queue': queue,
   'in_my_queue': inMyQueue,
+  'rating_average': ratingAverage,
+  'rating_count': ratingCount,
+  'my_rating': myRating,
   'can_edit': canEdit,
   'can_hand_over': canHandOver,
   'created_at': '2026-09-01T10:00:00Z',
@@ -893,4 +911,23 @@ Map<String, Object?> bookJson({
 Map<String, Object?> queueEntryJson(String userId, String displayName) => {
   'user': userPublicJson(id: userId, displayName: displayName),
   'joined_at': '2026-09-20T10:00:00Z',
+};
+
+/// An `IsbnLookup` (contract section 17.5): Dune, as the catalogues know it.
+Map<String, Object?> isbnLookupJson({
+  String isbn = '9780441172719',
+  String title = 'Dune',
+  String? author = 'Frank Herbert',
+  String? description = 'Set on the desert planet Arrakis.',
+  String? genre = 'sci_fi',
+  String? language = 'en',
+  String? coverUrl = 'https://covers.openlibrary.org/b/id/1-L.jpg',
+}) => {
+  'isbn': isbn,
+  'title': title,
+  'author': author,
+  'description': description,
+  'genre': genre,
+  'language': language,
+  'cover_url': coverUrl,
 };

@@ -2116,7 +2116,7 @@
   "groupKindChangeNote": "Changing it changes the tabs, not the categories.",
   "addMovieCategoryHelp": "A Movie night category with genre, rating and year",
   "addBookCategoryHelp": "A Book club category with author, year and pages",
-  "booksSearchHint": "Search titles and authors",
+  "booksSearchHint": "Search titles, authors and ISBNs",
   "bookFilterAll": "All",
   "bookFilterAvailable": "Available",
   "bookFilterMine": "Mine",
@@ -2256,5 +2256,99 @@
         "type": "String"
       }
     }
-  }
+  },
+  "genreFiction": "Fiction",
+  "genreFantasy": "Fantasy",
+  "genreSciFi": "Science fiction",
+  "genreMysteryThriller": "Mystery & thriller",
+  "genreRomance": "Romance",
+  "genreHorror": "Horror",
+  "genreClassics": "Classics",
+  "genreHistory": "History",
+  "genreBiography": "Biography & memoir",
+  "genreNonFiction": "Non-fiction",
+  "genreSelfHelp": "Self-help",
+  "genrePoetry": "Poetry",
+  "genreChildren": "Children's",
+  "genreYoungAdult": "Young adult",
+  "genreComics": "Comics & graphic novels",
+  "genreOther": "Other",
+  "genreLabel": "Genre",
+  "bookLanguageLabel": "Language",
+  "notSet": "Not set",
+  "otherLanguage": "Other…",
+  "allGenres": "All genres",
+  "allLanguages": "All languages",
+  "bookSortTitle": "By title",
+  "bookSortRating": "Best rated",
+  "coverLabel": "Cover",
+  "takePhoto": "Take a photo",
+  "choosePhoto": "Choose a photo",
+  "removeCover": "Remove",
+  "coverNotSaved": "The book is saved, but not its cover: {error}",
+  "@coverNotSaved": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "isbnLabel": "ISBN",
+  "isbnHelp": "Optional. Scan or type it, and the rest fills itself in.",
+  "isbnValue": "ISBN {isbn}",
+  "@isbnValue": {
+    "placeholders": {
+      "isbn": {
+        "type": "String"
+      }
+    }
+  },
+  "lookUpIsbn": "Look it up",
+  "scanIsbn": "Scan the barcode",
+  "scanIsbnHelp": "Point the camera at the barcode on the back of the book.",
+  "cameraPermissionDenied": "The app may not use the camera. Allow it in your settings, or type the ISBN.",
+  "cameraUnavailable": "The camera can't scan here.",
+  "typeIsbnInstead": "Type the ISBN",
+  "isbnNotFound": "No book found for this ISBN. Fill in the details yourself.",
+  "useFoundDetailsTitle": "Use the details found?",
+  "useFoundDetailsMessage": "Found “{title}”. Replace what you typed with it?",
+  "@useFoundDetailsMessage": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "keepMine": "Keep mine",
+  "useFoundDetails": "Replace",
+  "whoHasItLabel": "Who has it now",
+  "withTheOwner": "With its owner",
+  "onlyOwnerOrHolderLends": "Only its owner, whoever has it or an admin can change this.",
+  "yourRating": "Your rating",
+  "rateHelp": "Read it? Tap the stars.",
+  "unrateHelp": "Tap your rating again to remove it.",
+  "rateStars": "{stars, plural, =1{1 star} other{{stars} stars}}",
+  "@rateStars": {
+    "placeholders": {
+      "stars": {
+        "type": "int"
+      }
+    }
+  },
+  "noRatingsYet": "No ratings yet",
+  "ratingSummary": "{average} · {count, plural, =1{1 rating} other{{count} ratings}}",
+  "@ratingSummary": {
+    "placeholders": {
+      "average": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "noIsbnError": "This book has no ISBN.",
+  "invalidIsbnError": "That isn't a valid ISBN. Check the 10 or 13 digits.",
+  "invalidImageError": "The cover must be a JPEG, PNG or WebP image up to 2 MB.",
+  "lookupUnavailableError": "Couldn't reach the book catalogues. Try again later, or fill in the details yourself."
 }

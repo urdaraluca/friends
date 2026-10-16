@@ -16,6 +16,7 @@ from friends_api.core.ratelimit import RateLimits
 from friends_api.core.security import Passwords
 from friends_api.core.web import install_web
 from friends_api.features.auth.service import AuthContext
+from friends_api.features.books.isbn import BookLookup
 
 
 def _operation_id(route: APIRoute) -> str:
@@ -38,6 +39,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             yield
         finally:
             engine.dispose()
+            app.state.book_lookup.close()
 
     app = FastAPI(
         title="Friends API",
@@ -53,6 +55,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.auth = AuthContext(settings=settings, passwords=Passwords(settings))
     app.state.rate_limits = RateLimits()
     app.state.metrics = RequestMetrics()
+    app.state.book_lookup = BookLookup.create(settings.google_books_api_key)
 
     install_openapi(app)
     register_exception_handlers(app)

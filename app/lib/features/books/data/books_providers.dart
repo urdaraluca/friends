@@ -1,7 +1,11 @@
+import 'dart:typed_data';
+
+import 'package:dio/dio.dart';
 import 'package:friends/core/api/api_exception.dart';
 import 'package:friends/core/api/api_providers.dart';
 import 'package:friends/core/api/generated/export.dart';
 import 'package:friends/core/auth/auth_controller.dart';
+import 'package:friends/core/network/dio_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'books_providers.g.dart';
@@ -65,8 +69,9 @@ class BooksController extends _$BooksController {
     return book;
   }
 
-  /// `POST /groups/{id}/books`: I own it, and it is with me.
-  Future<Book> create(String groupId, BookWrite body) =>
+  /// `POST /groups/{id}/books`: mine and with me, unless [body] names other
+  /// members as its owner or holder.
+  Future<Book> create(String groupId, BookCreate body) =>
       _apply(() => _client.createBook(groupId: groupId, body: body));
 
   /// `PUT /books/{id}` (`can_edit`).
@@ -96,6 +101,54 @@ class BooksController extends _$BooksController {
     ),
   );
 
+  /// `PUT /books/{id}/rating`: my [stars], 1 to 5.
+  Future<Book> rate(Book book, int stars) => _apply(
+    () => _client.rateBook(
+      bookId: book.id,
+      body: RatingWrite(stars: stars),
+    ),
+  );
+
+  /// `DELETE /books/{id}/rating`: I take my stars back.
+  Future<Book> unrate(Book book) =>
+      _apply(() => _client.unrateBook(bookId: book.id));
+
+  /// `PUT /books/{id}/cover` (`can_edit`): a JPEG, PNG or WebP photo.
+  Future<Book> uploadCover(Book book, Uint8List bytes) => _apply(
+    () => _client.uploadBookCover(
+      bookId: book.id,
+      file: MultipartFile.fromBytes(bytes, filename: 'cover.jpg'),
+    ),
+  );
+
+  /// `POST /books/{id}/cover/isbn` (`can_edit`): the catalogues' cover for
+  /// the book's ISBN.
+  Future<Book> useIsbnCover(Book book) =>
+      _apply(() => _client.useIsbnCover(bookId: book.id));
+
+  /// `DELETE /books/{id}/cover` (`can_edit`).
+  Future<Book> deleteCover(Book book) =>
+      _apply(() => _client.deleteBookCover(bookId: book.id));
+
+  /// `GET /books/isbn/{isbn}`: what the book catalogues know about [isbn].
+  Future<IsbnLookup> lookUpIsbn(String isbn) =>
+      apiCall(() => _client.lookUpIsbn(isbn: isbn));
+
   /// Reloads the group's books (e.g. after a 409).
   void refresh(String groupId) => ref.invalidate(booksProvider(groupId));
+}
+
+/// A book's cover image (`GET /books/{id}/cover`), read through the signed-in
+/// Dio. [version] is the book's `cover_updated_at`, so a new cover is a new
+/// provider and the old bytes are dropped.
+@riverpod
+Future<Uint8List> bookCover(Ref ref, String bookId, DateTime version) async {
+  final dio = ref.watch(dioProvider);
+  final response = await apiCall(
+    () => dio.get<List<int>>(
+      '/api/v1/books/$bookId/cover',
+      options: Options(responseType: ResponseType.bytes),
+    ),
+  );
+  return Uint8List.fromList(response.data ?? const []);
 }

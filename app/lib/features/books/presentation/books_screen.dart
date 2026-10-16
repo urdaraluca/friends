@@ -6,13 +6,18 @@ import 'package:friends/core/auth/auth_controller.dart';
 import 'package:friends/core/router/routes.dart';
 import 'package:friends/core/widgets/async_value_view.dart';
 import 'package:friends/features/books/data/books_providers.dart';
+import 'package:friends/features/books/domain/book_genres.dart';
+import 'package:friends/features/books/domain/book_languages.dart';
 import 'package:friends/features/books/domain/book_status.dart';
+import 'package:friends/features/books/presentation/widgets/book_cover.dart';
+import 'package:friends/features/books/presentation/widgets/star_rating.dart';
 import 'package:friends/l10n/l10n.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
 /// The Books tab (`/groups/:groupId/books`): the group's shared shelf, with
-/// a search, quick filters, and who has each book.
+/// a search, quick filters, genre and language filters, a sort, and who has
+/// each book.
 class BooksScreen extends ConsumerStatefulWidget {
   const new({required this.groupId, super.key});
 
@@ -25,11 +30,72 @@ class BooksScreen extends ConsumerStatefulWidget {
 class _BooksScreenState extends ConsumerState<BooksScreen> {
   final _search = TextEditingController();
   BookFilter _filter = BookFilter.all;
+  BookGenre? _genre;
+  String? _language;
+  BookSort _sort = BookSort.title;
 
   @override
   void dispose() {
     _search.dispose();
     super.dispose();
+  }
+
+  /// The sort, and the genres and languages the shelf has, as menus.
+  Widget _shelfMenus(BuildContext context, List<Book> books) {
+    final l10n = context.l10n;
+    final genres = {for (final b in books) ?b.genre}
+      ..remove(BookGenre.$unknown);
+    final languages = {for (final b in books) ?b.language}.toList()
+      ..sort((a, b) => bookLanguageName(a).compareTo(bookLanguageName(b)));
+    final genre = _genre;
+    final language = _language;
+    return SizedBox(
+      height: 48,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        children: [
+          _MenuChip<BookSort>(
+            key: const ValueKey('sort-menu'),
+            icon: Icons.sort,
+            label: _sort.label,
+            selected: _sort != BookSort.title,
+            options: [for (final sort in BookSort.values) (sort, sort.label)],
+            onSelected: (sort) => setState(() => _sort = sort),
+          ),
+          if (genres.isNotEmpty || genre != null)
+            _MenuChip<String>(
+              key: const ValueKey('genre-menu'),
+              icon: Icons.category_outlined,
+              label: genre?.label ?? l10n.allGenres,
+              selected: genre != null,
+              options: [
+                ('', l10n.allGenres),
+                for (final g in bookGenres)
+                  if (genres.contains(g)) (g.json!, g.label),
+              ],
+              onSelected: (json) => setState(
+                () => _genre = json.isEmpty ? null : BookGenre.fromJson(json),
+              ),
+            ),
+          if (languages.isNotEmpty || language != null)
+            _MenuChip<String>(
+              key: const ValueKey('language-menu'),
+              icon: Icons.translate,
+              label: language == null
+                  ? l10n.allLanguages
+                  : bookLanguageName(language),
+              selected: language != null,
+              options: [
+                ('', l10n.allLanguages),
+                for (final code in languages) (code, bookLanguageName(code)),
+              ],
+              onSelected: (code) =>
+                  setState(() => _language = code.isEmpty ? null : code),
+            ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -78,17 +144,20 @@ class _BooksScreenState extends ConsumerState<BooksScreen> {
               ],
             ),
           ),
+          _shelfMenus(context, books.value ?? const []),
           Expanded(
             child: AsyncValueView(
               value: books,
               onRetry: () => ref.invalidate(booksProvider(groupId)),
               data: (books) {
-                final shown = [
+                final shown = _sort.apply([
                   for (final book in books)
                     if (_filter.matches(book, me) &&
+                        (_genre == null || book.genre == _genre) &&
+                        (_language == null || book.language == _language) &&
                         bookMatchesQuery(book, _search.text))
                       book,
-                ];
+                ]);
                 return RefreshIndicator(
                   onRefresh: () =>
                       settled([ref.refresh(booksProvider(groupId).future)]),
@@ -124,7 +193,8 @@ class _BooksScreenState extends ConsumerState<BooksScreen> {
   }
 }
 
-/// A book in the list: title, author, who has it, and how many wait.
+/// A book in the list: its cover, title, author, rating, who has it, and how
+/// many wait.
 class BookCard extends StatelessWidget {
   const new({
     required this.book,
@@ -140,24 +210,27 @@ class BookCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final available = book.holder == null;
+    final textTheme = Theme.of(context).textTheme;
     final place = queuePosition(book, me);
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: ListTile(
         onTap: onTap,
-        leading: CircleAvatar(
-          backgroundColor: available
-              ? colors.secondaryContainer
-              : colors.surfaceContainerHighest,
-          foregroundColor: available
-              ? colors.onSecondaryContainer
-              : colors.onSurfaceVariant,
-          child: Icon(available ? Icons.menu_book : Icons.outbound_outlined),
-        ),
+        leading: BookCover(book: book, width: 40),
         title: Text(book.title, maxLines: 2, overflow: TextOverflow.ellipsis),
-        subtitle: Text([?book.author, bookWhereabouts(book, me)].join('\n')),
-        isThreeLine: book.author != null,
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text([?book.author, bookWhereabouts(book, me)].join('\n')),
+            if (book.ratingCount > 0)
+              RatingSummary(
+                average: book.ratingAverage,
+                count: book.ratingCount,
+                style: textTheme.bodySmall,
+              ),
+          ],
+        ),
+        isThreeLine: book.author != null || book.ratingCount > 0,
         trailing: book.queue.isEmpty
             ? null
             : Column(
@@ -220,6 +293,51 @@ class _EmptyShelf extends StatelessWidget {
           ),
         ],
       ],
+    );
+  }
+}
+
+/// A chip that opens a menu of [options] (value, label).
+class _MenuChip<T> extends StatelessWidget {
+  const new({
+    required this.icon,
+    required this.label,
+    required this.selected,
+    required this.options,
+    required this.onSelected,
+    super.key,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool selected;
+  final List<(T, String)> options;
+  final ValueChanged<T> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsetsDirectional.only(end: 8),
+      child: PopupMenuButton<T>(
+        tooltip: label,
+        onSelected: onSelected,
+        itemBuilder: (context) => [
+          for (final (value, text) in options)
+            PopupMenuItem(value: value, child: Text(text)),
+        ],
+        child: Chip(
+          avatar: Icon(icon, size: 18),
+          label: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(label),
+              const Icon(Icons.arrow_drop_down, size: 18),
+            ],
+          ),
+          backgroundColor: selected ? colors.secondaryContainer : null,
+        ),
+      ),
     );
   }
 }

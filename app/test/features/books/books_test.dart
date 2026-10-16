@@ -353,6 +353,11 @@ void main() {
           'title': 'Solenoid',
           'author': 'Mircea Cărtărescu',
           'description': null,
+          'isbn': null,
+          'genre': null,
+          'language': null,
+          'owner_id': null,
+          'holder_id': null,
         },
       );
       expect(
