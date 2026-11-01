@@ -14,7 +14,7 @@ COPY <<EOF /NO_WEB_BUILD.txt
 Built without the Flutter web app. CI passes it with --build-context web=<app/build/web>.
 EOF
 
-FROM python:3.14.7-slim-trixie AS builder
+FROM python:3.15.0-slim-trixie AS builder
 COPY --from=uv /uv /uvx /bin/
 ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy UV_PYTHON_DOWNLOADS=0 UV_NO_DEV=1 \
     UV_PROJECT_ENVIRONMENT=/opt/venv
@@ -26,7 +26,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=.python-version,target=.python-version \
     uv sync --locked --no-install-project --no-build
 
-FROM python:3.14.7-slim-trixie AS runtime
+FROM python:3.15.0-slim-trixie AS runtime
 ARG APP_VERSION=dev
 ARG GIT_SHA=unknown
 ENV PATH="/opt/venv/bin:${PATH}" \
