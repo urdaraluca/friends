@@ -15,6 +15,7 @@ import 'package:friends/features/backlog/presentation/categories_screen.dart';
 import 'package:friends/features/books/presentation/book_detail_screen.dart';
 import 'package:friends/features/books/presentation/book_form_screen.dart';
 import 'package:friends/features/books/presentation/books_screen.dart';
+import 'package:friends/features/calendar/presentation/calendar_feed_screen.dart';
 import 'package:friends/features/calendar/presentation/calendar_screen.dart';
 import 'package:friends/features/calendar/presentation/event_detail_screen.dart';
 import 'package:friends/features/calendar/presentation/event_form_screen.dart';
@@ -141,6 +142,10 @@ GoRouter router(Ref ref) {
       GoRoute(
         path: Routes.appearance,
         builder: (context, state) => const AppearanceScreen(),
+      ),
+      GoRoute(
+        path: Routes.calendarFeed,
+        builder: (context, state) => const CalendarFeedScreen(),
       ),
       GoRoute(
         path: Routes.myCalendar,

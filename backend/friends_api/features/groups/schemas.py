@@ -1,9 +1,10 @@
+import unicodedata
 import uuid
 from datetime import datetime
 from enum import StrEnum
 from typing import Annotated
 
-from pydantic import BaseModel, StringConstraints
+from pydantic import AfterValidator, BaseModel, StringConstraints
 
 from friends_api.core.schemas import Color, Currency, RequestModel
 from friends_api.features.groups.models import GroupKind, Role
@@ -11,7 +12,62 @@ from friends_api.features.users.schemas import BirthdayPublic, Timezone, UserPub
 
 GroupName = Annotated[str, StringConstraints(min_length=1, max_length=60)]
 GroupDescription = Annotated[str, StringConstraints(max_length=500)]
-Emoji = Annotated[str, StringConstraints(max_length=16)]
+_ZWJ = 0x200D
+_KEYCAP = 0x20E3
+_KEYCAP_BASES = frozenset("0123456789#*")
+
+
+def _is_extender(code: int) -> bool:
+    """Code points that belong to the emoji before them: variation selectors, skin tones,
+    tag characters (subdivision flags), the keycap and other combining marks."""
+    return (
+        0xFE00 <= code <= 0xFE0F
+        or 0x1F3FB <= code <= 0x1F3FF
+        or 0xE0020 <= code <= 0xE007F
+        or unicodedata.category(chr(code)).startswith("M")
+    )
+
+
+def _is_regional_indicator(code: int) -> bool:
+    return 0x1F1E6 <= code <= 0x1F1FF
+
+
+def emoji_clusters(text: str) -> list[str]:
+    """``text`` split into emoji-sized clusters: a base character with its extenders, a ZWJ
+    sequence (👩‍💻) or a pair of regional indicators (a flag). Close enough to Unicode grapheme
+    clusters for one emoji, without a segmentation library."""
+    clusters: list[str] = []
+    joining = pairing_flag = False
+    for char in text:
+        code = ord(char)
+        if clusters and (code == _ZWJ or _is_extender(code) or joining):
+            clusters[-1] += char
+            joining = code == _ZWJ
+            continue
+        if clusters and pairing_flag and _is_regional_indicator(code):
+            clusters[-1] += char
+            pairing_flag = False
+            continue
+        clusters.append(char)
+        pairing_flag = _is_regional_indicator(code)
+    return clusters
+
+
+def _one_emoji(value: str) -> str:
+    """Contract section 9: a group's emoji is exactly one emoji, which may be a sequence."""
+    clusters = emoji_clusters(value)
+    if len(clusters) != 1:
+        raise ValueError("Use a single emoji.")
+    cluster = clusters[0]
+    base = cluster[0]
+    keycap = base in _KEYCAP_BASES and chr(_KEYCAP) in cluster
+    if not keycap and unicodedata.category(base) != "So":
+        raise ValueError("Use a single emoji.")
+    return value
+
+
+Emoji = Annotated[str, StringConstraints(max_length=16), AfterValidator(_one_emoji)]
+"""One emoji (a ZWJ sequence, a flag or a keycap counts as one), at most 16 characters."""
 
 
 class AssignableRole(StrEnum):

@@ -585,6 +585,106 @@
         }
       }
     },
+    "/api/v1/me/calendar-feed": {
+      "get": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Get My Calendar Feed",
+        "description": "My webcal subscription URLs, or nulls when the feed is off.",
+        "operationId": "get_my_calendar_feed",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalendarFeed"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (RFC 9457 problem details)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Reset My Calendar Feed",
+        "description": "Turns the feed on, or gives it a new secret URL: the previous one stops working.",
+        "operationId": "reset_my_calendar_feed",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalendarFeed"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (RFC 9457 problem details)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Disable My Calendar Feed",
+        "description": "Turns the feed off: its URL stops working.",
+        "operationId": "disable_my_calendar_feed",
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "default": {
+            "description": "Error (RFC 9457 problem details)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/me/availability": {
       "get": {
         "tags": [
@@ -6952,6 +7052,39 @@
         ],
         "title": "BookWrite",
         "description": "A new book, or the complete new state of one."
+      },
+      "CalendarFeed": {
+        "properties": {
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          },
+          "webcal_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Webcal Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "url",
+          "webcal_url"
+        ],
+        "title": "CalendarFeed",
+        "description": "My webcal subscription (contract section 5.10). Both URLs are null when it is off."
       },
       "CalendarResponse": {
         "properties": {

@@ -4,6 +4,7 @@ from friends_api.features.activities.router import router as activities_router
 from friends_api.features.auth.router import router as auth_router
 from friends_api.features.availability.router import router as availability_router
 from friends_api.features.books.router import router as books_router
+from friends_api.features.calendar_feed.router import router as calendar_feed_router
 from friends_api.features.categories.router import router as categories_router
 from friends_api.features.events.router import router as events_router
 from friends_api.features.feed.router import router as feed_router
@@ -34,3 +35,4 @@ api_router.include_router(availability_router)
 api_router.include_router(recap_router)
 api_router.include_router(feed_router)
 api_router.include_router(books_router)
+api_router.include_router(calendar_feed_router)

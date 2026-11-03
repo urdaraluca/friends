@@ -1,12 +1,14 @@
 from fastapi import APIRouter, Request, Response, status
 
-from friends_api.deps import Auth, CurrentPrincipal, CurrentUser, DbSession
+from friends_api.deps import AppSettings, Auth, CurrentPrincipal, CurrentUser, DbSession
 from friends_api.features.auth import cookies
 from friends_api.features.auth import service as auth_service
 from friends_api.features.auth.schemas import AccountDeletion, PasswordChange, TokenPair
 from friends_api.features.availability import service as availability_service
 from friends_api.features.availability.router import AvailabilityFrom, AvailabilityTo
 from friends_api.features.availability.schemas import MyAvailability, MyAvailabilityUpdate
+from friends_api.features.calendar_feed import service as calendar_feed_service
+from friends_api.features.calendar_feed.schemas import CalendarFeed
 from friends_api.features.events import calendar
 from friends_api.features.events.params import FromParam, KindsParam, ToParam, TzParam
 from friends_api.features.events.schemas import CalendarResponse
@@ -76,6 +78,24 @@ def get_my_calendar(
     person (``group_id`` null) if they show them in at least one group you share."""
     query = calendar.CalendarQuery(from_date=from_, to_date=to, tz=tz, kinds=kinds)
     return calendar.my_calendar(db, user, query)
+
+
+@router.get("/calendar-feed")
+def get_my_calendar_feed(user: CurrentUser, settings: AppSettings) -> CalendarFeed:
+    """My webcal subscription URLs, or nulls when the feed is off."""
+    return calendar_feed_service.get_feed(settings, user)
+
+
+@router.post("/calendar-feed")
+def reset_my_calendar_feed(db: DbSession, user: CurrentUser, settings: AppSettings) -> CalendarFeed:
+    """Turns the feed on, or gives it a new secret URL: the previous one stops working."""
+    return calendar_feed_service.reset_feed(db, settings, user)
+
+
+@router.delete("/calendar-feed", status_code=status.HTTP_204_NO_CONTENT)
+def disable_my_calendar_feed(db: DbSession, user: CurrentUser) -> None:
+    """Turns the feed off: its URL stops working."""
+    calendar_feed_service.disable_feed(db, user)
 
 
 @router.get("/availability")

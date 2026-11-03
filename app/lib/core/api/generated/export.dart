@@ -42,6 +42,7 @@ export 'models/book_create.dart';
 export 'models/book_genre.dart';
 export 'models/book_queue_entry.dart';
 export 'models/book_write.dart';
+export 'models/calendar_feed.dart';
 export 'models/calendar_response.dart';
 export 'models/card_attribute.dart';
 export 'models/category.dart';

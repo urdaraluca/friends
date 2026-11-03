@@ -17,6 +17,7 @@ from friends_api.core.security import Passwords
 from friends_api.core.web import install_web
 from friends_api.features.auth.service import AuthContext
 from friends_api.features.books.isbn import BookLookup
+from friends_api.features.calendar_feed.service import FEED_PATH
 
 
 def _operation_id(route: APIRoute) -> str:
@@ -75,6 +76,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.add_middleware(
         RequestContextMiddleware,
         quiet_paths=frozenset({f"{API_PREFIX}/health", f"{API_PREFIX}/metrics"}),
+        secret_path_prefixes=(f"{FEED_PATH}/",),
         metrics=app.state.metrics,
     )
 
