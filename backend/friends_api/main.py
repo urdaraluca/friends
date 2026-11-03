@@ -16,9 +16,11 @@ from friends_api.core.openapi import install_openapi
 from friends_api.core.ratelimit import RateLimits
 from friends_api.core.security import Passwords
 from friends_api.core.web import install_web
+from friends_api.core.webpush import create_pusher
 from friends_api.features.auth.service import AuthContext
 from friends_api.features.books.isbn import BookLookup
 from friends_api.features.calendar_feed.service import FEED_PATH
+from friends_api.features.movies.tmdb import MovieLookup
 
 
 def _operation_id(route: APIRoute) -> str:
@@ -42,6 +44,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         finally:
             engine.dispose()
             app.state.book_lookup.close()
+            app.state.movie_lookup.close()
+            app.state.pusher.close()
 
     app = FastAPI(
         title="Friends API",
@@ -59,6 +63,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.metrics = RequestMetrics()
     app.state.book_lookup = BookLookup.create(settings.google_books_api_key)
     app.state.mailer = create_mailer(settings)
+    app.state.pusher = create_pusher(settings)
+    app.state.movie_lookup = MovieLookup.create(settings.tmdb_api_key)
 
     install_openapi(app)
     register_exception_handlers(app)

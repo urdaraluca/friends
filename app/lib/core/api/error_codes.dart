@@ -34,6 +34,13 @@ abstract final class ErrorCodes {
   /// 403: invite-only registration without an invite code.
   static const registrationClosed = 'registration_closed';
 
+  /// 403: inviting by email before confirming my own address.
+  static const emailNotVerified = 'email_not_verified';
+
+  /// 422: an emailed link (reset, verification, unsubscribe) is unknown,
+  /// used or expired.
+  static const invalidToken = 'invalid_token';
+
   /// 404: missing resource, not a member of its group, or unknown invite.
   static const notFound = 'not_found';
 
@@ -133,6 +140,8 @@ abstract final class ErrorCodes {
     weakPassword,
     forbidden,
     registrationClosed,
+    emailNotVerified,
+    invalidToken,
     notFound,
     methodNotAllowed,
     emailTaken,

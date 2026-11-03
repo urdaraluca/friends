@@ -12,6 +12,7 @@ from friends_api.features.groups.router import router as groups_router
 from friends_api.features.health.router import metrics_router
 from friends_api.features.health.router import router as health_router
 from friends_api.features.invites.router import router as invites_router
+from friends_api.features.movies.router import router as movies_router
 from friends_api.features.notifications.router import router as notifications_router
 from friends_api.features.polls.router import router as polls_router
 from friends_api.features.recap.router import router as recap_router
@@ -38,3 +39,4 @@ api_router.include_router(feed_router)
 api_router.include_router(books_router)
 api_router.include_router(calendar_feed_router)
 api_router.include_router(notifications_router)
+api_router.include_router(movies_router)

@@ -10,6 +10,8 @@ import 'package:friends/core/router/routes.dart';
 import 'package:friends/core/widgets/async_value_view.dart';
 import 'package:friends/features/profile/presentation/widgets/change_password_form.dart';
 import 'package:friends/features/profile/presentation/widgets/delete_account_dialog.dart';
+import 'package:friends/features/profile/presentation/widgets/email_verification_banner.dart';
+import 'package:friends/features/profile/presentation/widgets/notification_settings_section.dart';
 import 'package:friends/features/profile/presentation/widgets/profile_form.dart';
 import 'package:friends/l10n/l10n.dart';
 import 'package:go_router/go_router.dart';
@@ -43,10 +45,17 @@ class ProfileScreen extends ConsumerWidget {
                 child: ListView(
                   padding: const EdgeInsets.all(16),
                   children: [
+                    const EmailVerificationBanner(
+                      padding: EdgeInsets.only(bottom: 16),
+                    ),
                     _Section(
                       title: context.l10n.profile,
                       subtitle: user.email,
                       child: ProfileForm(key: ValueKey(user.id), user: user),
+                    ),
+                    _Section(
+                      title: context.l10n.notifications,
+                      child: const NotificationSettingsSection(),
                     ),
                     _Section(
                       title: context.l10n.passwordSection,

@@ -212,11 +212,30 @@ abstract final class Routes {
   static String registerWith({String? from, String? invite}) =>
       _withQuery(register, {fromParam: _from(from), inviteParam: invite});
 
+  /// Asks for a password-reset link.
+  static const forgotPassword = '/forgot-password';
+
+  /// The emailed password-reset link: `?token=`.
+  static const resetPassword = '/reset-password';
+
+  /// The emailed verification link: `?token=`.
+  static const verifyEmail = '/verify-email';
+
+  /// The unsubscribe link of a notification email: `?token=`.
+  static const unsubscribe = '/unsubscribe';
+
+  /// The `token` query parameter of the emailed links.
+  static const tokenParam = 'token';
+
   /// Paths reachable while signed out.
   static bool isPublic(String path) =>
       path == login ||
       path == register ||
       path == health ||
+      path == forgotPassword ||
+      path == resetPassword ||
+      path == verifyEmail ||
+      path == unsubscribe ||
       path.startsWith('/join/');
 
   /// Paths only meant for signed-out users (and the splash screen).

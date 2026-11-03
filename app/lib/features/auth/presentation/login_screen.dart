@@ -115,7 +115,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                   onChanged: (_) => clearServerError('password'),
                   onFieldSubmitted: (_) => _submit(),
                 ),
-                const SizedBox(height: 24),
+                Align(
+                  alignment: AlignmentDirectional.centerEnd,
+                  child: TextButton(
+                    onPressed: _submitting
+                        ? null
+                        : () => context.go(Routes.forgotPassword),
+                    child: Text(context.l10n.forgotPassword),
+                  ),
+                ),
+                const SizedBox(height: 12),
                 SubmitButton(
                   label: context.l10n.signIn,
                   busy: _submitting,

@@ -8,6 +8,7 @@ import 'package:friends/core/auth/token_refresher.dart';
 import 'package:friends/core/auth/token_store.dart';
 import 'package:friends/core/device/device_info.dart';
 import 'package:friends/core/invites/invite_code.dart';
+import 'package:friends/core/push/web_push.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 export 'package:friends/core/auth/auth_state.dart';
@@ -131,6 +132,7 @@ class AuthController extends _$AuthController {
   /// network the user is still signed out immediately; the returned future
   /// completes once the server call has finished or failed.
   Future<void> logout() async {
+    await _forgetThisBrowserPush();
     final refreshToken = await ref.read(tokenStoreProvider).readRefreshToken();
     await _signOut(SignOutReason.signedOut);
     if (refreshToken == null) return;
@@ -150,6 +152,7 @@ class AuthController extends _$AuthController {
   /// `POST /auth/logout-all`: ends every session, including this one.
   /// Throws (and stays signed in) when the server can't be reached.
   Future<void> logoutAll() async {
+    await _forgetThisBrowserPush();
     await apiCall(ref.read(authClientProvider).logoutAll);
     await _signOut(SignOutReason.signedOut);
   }
@@ -191,6 +194,34 @@ class AuthController extends _$AuthController {
     );
     if (ref.mounted && state is Authenticated) state = Authenticated(me);
     return me;
+  }
+
+  /// This browser stops getting the signed-out user's pushes (best effort:
+  /// a dead subscription is pruned by the server anyway).
+  Future<void> _forgetThisBrowserPush() async {
+    try {
+      final endpoint = await ref.read(webPushProvider).unsubscribe();
+      if (endpoint == null) return;
+      await apiCall(
+        () => ref
+            .read(notificationsClientProvider)
+            .deletePushSubscription(endpoint: endpoint),
+      );
+    } on Object {
+      // Signing out must not fail because of push.
+    }
+  }
+
+  /// `GET /me` again, e.g. after the email was verified in this app.
+  /// Errors are ignored: the current user stays as it was.
+  Future<void> reloadMe() async {
+    if (state is! Authenticated) return;
+    try {
+      final me = await apiCall(ref.read(usersClientProvider).getMe);
+      if (ref.mounted && state is Authenticated) state = Authenticated(me);
+    } on ApiException {
+      // Keep the current user; the next restore picks the change up.
+    }
   }
 
   /// `POST /me/password`. Every other session ends; this one continues with

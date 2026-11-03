@@ -5,7 +5,8 @@
 - ``export-openapi``: write the OpenAPI schema used to generate the Dart client.
 - ``create-user`` / ``reset-password``: account administration.
 - ``seed-demo``: demo users, a group and its data for development (refused in prod).
-- ``send-notifications``: due notification emails (cron, every 15 minutes).
+- ``send-notifications``: due notifications, by email and push (cron, every 5 minutes).
+- ``generate-vapid-key``: a Web Push key pair for ``VAPID_PRIVATE_KEY``.
 - ``send-test-email TO``: checks the SMTP settings.
 """
 
@@ -34,6 +35,7 @@ from friends_api.core.db import create_db_engine, create_session_factories, utcn
 from friends_api.core.errors import AppError
 from friends_api.core.mail import create_mailer
 from friends_api.core.security import Passwords
+from friends_api.core.webpush import Vapid, create_pusher
 from friends_api.demo.base import demo_users_exist
 from friends_api.demo.context import DEMO_EMAILS, DEMO_PASSWORD
 from friends_api.demo.runner import seed_demo
@@ -234,7 +236,11 @@ def cmd_send_notifications(settings: Settings, _args: argparse.Namespace) -> int
     _, write = create_session_factories(engine)
     try:
         with write() as db:
-            report = send_notifications(db, settings, create_mailer(settings), utcnow())
+            pusher = create_pusher(settings)
+            try:
+                report = send_notifications(db, settings, create_mailer(settings), pusher, utcnow())
+            finally:
+                pusher.close()
     finally:
         engine.dispose()
     sent = ", ".join(f"{kind}: {count}" for kind, count in sorted(report.sent.items())) or "none"
@@ -255,6 +261,13 @@ def cmd_send_test_email(settings: Settings, args: argparse.Namespace) -> int:
         return 1
     where = settings.smtp_host or "the log (SMTP_HOST is unset)"
     print(f"Sent to {args.to} through {where}, from {settings.mail_sender}.")
+    return 0
+
+
+def cmd_generate_vapid_key(_settings: Settings, _args: argparse.Namespace) -> int:
+    key = Vapid.generate_private_key()
+    print("Put this in .env (and keep it: changing it ends every push subscription):")
+    print(f"VAPID_PRIVATE_KEY={key}")
     return 0
 
 
@@ -285,6 +298,7 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("seed-demo", help="create demo users and a group full of data (not in prod)")
 
     sub.add_parser("send-notifications", help="send due notification emails (run from cron)")
+    sub.add_parser("generate-vapid-key", help="a new Web Push (VAPID) private key for .env")
     test_email = sub.add_parser("send-test-email", help="check the SMTP settings")
     test_email.add_argument("to", help="the address to send the test email to")
     return parser
@@ -299,6 +313,7 @@ COMMANDS = {
     "seed-demo": cmd_seed_demo,
     "send-notifications": cmd_send_notifications,
     "send-test-email": cmd_send_test_email,
+    "generate-vapid-key": cmd_generate_vapid_key,
 }
 
 

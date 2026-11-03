@@ -13,6 +13,7 @@ import '../models/me.dart';
 import '../models/me_update.dart';
 import '../models/my_availability.dart';
 import '../models/my_availability_update.dart';
+import '../models/notification_settings.dart';
 import '../models/password_change.dart';
 import '../models/token_pair.dart';
 
@@ -30,6 +31,25 @@ abstract class UsersClient {
   @PUT('/api/v1/me')
   Future<Me> updateMe({
     @Body() required MeUpdate body,
+  });
+
+  /// Send Verification Email.
+  ///
+  /// Emails a new verification link (the older ones stop working). Nothing is sent when the.
+  /// address is already verified. At most 3 an hour.
+  @POST('/api/v1/me/email-verification')
+  Future<void> sendVerificationEmail();
+
+  /// Get My Notifications
+  @GET('/api/v1/me/notifications')
+  Future<NotificationSettings> getMyNotifications();
+
+  /// Update My Notifications.
+  ///
+  /// Which notification emails I get. They go to a verified address only.
+  @PUT('/api/v1/me/notifications')
+  Future<NotificationSettings> updateMyNotifications({
+    @Body() required NotificationSettings body,
   });
 
   /// Change Password.

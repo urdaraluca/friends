@@ -63,6 +63,8 @@ class Membership(Base):
     )
     role: Mapped[Role] = mapped_column(str_enum(Role, 10))
     show_birthday: Mapped[bool] = mapped_column(default=True)
+    notifications_muted: Mapped[bool] = mapped_column(default=False)
+    """No notifications about this group (contract section 18.4); reminders included."""
     invite_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("invites.id", ondelete="SET NULL"), index=True
     )

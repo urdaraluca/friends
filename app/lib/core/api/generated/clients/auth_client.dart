@@ -6,7 +6,10 @@ import 'package:dio/dio.dart';
 import 'package:retrofit/retrofit.dart';
 
 import '../models/auth_session.dart';
+import '../models/email_verification.dart';
 import '../models/login_request.dart';
+import '../models/password_reset.dart';
+import '../models/password_reset_request.dart';
 import '../models/refresh_request.dart';
 import '../models/register_request.dart';
 import '../models/token_pair.dart';
@@ -20,7 +23,7 @@ abstract class AuthClient {
   /// Register.
   ///
   /// Creates an account. Needs an invite code unless registration is open; with a code the.
-  /// new user also joins that group (`joined_group`).
+  /// new user also joins that group (`joined_group`). Emails a verification link.
   @POST('/api/v1/auth/register')
   Future<AuthSession> register({
     @Body() required RegisterRequest body,
@@ -55,4 +58,29 @@ abstract class AuthClient {
   /// Ends every session of the current user, including this one.
   @POST('/api/v1/auth/logout-all')
   Future<void> logoutAll();
+
+  /// Request Password Reset.
+  ///
+  /// Emails a reset link if the address is a verified one of an account. Always 202: the.
+  /// response doesn't say whether it was.
+  @POST('/api/v1/auth/password-reset/request')
+  Future<void> requestPasswordReset({
+    @Body() required PasswordResetRequest body,
+  });
+
+  /// Reset Password.
+  ///
+  /// Sets a new password with the emailed link's token, and signs out every session.
+  @POST('/api/v1/auth/password-reset')
+  Future<void> resetPassword({
+    @Body() required PasswordReset body,
+  });
+
+  /// Verify Email.
+  ///
+  /// Confirms the address with the emailed link's token. Works signed out.
+  @POST('/api/v1/auth/verify-email')
+  Future<void> verifyEmail({
+    @Body() required EmailVerification body,
+  });
 }

@@ -104,18 +104,30 @@ class MeUpdate(RequestModel):
 
 
 class NotificationSettings(BaseModel):
-    """Which notification emails I get (contract section 18.4). Only a verified address gets
-    any."""
+    """Which notifications I get (contract section 18.4), by push and, to a verified address,
+    by email."""
 
     polls: bool
-    """A new poll in one of my groups."""
+    """A new poll in one of my groups, and one closing within a day that I haven't voted on."""
     wheel: bool
     """The wheel's result was accepted in one of my groups."""
     reminders: bool
-    """My events and friends' birthdays, the day before."""
+    """My events and friends' birthdays the day before; by push also an hour before."""
+    members: bool = True
+    """Someone joined one of my groups."""
+    plans: bool = True
+    """An activity I'm interested in was scheduled."""
+    email: bool = False
+    """Also by email, to a verified address: off until switched on. Push, the main channel,
+    goes to every browser I turned it on in."""
 
     @classmethod
     def from_user(cls, user: User) -> NotificationSettings:
         return cls(
-            polls=user.notify_polls, wheel=user.notify_wheel, reminders=user.notify_reminders
+            polls=user.notify_polls,
+            wheel=user.notify_wheel,
+            reminders=user.notify_reminders,
+            members=user.notify_members,
+            plans=user.notify_plans,
+            email=user.notify_email,
         )

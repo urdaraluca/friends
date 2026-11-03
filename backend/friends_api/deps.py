@@ -13,6 +13,7 @@ from friends_api.core.config import Settings
 from friends_api.core.errors import AuthError, NotFound
 from friends_api.core.mail import Mailer
 from friends_api.core.security import AccessClaims, decode_access_token
+from friends_api.core.webpush import Pusher
 from friends_api.features.auth.models import User
 from friends_api.features.auth.service import AuthContext
 from friends_api.features.groups import service as groups_service
@@ -53,6 +54,14 @@ AppSettings = Annotated[Settings, Depends(get_settings_dep)]
 DbSession = Annotated[Session, Depends(get_db)]
 Auth = Annotated[AuthContext, Depends(get_auth_context)]
 MailerDep = Annotated[Mailer, Depends(get_mailer)]
+
+
+def get_pusher(request: Request) -> Pusher:
+    pusher: Pusher = request.app.state.pusher
+    return pusher
+
+
+PusherDep = Annotated[Pusher, Depends(get_pusher)]
 
 
 @dataclass(frozen=True, slots=True)

@@ -9,6 +9,7 @@ import 'package:friends/features/groups/data/group_providers.dart';
 import 'package:friends/features/groups/presentation/widgets/group_avatar.dart';
 import 'package:friends/features/groups/presentation/widgets/role_badge.dart';
 import 'package:friends/features/invites/presentation/join_with_code_dialog.dart';
+import 'package:friends/features/notifications/presentation/push_prompt.dart';
 import 'package:friends/l10n/l10n.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
@@ -50,23 +51,37 @@ class GroupsListScreen extends ConsumerWidget {
         icon: const Icon(Icons.add),
         label: Text(context.l10n.newGroup),
       ),
-      body: AsyncValueView(
-        value: ref.watch(groupsProvider),
-        onRetry: () => ref.invalidate(groupsProvider),
-        data: (groups) => RefreshIndicator(
-          // A failure shows up as the error view.
-          onRefresh: () => settled([ref.refresh(groupsProvider.future)]),
-          child: groups.isEmpty
-              ? const _NoGroups()
-              : ListView.builder(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  // Room for the FAB below the last card.
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
-                  itemCount: groups.length,
-                  itemBuilder: (context, index) =>
-                      GroupCard(group: groups[index]),
-                ),
-        ),
+      body: const Column(
+        children: [
+          PushPrompt(padding: EdgeInsets.fromLTRB(16, 8, 16, 0)),
+          Expanded(child: _GroupsBody()),
+        ],
+      ),
+    );
+  }
+}
+
+class _GroupsBody extends ConsumerWidget {
+  const new();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return AsyncValueView(
+      value: ref.watch(groupsProvider),
+      onRetry: () => ref.invalidate(groupsProvider),
+      data: (groups) => RefreshIndicator(
+        // A failure shows up as the error view.
+        onRefresh: () => settled([ref.refresh(groupsProvider.future)]),
+        child: groups.isEmpty
+            ? const _NoGroups()
+            : ListView.builder(
+                physics: const AlwaysScrollableScrollPhysics(),
+                // Room for the FAB below the last card.
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
+                itemCount: groups.length,
+                itemBuilder: (context, index) =>
+                    GroupCard(group: groups[index]),
+              ),
       ),
     );
   }

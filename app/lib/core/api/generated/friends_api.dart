@@ -18,6 +18,8 @@ import 'clients/availability_client.dart';
 import 'clients/recap_client.dart';
 import 'clients/feed_client.dart';
 import 'clients/books_client.dart';
+import 'clients/notifications_client.dart';
+import 'clients/movies_client.dart';
 
 /// Friends API `v1`
 class FriendsApi {
@@ -46,6 +48,8 @@ class FriendsApi {
   RecapClient? _recap;
   FeedClient? _feed;
   BooksClient? _books;
+  NotificationsClient? _notifications;
+  MoviesClient? _movies;
 
   HealthClient get health => _health ??= HealthClient(_dio, baseUrl: _baseUrl);
 
@@ -74,4 +78,8 @@ class FriendsApi {
   FeedClient get feed => _feed ??= FeedClient(_dio, baseUrl: _baseUrl);
 
   BooksClient get books => _books ??= BooksClient(_dio, baseUrl: _baseUrl);
+
+  NotificationsClient get notifications => _notifications ??= NotificationsClient(_dio, baseUrl: _baseUrl);
+
+  MoviesClient get movies => _movies ??= MoviesClient(_dio, baseUrl: _baseUrl);
 }

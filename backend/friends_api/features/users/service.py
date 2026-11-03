@@ -24,6 +24,9 @@ def update_notifications(db: Session, user: User, body: NotificationSettings) ->
     user.notify_polls = body.polls
     user.notify_wheel = body.wheel
     user.notify_reminders = body.reminders
+    user.notify_members = body.members
+    user.notify_plans = body.plans
+    user.notify_email = body.email
     db.commit()
 
 

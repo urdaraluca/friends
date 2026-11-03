@@ -136,6 +136,7 @@ def _to_member(membership: Membership, user: User, *, is_me: bool) -> Member:
         joined_at=membership.joined_at,
         birthday=birthday,
         show_birthday=membership.show_birthday if is_me else None,
+        notifications_muted=membership.notifications_muted if is_me else None,
     )
 
 
@@ -328,8 +329,16 @@ def remove_member(db: Session, access: GroupAccess, user_id: uuid.UUID) -> None:
     db.commit()
 
 
-def update_my_settings(db: Session, access: GroupAccess, *, show_birthday: bool) -> None:
+def update_my_settings(
+    db: Session,
+    access: GroupAccess,
+    *,
+    show_birthday: bool,
+    notifications_muted: bool | None = None,
+) -> None:
     membership = access.membership
+    if notifications_muted is not None:  # private: not in the group's log
+        membership.notifications_muted = notifications_muted
     if membership.show_birthday != show_birthday:
         membership.show_birthday = show_birthday
         log_event(

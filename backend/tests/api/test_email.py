@@ -202,14 +202,20 @@ def test_notification_settings(client: TestClient) -> None:
     account = register(client)
 
     defaults = client.get("/api/v1/me/notifications", headers=account.headers).json()
+    changes = {"polls": False, "reminders": False, "email": True}
     updated = client.put(
-        "/api/v1/me/notifications",
-        headers=account.headers,
-        json={"polls": False, "wheel": True, "reminders": False},
+        "/api/v1/me/notifications", headers=account.headers, json={**defaults, **changes}
     ).json()
 
-    assert defaults == {"polls": True, "wheel": True, "reminders": True}
-    assert updated == {"polls": False, "wheel": True, "reminders": False}
+    assert defaults == {
+        "polls": True,
+        "wheel": True,
+        "reminders": True,
+        "members": True,
+        "plans": True,
+        "email": False,  # push first; email is opt-in
+    }
+    assert updated == {**defaults, **changes}
     assert client.get("/api/v1/me/notifications", headers=account.headers).json() == updated
 
 
@@ -227,7 +233,8 @@ def test_unsubscribing_from_a_notification_link(client: TestClient, settings: Se
     assert response.status_code == 200
     assert response.json() == {"kind": "wheel"}
     settings_now = client.get("/api/v1/me/notifications", headers=account.headers).json()
-    assert settings_now == {"polls": True, "wheel": False, "reminders": True}
+    assert settings_now["wheel"] is False
+    assert settings_now["polls"] is True
     forged = client.post("/api/v1/notifications/unsubscribe", params={"token": token + "x"})
     assert forged.json()["code"] == "invalid_token"
 

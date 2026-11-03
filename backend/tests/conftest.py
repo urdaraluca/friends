@@ -13,6 +13,7 @@ from friends_api.cli import alembic_config
 from friends_api.core.config import AppEnv, RegistrationMode, Settings
 from friends_api.core.db import create_db_engine
 from friends_api.core.mail import RecordingMailer
+from friends_api.core.webpush import RecordingPusher
 from friends_api.main import create_app
 
 # Cheap hashing parameters: the production ones cost ~64 MiB and a few hundred ms per hash.
@@ -63,6 +64,7 @@ def settings(db_path: Path, tmp_path: Path) -> Settings:
 def app(settings: Settings) -> FastAPI:
     app = create_app(settings)
     app.state.mailer = RecordingMailer()
+    app.state.pusher = RecordingPusher()
     return app
 
 

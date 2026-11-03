@@ -44,7 +44,12 @@ class User(IdMixin, TimestampMixin, Base):
     notify_polls: Mapped[bool] = mapped_column(default=True)
     notify_wheel: Mapped[bool] = mapped_column(default=True)
     notify_reminders: Mapped[bool] = mapped_column(default=True)
-    """Notification emails (contract section 18.4); only verified addresses get them."""
+    notify_members: Mapped[bool] = mapped_column(default=True)
+    notify_plans: Mapped[bool] = mapped_column(default=True)
+    """Which notifications I get, by email and push (contract section 18.4)."""
+    notify_email: Mapped[bool] = mapped_column(default=False)
+    """Opt-in: notifications come by browser push; email (to a verified address) only when
+    switched on."""
     calendar_feed_token: Mapped[str | None] = mapped_column(String(64), unique=True, index=True)
     """The secret in my webcal feed URL (contract section 5.10); null when the feed is off.
     Stored as is so the URL can be shown again: it only reads what the database holds anyway."""

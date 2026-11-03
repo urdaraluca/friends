@@ -8,6 +8,7 @@ import 'package:retrofit/retrofit.dart';
 import '../models/group.dart';
 import '../models/invite.dart';
 import '../models/invite_create.dart';
+import '../models/invite_email.dart';
 import '../models/invite_preview.dart';
 
 part 'invites_client.g.dart';
@@ -38,6 +39,17 @@ abstract class InvitesClient {
   Future<void> revokeInvite({
     @Path('invite_id') required String inviteId,
     @Path('group_id') required String groupId,
+  });
+
+  /// Email Invite.
+  ///
+  /// Emails the invite's link to ``email``. Whoever can see the invite, with a verified email.
+  /// of their own; at most 10 an hour.
+  @POST('/api/v1/groups/{group_id}/invites/{invite_id}/email')
+  Future<void> emailInvite({
+    @Path('invite_id') required String inviteId,
+    @Path('group_id') required String groupId,
+    @Body() required InviteEmail body,
   });
 
   /// Preview Invite.

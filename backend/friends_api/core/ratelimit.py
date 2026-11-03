@@ -53,6 +53,7 @@ class RateLimits:
         self.refresh = SlidingWindowLimiter(30, 60, clock)
         self.invites = SlidingWindowLimiter(20, 60, clock)
         self.isbn_lookup = SlidingWindowLimiter(30, 60, clock)
+        self.movie_lookup = SlidingWindowLimiter(30, 60, clock)
         self.password_reset = SlidingWindowLimiter(5, 3600, clock)
         """Reset-link requests, per IP."""
         self.email_links = SlidingWindowLimiter(30, 3600, clock)

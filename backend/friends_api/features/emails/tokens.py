@@ -26,6 +26,8 @@ class NotificationKind(StrEnum):
     POLLS = "polls"
     WHEEL = "wheel"
     REMINDERS = "reminders"
+    MEMBERS = "members"
+    PLANS = "plans"
 
 
 def issue_token(db: Session, user: User, purpose: EmailTokenPurpose) -> str:

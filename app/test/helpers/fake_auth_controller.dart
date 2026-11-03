@@ -22,5 +22,9 @@ class FakeAuthController extends AuthController {
 }
 
 /// A signed-in state for [meJson].
-Authenticated signedIn({String displayName = 'Ana'}) =>
-    Authenticated(Me.fromJson(meJson(displayName: displayName)));
+Authenticated signedIn({
+  String displayName = 'Ana',
+  bool emailVerified = true,
+}) => Authenticated(
+  Me.fromJson(meJson(displayName: displayName, emailVerified: emailVerified)),
+);

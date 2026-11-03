@@ -14,6 +14,8 @@ abstract class Me with _$Me {
   const factory Me({
     required String id,
     required String email,
+    @JsonKey(name: 'email_verified')
+    required bool emailVerified,
     @JsonKey(name: 'display_name')
     required String displayName,
     @JsonKey(name: 'avatar_url')

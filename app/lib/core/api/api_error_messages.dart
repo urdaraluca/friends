@@ -47,6 +47,8 @@ String _problemMessage(ProblemException problem) {
     ErrorCodes.weakPassword => l10n.errorWeakPassword,
     ErrorCodes.forbidden => l10n.errorForbidden,
     ErrorCodes.registrationClosed => l10n.errorRegistrationClosed,
+    ErrorCodes.emailNotVerified => l10n.errorEmailNotVerified,
+    ErrorCodes.invalidToken => l10n.errorInvalidToken,
     ErrorCodes.notFound => l10n.errorNotFound,
     ErrorCodes.emailTaken => l10n.errorEmailTaken,
     ErrorCodes.nameTaken => l10n.errorNameTaken,

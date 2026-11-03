@@ -12,6 +12,8 @@ abstract class MemberSettingsUpdate with _$MemberSettingsUpdate {
   const factory MemberSettingsUpdate({
     @JsonKey(name: 'show_birthday')
     required bool showBirthday,
+    @JsonKey(name: 'notifications_muted')
+    bool? notificationsMuted,
   }) = _MemberSettingsUpdate;
   
   factory MemberSettingsUpdate.fromJson(Map<String, Object?> json) => _$MemberSettingsUpdateFromJson(json);
