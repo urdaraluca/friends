@@ -100,7 +100,7 @@ gives the minimums and constraints to start from.
 
 | Area | Item | Version |
 |---|---|---|
-| Backend | Python | 3.14 (`.python-version`); image `python:3.14.7-slim-trixie` (has stdlib `uuid.uuid7()`) |
+| Backend | Python | 3.15 (`.python-version`); image `python:3.15.0-slim-trixie` (stdlib `uuid.uuid7()` since 3.14) |
 | | uv | 0.12.19 (`ghcr.io/astral-sh/uv:0.12.19`) |
 | | fastapi | 0.141.1 |
 | | uvicorn[standard] | 0.54.0 |

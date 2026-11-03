@@ -1,7 +1,7 @@
 # Friends monorepo: notes for Claude
 
 - **Stack:**
-  - `backend/`: FastAPI, sync SQLAlchemy, SQLite, Python 3.14, uv. The package is `friends_api`.
+  - `backend/`: FastAPI, sync SQLAlchemy, SQLite, Python 3.15, uv. The package is `friends_api`.
   - `app/`: Flutter 3.47 / Dart 3.13, with Riverpod 3 (codegen), go_router 18, dio, and
     `material_ui` (not `package:flutter/material.dart`).
 - **Source of truth for API behaviour:** `docs/api/contract.md`. Architecture decisions are in

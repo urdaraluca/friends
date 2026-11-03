@@ -16,7 +16,7 @@ The original product notes are in [`specs.txt`](specs.txt).
 | Path | What |
 |---|---|
 | [`app/`](app/) | Flutter app for Android, iOS and web (Riverpod, go_router, dio) |
-| [`backend/`](backend/) | FastAPI + SQLite API (Python 3.14, uv) |
+| [`backend/`](backend/) | FastAPI + SQLite API (Python 3.15, uv) |
 | [`deploy/`](deploy/) | Docker Compose setup and runbook for the Raspberry Pi |
 | [`docs/`](docs/) | API contract, ADRs |
 | [`.github/`](.github/) | CI (path-filtered per project) and the arm64 image build |
@@ -25,7 +25,7 @@ The original product notes are in [`specs.txt`](specs.txt).
 
 **Tools**
 ```powershell
-winget install --id=astral-sh.uv -e      # Python toolchain (installs Python 3.14 on demand)
+winget install --id=astral-sh.uv -e      # Python toolchain (installs Python 3.15 on demand)
 # Flutter 3.47.5: https://docs.flutter.dev/get-started/install/windows (add flutter\bin to PATH)
 winget install Google.AndroidStudio       # Android SDK + emulator (optional for web-only work)
 git config --global core.longpaths true

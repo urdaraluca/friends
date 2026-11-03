@@ -1,6 +1,6 @@
 # Friends API (FastAPI)
 
-Python 3.14 + FastAPI + SQLite, managed with [uv](https://docs.astral.sh/uv/). See the [root README](../README.md) for setup.
+Python 3.15 + FastAPI + SQLite, managed with [uv](https://docs.astral.sh/uv/). See the [root README](../README.md) for setup.
 
 ```powershell
 uv sync                                   # creates .venv with the dev tools
