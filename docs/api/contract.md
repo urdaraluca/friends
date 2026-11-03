@@ -84,7 +84,7 @@ changes one, it changes the other.
 
 ### 1.2 Identifiers
 
-- **UUIDv7** everywhere, generated on the server with stdlib `uuid.uuid7()` (Python 3.14). Stored as
+- **UUIDv7** everywhere, generated on the server with stdlib `uuid.uuid7()` (Python 3.14+). Stored as
   SQLAlchemy `Uuid` (CHAR(32) hex on SQLite). On the wire: lowercase hyphenated strings
   (`format: uuid`).
 - Clients never create IDs in the MVP.

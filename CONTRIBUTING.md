@@ -103,7 +103,7 @@ docker run --rm -p 8000:8000 -e JWT_SECRET=local-only-secret-at-least-32-bytes -
 - Line endings: `.gitattributes` checks text files out with LF whatever `core.autocrlf` says
   (`*.bat`, `*.cmd` and `*.ps1` excepted), because `dart format` and the Linux containers expect LF.
   `.editorconfig` tells editors the same; keep LF when you save.
-- You don't need a system Python: uv installs 3.14, so use `uv run python …` from `backend/`.
+- You don't need a system Python: uv installs 3.15, so use `uv run python …` from `backend/`.
   `python`/`python3` in a Windows shell is often just the Microsoft Store alias.
 - In `cmd`, `>` is a redirect, so an unquoted version specifier like `pkg>=1.0` writes a file named
   `=1.0`. Use PowerShell or Git Bash, or quote it.
