@@ -174,3 +174,27 @@ def test_reset_password_for_unknown_email_fails(
     monkeypatch.setattr("sys.stdin", io.StringIO("long enough password\n"))
 
     assert cli.main(["reset-password", "x@example.com", "--password-stdin"], settings) == 1
+
+
+def test_send_notifications_and_test_email_without_smtp(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    settings = _settings(tmp_path)
+    assert cli.main(["migrate"], settings) == 0
+
+    assert cli.main(["send-notifications"], settings) == 0
+    assert "Notifications sent: none; failed: 0" in capsys.readouterr().out
+
+    assert cli.main(["send-test-email", "ops@example.com"], settings) == 0
+    assert "the log (SMTP_HOST is unset)" in capsys.readouterr().out
+
+
+def test_send_test_email_reports_smtp_failures(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    settings = _settings(tmp_path).model_copy(
+        update={"smtp_host": "127.0.0.1", "smtp_port": 9}  # nothing listens there
+    )
+
+    assert cli.main(["send-test-email", "ops@example.com"], settings) == 1
+    assert "Sending failed" in capsys.readouterr().err

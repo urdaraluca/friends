@@ -38,7 +38,7 @@ def normalize_email(email: str) -> str:
     return email.strip().lower()
 
 
-def _check_password_rules(password: str, email: str) -> None:
+def check_password_rules(password: str, email: str) -> None:
     if password.strip().lower() == email:
         raise Unprocessable("Password must not be your email address.", code="weak_password")
 
@@ -103,7 +103,7 @@ def create_user(
 ) -> User:
     """Creates the account (flushes, does not commit)."""
     email = normalize_email(email)
-    _check_password_rules(password, email)
+    check_password_rules(password, email)
     if db.scalar(select(User.id).where(User.email == email)) is not None:
         raise Conflict("An account with this email already exists.", code="email_taken")
     user = User(
@@ -232,7 +232,7 @@ def change_password(
     The caller keeps being signed in (same session start and device); every other device is out.
     """
     check_current_password(ctx, user, current_password, "current_password")
-    _check_password_rules(new_password, user.email)
+    check_password_rules(new_password, user.email)
     current = db.scalar(
         select(RefreshToken)
         .where(RefreshToken.family_id == session_id)

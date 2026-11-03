@@ -53,6 +53,7 @@ RESTRICTED: dict[str, Callable[[World], dict[str, Any] | None]] = {
     "update_member_role": lambda w: {"role": "admin"},
     "remove_member": lambda w: None,
     "revoke_invite": lambda w: None,
+    "email_invite": lambda w: {"email": "friend@example.com"},
     "update_category": lambda w: CATEGORY_WRITE,
     "delete_category": lambda w: None,
     "reorder_categories": lambda w: {"category_ids": []},

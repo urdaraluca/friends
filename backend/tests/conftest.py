@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from friends_api.cli import alembic_config
 from friends_api.core.config import AppEnv, RegistrationMode, Settings
 from friends_api.core.db import create_db_engine
+from friends_api.core.mail import RecordingMailer
 from friends_api.main import create_app
 
 # Cheap hashing parameters: the production ones cost ~64 MiB and a few hundred ms per hash.
@@ -60,7 +61,16 @@ def settings(db_path: Path, tmp_path: Path) -> Settings:
 
 @pytest.fixture
 def app(settings: Settings) -> FastAPI:
-    return create_app(settings)
+    app = create_app(settings)
+    app.state.mailer = RecordingMailer()
+    return app
+
+
+@pytest.fixture
+def mailer(app: FastAPI) -> RecordingMailer:
+    """What the app would have emailed (background tasks run before the response returns)."""
+    recording: RecordingMailer = app.state.mailer
+    return recording
 
 
 @pytest.fixture

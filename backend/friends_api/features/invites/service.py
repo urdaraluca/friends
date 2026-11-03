@@ -12,7 +12,9 @@ from sqlalchemy.orm import Session
 from friends_api.core.config import Settings
 from friends_api.core.db import utcnow
 from friends_api.core.errors import Forbidden, Gone, NotFound
+from friends_api.core.mail import Email
 from friends_api.features.auth.models import User
+from friends_api.features.emails import messages
 from friends_api.features.group_log.service import log_event
 from friends_api.features.groups import policies
 from friends_api.features.groups.models import Group, Membership, Role
@@ -216,3 +218,26 @@ def join_with_invite(db: Session, user: User, invite: Invite, *, via: str) -> Gr
     )
     db.flush()
     return GroupAccess(group=group, membership=membership)
+
+
+def invite_email(
+    db: Session, settings: Settings, access: GroupAccess, inviter: User, invite: Invite, to: str
+) -> Email:
+    """The email inviting ``to`` with ``invite`` (contract section 18.5). Its creator or an
+    admin, with a verified address of their own, can send it; the invite must still be usable.
+    """
+    if not policies.can_see_invite(access.membership, invite):
+        raise Forbidden("You can only email your own invites.")
+    if inviter.email_verified_at is None:
+        raise Forbidden(
+            "Confirm your own email address before inviting people by email.",
+            code="email_not_verified",
+        )
+    raise_if_unusable(invite)
+    return messages.invite_email(
+        settings,
+        to=to,
+        inviter=inviter,
+        group_name=access.group.name,
+        invite_url=invite_url(settings, invite.code),
+    )

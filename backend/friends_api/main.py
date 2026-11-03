@@ -10,6 +10,7 @@ from friends_api.core.config import Settings, get_settings
 from friends_api.core.db import create_db_engine, create_session_factories
 from friends_api.core.errors import CatchAllMiddleware, register_exception_handlers
 from friends_api.core.logging import REQUEST_ID_HEADER, RequestContextMiddleware, configure_logging
+from friends_api.core.mail import create_mailer
 from friends_api.core.metrics import RequestMetrics
 from friends_api.core.openapi import install_openapi
 from friends_api.core.ratelimit import RateLimits
@@ -57,6 +58,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.rate_limits = RateLimits()
     app.state.metrics = RequestMetrics()
     app.state.book_lookup = BookLookup.create(settings.google_books_api_key)
+    app.state.mailer = create_mailer(settings)
 
     install_openapi(app)
     register_exception_handlers(app)

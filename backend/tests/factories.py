@@ -1,10 +1,14 @@
 """Helpers that create data through the public API."""
 
+import re
 from dataclasses import dataclass
 from itertools import count
 from typing import Any
+from urllib.parse import unquote
 
 from fastapi.testclient import TestClient
+
+from friends_api.core.mail import RecordingMailer
 
 DEFAULT_PASSWORD = "correct horse battery"
 _sequence = count(1)
@@ -213,3 +217,18 @@ TINY_JPEG = bytes.fromhex(
     "d3ffd9"
 )
 """A 1x1 JPEG: the smallest real cover there is."""
+
+
+def link_token(text: str) -> str:
+    """The ``token`` of the first link with one in an email's text."""
+    match = re.search(r"[?&]token=([^\s&]+)", text)
+    assert match, text
+    return unquote(match.group(1))
+
+
+def verify_email(client: TestClient, account: Account, mailer: RecordingMailer) -> None:
+    """Confirms ``account``'s address with the last verification email sent to it."""
+    sent = [e for e in mailer.sent if e.to == account.email and "Confirm" in e.subject]
+    assert sent, "no verification email"
+    response = client.post("/api/v1/auth/verify-email", json={"token": link_token(sent[-1].text)})
+    assert response.status_code == 204, response.text

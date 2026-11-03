@@ -59,3 +59,19 @@ class AuthSession(BaseModel):
     tokens: TokenPair
     joined_group: GroupSummary | None
     """The group joined with the invite code at registration."""
+
+
+EmailToken = Annotated[str, StringConstraints(min_length=1, max_length=128)]
+
+
+class PasswordResetRequest(RequestModel):
+    email: Annotated[EmailStr, StringConstraints(max_length=254)]
+
+
+class PasswordReset(RequestModel):
+    token: EmailToken
+    new_password: Password
+
+
+class EmailVerification(RequestModel):
+    token: EmailToken

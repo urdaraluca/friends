@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from friends_api.core.config import RegistrationMode
 from friends_api.core.errors import Forbidden
 from friends_api.features.auth import service
+from friends_api.features.auth.models import User
 from friends_api.features.auth.schemas import AuthSession, RegisterRequest
 from friends_api.features.auth.service import AuthContext
 from friends_api.features.groups import service as groups_service
@@ -12,7 +13,7 @@ from friends_api.features.invites import service as invites_service
 from friends_api.features.users.schemas import Me
 
 
-def register(db: Session, ctx: AuthContext, body: RegisterRequest) -> AuthSession:
+def register(db: Session, ctx: AuthContext, body: RegisterRequest) -> tuple[AuthSession, User]:
     if body.invite_code is None and ctx.settings.registration_mode is RegistrationMode.INVITE_ONLY:
         raise Forbidden(
             "Friends is invite-only: ask a friend for an invite link.",
@@ -37,4 +38,4 @@ def register(db: Session, ctx: AuthContext, body: RegisterRequest) -> AuthSessio
         joined = groups_service.to_summary(db, access.group, access.membership)
     tokens = service.start_session(db, ctx, user, body.device_label)
     db.commit()
-    return AuthSession(user=Me.from_user(user), tokens=tokens, joined_group=joined)
+    return AuthSession(user=Me.from_user(user), tokens=tokens, joined_group=joined), user

@@ -1,7 +1,8 @@
 import uuid
 from datetime import datetime
+from typing import Annotated
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, EmailStr, Field, StringConstraints
 
 from friends_api.core.schemas import RequestModel
 from friends_api.features.invites.models import InviteStatus
@@ -46,3 +47,7 @@ class InvitePreview(BaseModel):
     group: InviteGroupPreview
     invited_by_name: str | None
     expires_at: datetime | None
+
+
+class InviteEmail(RequestModel):
+    email: Annotated[EmailStr, StringConstraints(max_length=254)]

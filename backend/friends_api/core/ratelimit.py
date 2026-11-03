@@ -53,6 +53,14 @@ class RateLimits:
         self.refresh = SlidingWindowLimiter(30, 60, clock)
         self.invites = SlidingWindowLimiter(20, 60, clock)
         self.isbn_lookup = SlidingWindowLimiter(30, 60, clock)
+        self.password_reset = SlidingWindowLimiter(5, 3600, clock)
+        """Reset-link requests, per IP."""
+        self.email_links = SlidingWindowLimiter(30, 3600, clock)
+        """Using a link from an email (reset, verify, unsubscribe), per IP."""
+        self.verification_email = SlidingWindowLimiter(3, 3600, clock)
+        """Resending the verification email, per user."""
+        self.invite_email = SlidingWindowLimiter(10, 3600, clock)
+        """Invites sent by email, per user."""
 
 
 def client_ip(request: Request) -> str:
@@ -68,3 +76,11 @@ def limit_by_ip(name: str) -> Callable[[Request], None]:
         limiter.hit(client_ip(request))
 
     return dependency
+
+
+def limit_by_user(request: Request, name: str, user_id: object) -> None:
+    """Like :func:`limit_by_ip`, keyed by the signed-in user; call it from the handler."""
+    if not request.app.state.settings.rate_limit_enabled:
+        return
+    limiter: SlidingWindowLimiter = getattr(request.app.state.rate_limits, name)
+    limiter.hit(f"user:{user_id}")

@@ -13,6 +13,7 @@ from friends_api.features.events import models as events_models
 from friends_api.features.group_log import models as group_log_models
 from friends_api.features.groups import models as groups_models
 from friends_api.features.invites import models as invites_models
+from friends_api.features.notifications import models as notifications_models
 from friends_api.features.polls import models as polls_models
 from friends_api.features.wheel import models as wheel_models
 
@@ -27,6 +28,7 @@ __all__ = [
     "group_log_models",
     "groups_models",
     "invites_models",
+    "notifications_models",
     "polls_models",
     "wheel_models",
 ]

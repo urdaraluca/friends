@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 
 from friends_api.core.config import Settings
 from friends_api.core.errors import AuthError, NotFound
+from friends_api.core.mail import Mailer
 from friends_api.core.security import AccessClaims, decode_access_token
 from friends_api.features.auth.models import User
 from friends_api.features.auth.service import AuthContext
@@ -25,6 +26,11 @@ _bearer = HTTPBearer(auto_error=False, description="Access token from /auth/logi
 def get_settings_dep(request: Request) -> Settings:
     settings: Settings = request.app.state.settings
     return settings
+
+
+def get_mailer(request: Request) -> Mailer:
+    mailer: Mailer = request.app.state.mailer
+    return mailer
 
 
 def get_auth_context(request: Request) -> AuthContext:
@@ -46,6 +52,7 @@ def get_db(request: Request) -> Iterator[Session]:
 AppSettings = Annotated[Settings, Depends(get_settings_dep)]
 DbSession = Annotated[Session, Depends(get_db)]
 Auth = Annotated[AuthContext, Depends(get_auth_context)]
+MailerDep = Annotated[Mailer, Depends(get_mailer)]
 
 
 @dataclass(frozen=True, slots=True)

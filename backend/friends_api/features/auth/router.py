@@ -1,11 +1,15 @@
-from fastapi import APIRouter, Depends, Request, Response, status
+from fastapi import APIRouter, BackgroundTasks, Depends, Request, Response, status
 
+from friends_api.core.mail import send_safely
 from friends_api.core.ratelimit import limit_by_ip
-from friends_api.deps import AppSettings, Auth, CurrentUser, DbSession
-from friends_api.features.auth import cookies, registration, service
+from friends_api.deps import AppSettings, Auth, CurrentUser, DbSession, MailerDep
+from friends_api.features.auth import cookies, email_flows, registration, service
 from friends_api.features.auth.schemas import (
     AuthSession,
+    EmailVerification,
     LoginRequest,
+    PasswordReset,
+    PasswordResetRequest,
     RefreshRequest,
     RegisterRequest,
     TokenPair,
@@ -21,11 +25,19 @@ router = APIRouter(prefix="/auth", tags=["auth"])
     dependencies=[Depends(limit_by_ip("register"))],
 )
 def register(
-    body: RegisterRequest, db: DbSession, auth: Auth, request: Request, response: Response
+    body: RegisterRequest,
+    db: DbSession,
+    auth: Auth,
+    mailer: MailerDep,
+    background: BackgroundTasks,
+    request: Request,
+    response: Response,
 ) -> AuthSession:
     """Creates an account. Needs an invite code unless registration is open; with a code the
-    new user also joins that group (`joined_group`)."""
-    session = registration.register(db, auth, body)
+    new user also joins that group (`joined_group`). Emails a verification link."""
+    session, user = registration.register(db, auth, body)
+    if email := email_flows.verification_email(db, auth, user):
+        background.add_task(send_safely, mailer, email)
     tokens = cookies.deliver(request, response, auth.settings, session.tokens)
     return session.model_copy(update={"tokens": tokens})
 
@@ -80,3 +92,41 @@ def logout_all(
     """Ends every session of the current user, including this one."""
     service.logout_everywhere(db, user)
     cookies.forget(request, response, settings)
+
+
+@router.post(
+    "/password-reset/request",
+    status_code=status.HTTP_202_ACCEPTED,
+    dependencies=[Depends(limit_by_ip("password_reset"))],
+)
+def request_password_reset(
+    body: PasswordResetRequest,
+    db: DbSession,
+    auth: Auth,
+    mailer: MailerDep,
+    background: BackgroundTasks,
+) -> None:
+    """Emails a reset link if the address is a verified one of an account. Always 202: the
+    response doesn't say whether it was."""
+    if email := email_flows.request_password_reset(db, auth, body.email):
+        background.add_task(send_safely, mailer, email)
+
+
+@router.post(
+    "/password-reset",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(limit_by_ip("email_links"))],
+)
+def reset_password(body: PasswordReset, db: DbSession, auth: Auth) -> None:
+    """Sets a new password with the emailed link's token, and signs out every session."""
+    email_flows.reset_password(db, auth, body.token, body.new_password)
+
+
+@router.post(
+    "/verify-email",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(limit_by_ip("email_links"))],
+)
+def verify_email(body: EmailVerification, db: DbSession) -> None:
+    """Confirms the address with the emailed link's token. Works signed out."""
+    email_flows.verify_email(db, body.token)
