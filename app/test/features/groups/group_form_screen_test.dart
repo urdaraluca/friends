@@ -52,7 +52,7 @@ void main() {
       await open(tester, Routes.newGroup);
 
       await tester.enterText(field('Name'), '   ');
-      await tester.enterText(field('Emoji'), 'x' * 17);
+      await tester.enterText(field('Emoji'), 'xy');
       await tester.enterText(field('Description'), 'y' * 501);
       await tester.enterText(field('Currency'), 'EURO');
       await tester.enterText(field('Timezone'), ' ');
@@ -60,7 +60,8 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Enter a name.'), findsOneWidget);
-      expect(find.text('Use at most 16 characters.'), findsOneWidget);
+      expect(fieldText(tester, 'Emoji'), 'x'); // one character at most
+      expect(find.text('Use a single emoji.'), findsOneWidget);
       expect(find.text('Use at most 500 characters.'), findsOneWidget);
       expect(
         find.text('Use a 3-letter currency code, e.g. EUR.'),
@@ -242,6 +243,27 @@ void main() {
       await open(tester, Routes.editGroup(Ids.groupId));
 
       expect(find.byTooltip('Current colour'), findsOneWidget);
+    });
+
+    testWidgets('an emoji from before the one-emoji rule keeps its first', (
+      tester,
+    ) async {
+      backend.stubGroup(
+        group: groupJson(myRole: 'owner', emoji: '🎲🎉'),
+      );
+      await open(tester, Routes.editGroup(Ids.groupId));
+
+      expect(fieldText(tester, 'Emoji'), '🎲');
+    });
+
+    testWidgets('a new emoji replaces the old one', (tester) async {
+      backend.stubGroup(group: groupJson(myRole: 'owner'));
+      await open(tester, Routes.editGroup(Ids.groupId));
+
+      // Typing after the current emoji, as a keyboard would.
+      await tester.enterText(field('Emoji'), '🎬🍿');
+
+      expect(fieldText(tester, 'Emoji'), '🍿');
     });
 
     testWidgets('members only get an explanation', (tester) async {

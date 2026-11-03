@@ -186,6 +186,7 @@ abstract final class ApiPaths {
   static const me = '/api/v1/me';
   static const password = '/api/v1/me/password';
   static const deletion = '/api/v1/me/deletion';
+  static const calendarFeed = '/api/v1/me/calendar-feed';
   static const groups = '/api/v1/groups';
   static const health = '/api/v1/health';
 

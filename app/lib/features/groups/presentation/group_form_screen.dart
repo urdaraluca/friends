@@ -6,6 +6,7 @@ import 'package:friends/core/api/error_codes.dart';
 import 'package:friends/core/api/generated/export.dart';
 import 'package:friends/core/device/device_info.dart';
 import 'package:friends/core/forms/field_errors.dart';
+import 'package:friends/core/forms/single_emoji.dart';
 import 'package:friends/core/forms/validators.dart';
 import 'package:friends/core/router/routes.dart';
 import 'package:friends/core/theme/app_theme.dart';
@@ -88,7 +89,7 @@ class _EditBody extends ConsumerWidget {
   }
 }
 
-/// The group fields: name (1..60), description (≤500), emoji (≤16), a
+/// The group fields: name (1..60), description (≤500), one emoji, a
 /// colour from [groupColorPresets], currency (3 capital letters, default
 /// EUR) and timezone (default: the device's). Creating adds the "default
 /// categories" switch; editing adds "members can invite" (contract section
@@ -137,7 +138,7 @@ class _GroupFormState extends ConsumerState<GroupForm> with ServerErrorsMixin {
     final group = widget.group;
     _name = TextEditingController(text: group?.name);
     _description = TextEditingController(text: group?.description);
-    _emoji = TextEditingController(text: group?.emoji);
+    _emoji = TextEditingController(text: SingleEmoji.first(group?.emoji));
     _currency = TextEditingController(
       text: group?.currency ?? currentL10n.defaultCurrency,
     );
@@ -271,10 +272,11 @@ class _GroupFormState extends ConsumerState<GroupForm> with ServerErrorsMixin {
             decoration: InputDecoration(
               labelText: context.l10n.emojiLabel,
               hintText: context.l10n.emojiHint,
-              helperText: context.l10n.optional,
+              helperText: context.l10n.emojiHelper,
             ),
             textInputAction: TextInputAction.next,
-            validator: Validators.optional(max: 16),
+            inputFormatters: const [SingleCharacterFormatter()],
+            validator: Validators.optionalEmoji,
             forceErrorText: serverError('emoji'),
             onChanged: (_) => clearServerError('emoji'),
           ),

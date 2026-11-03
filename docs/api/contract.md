@@ -431,6 +431,8 @@ users
   token_version      int not null default 0 -- incremented = every access token dies at once
   last_login_at      ts null                -- written by POST /auth/login only
   deleted_at         ts null
+  calendar_feed_token varchar(64) null      -- the webcal feed's secret (section 5.10); null = off
+                     UNIQUE INDEX ix_users_calendar_feed_token
   created_at, updated_at
   CHECK birthday_pair:  (birthday_month IS NULL) = (birthday_day IS NULL)
   CHECK birthday_year:  birthday_year IS NULL OR birthday_month IS NOT NULL
@@ -1154,6 +1156,38 @@ included if `from <= date < to` and (`first_year` is null or `Y >= first_year`).
   `rrule_spec` tests run `valid[].input → canonical` and `invalid[]`; the client never expands timed
   rules.
 
+### 5.10 Webcal feed (subscribing from another calendar app)
+
+Calendar apps (Google Calendar, Apple Calendar, Outlook) subscribe to a URL and poll it without
+signing in, so the feed's URL carries a secret instead of a token header.
+
+- **Managing it** (signed in): `GET /me/calendar-feed` returns `CalendarFeed {url, webcal_url}`,
+  both null while it is off. `POST /me/calendar-feed` turns it on with a new secret
+  (`secrets.token_urlsafe(32)`); called again, it **replaces** the secret, so the old URL stops
+  working (reset after a leak). `DELETE /me/calendar-feed` turns it off (204). Deleting the account
+  turns it off too.
+- **URL:** `{PUBLIC_APP_URL}/api/v1/calendar-feed/{secret}.ics`; `webcal_url` is the same with the
+  `webcal://` scheme, which opens the device's calendar app.
+- **The feed:** `GET` (or `HEAD`) `/calendar-feed/{secret}.ics` is public and not in the OpenAPI
+  schema (the app never calls it). An unknown or revoked secret, or a deleted user's, is a 404.
+  - `200 text/calendar; charset=utf-8`, an RFC 5545 `VCALENDAR` (`X-WR-CALNAME:Friends`,
+    `REFRESH-INTERVAL` and `X-PUBLISHED-TTL` of one hour; apps poll at their own pace).
+  - It holds what `GET /me/calendar` returns for `[today - 30 days, today + 365 days)`, today being
+    in the user's timezone: every kind, every group, member birthdays de-duplicated. Occurrences
+    are **expanded**, one `VEVENT` each, rather than sent as an `RRULE` with exceptions, so
+    cancellations and single-occurrence edits show exactly as in the app.
+  - `UID`: `{event_id}-{occurrence_key}@friends.calendar`, or
+    `birthday-{user_id}-{occurrence_key}@friends.calendar` for member birthdays: stable across
+    polls, so apps update events in place.
+  - Timed: `DTSTART`/`DTEND` in UTC (`…Z`). All-day: `VALUE=DATE`, with `DTEND` the day **after**
+    `end_date` (iCalendar's end is exclusive) and `TRANSP:TRANSPARENT`.
+  - `SUMMARY` is the title; birthdays (both kinds) get `🎂 ` in front, a language-neutral stand-in
+    for the app's "'s birthday". `DESCRIPTION` and `CATEGORIES` hold the group's name (none for
+    de-duplicated member birthdays). Text is escaped and lines are folded at 75 octets.
+- **Secrets in logs:** the access log writes the path as `/api/v1/calendar-feed/***`.
+- **Storage:** the secret is stored as is, not hashed, so the app can show the URL again. It only
+  reads data the database holds anyway.
+
 ---
 
 ## 6. Custom fields per category
@@ -1417,6 +1451,15 @@ The Docker HEALTHCHECK calls `http://127.0.0.1:8000/api/v1/health`.
 | `POST /me/password` | `change_password` | user | `PasswordChange` | 200 `TokenPair` (section 4.6) | 422 `wrong_password`, `weak_password` |
 | `POST /me/deletion` | `delete_account` | user | `AccountDeletion` | 204 (section 4.8) | 422 `wrong_password` |
 | `GET /me/calendar` | `get_my_calendar` | user | query `from`, `to`, `tz?`, `kinds*` | 200 `CalendarResponse` across all my groups (section 5.5); the app shows it at `/calendar` (issue #18) | 422 `range_too_large` |
+| `GET /me/calendar-feed` | `get_my_calendar_feed` | user | – | 200 `CalendarFeed` (section 5.10) | – |
+| `POST /me/calendar-feed` | `reset_my_calendar_feed` | user | – | 200 `CalendarFeed`: on, with a new secret URL | – |
+| `DELETE /me/calendar-feed` | `disable_my_calendar_feed` | user | – | 204: off | – |
+
+### 8.3a calendar feed (tag `calendar_feed`)
+
+| Endpoint | operationId | Auth | Request | Success | Extra errors |
+|---|---|---|---|---|---|
+| `GET`/`HEAD /calendar-feed/{secret}.ics` | `get_calendar_feed` (not in the schema) | public (the secret) | – | 200 `text/calendar` (section 5.10) | 404 |
 
 ### 8.4 groups (tag `groups`)
 
@@ -1623,12 +1666,18 @@ GroupSummary      { id: uuid, name: str, emoji: str?, color: str?, member_count:
 Group             { id, name, emoji?, color?, member_count, kind, my_role, created_at,    # = GroupSummary fields
                     description: str?, currency: str, timezone: str, members_can_invite: bool,
                     created_by: UserPublic?, updated_at: datetime }
-GroupCreate       { name: str (1..60), description: str? (<=500), emoji: str? (<=16), color: Color?,
+GroupCreate       { name: str (1..60), description: str? (<=500), emoji: Emoji?, color: Color?,
                     currency: str = "EUR", timezone: str? (null -> caller's timezone),
                     members_can_invite: bool = true, kind: GroupKind = general,
                     seed_default_categories: bool = true }   # the categories for kind (section 6.5)
-GroupUpdate       { name: str (1..60), description: str?, emoji: str?, color: Color?, currency: str,
+GroupUpdate       { name: str (1..60), description: str?, emoji: Emoji?, color: Color?, currency: str,
                     timezone: str, kind: GroupKind? (null keeps it), members_can_invite: bool }
+# Emoji: exactly one emoji, at most 16 characters. One emoji-sized cluster (a base character with
+#   its variation selectors, skin tones, tag characters and combining marks; a ZWJ sequence such
+#   as 👩‍💻; a pair of regional indicators, i.e. a flag) whose first character is a symbol (Unicode
+#   category So), or a keycap (1️⃣). "🎲🎉", "A" or two flags are 422 `validation_error`
+#   ("Use a single emoji."). Emojis stored before this rule are returned as they are; the app
+#   keeps their first emoji when the group is edited.
 TransferOwnership { user_id: uuid }
 Member            { user: UserPublic, role: Role, joined_at: datetime,
                     birthday: BirthdayPublic?,   # null unless set and show_birthday is on (always shown on your own row)
@@ -1723,6 +1772,7 @@ Occurrence        { occurrence_key: str, source: OccurrenceSource, event_id: uui
                     start_date: date?, end_date: date?,            # all-day (end inclusive)
                     timezone: str?, category_id: uuid?, color: str?, activity_id: uuid?,
                     is_recurring: bool, edited: bool (section 5.6), can_edit: bool }
+CalendarFeed      { url: str?, webcal_url: str? }   # both null while the feed is off (section 5.10)
 CalendarResponse  { from_date: date, to_date: date (exclusive), tz: str (the zone used),
                     occurrences: Occurrence[] }                               # sorted, section 5.5
 

@@ -68,6 +68,13 @@ class _MyCalendarScreenState extends ConsumerState<MyCalendarScreen> {
                 onPressed: () => context.go(Routes.home),
               ),
         title: Text(context.l10n.myCalendar),
+        actions: [
+          IconButton(
+            tooltip: context.l10n.calendarFeed,
+            icon: const Icon(Icons.event_repeat),
+            onPressed: () => unawaited(context.push(Routes.calendarFeed)),
+          ),
+        ],
       ),
       body: RefreshIndicator(
         onRefresh: () =>

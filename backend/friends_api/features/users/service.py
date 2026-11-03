@@ -44,5 +44,6 @@ def delete_account(db: Session, ctx: AuthContext, user: User, password: str) -> 
     user.timezone = "UTC"
     user.deleted_at = utcnow()
     user.token_version += 1
+    user.calendar_feed_token = None
     db.execute(delete(RefreshToken).where(RefreshToken.user_id == user.id))
     db.commit()

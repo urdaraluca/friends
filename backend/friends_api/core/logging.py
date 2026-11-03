@@ -80,11 +80,20 @@ class RequestContextMiddleware:
         app: ASGIApp,
         *,
         quiet_paths: frozenset[str] = frozenset(),
+        secret_path_prefixes: tuple[str, ...] = (),
         metrics: RequestMetrics | None = None,
     ) -> None:
         self.app = app
         self.quiet_paths = quiet_paths
+        self.secret_path_prefixes = secret_path_prefixes
         self.metrics = metrics
+
+    def _loggable_path(self, path: str) -> str:
+        """``path``, with whatever follows a secret prefix (a feed token) masked."""
+        for prefix in self.secret_path_prefixes:
+            if path.startswith(prefix):
+                return prefix + "***"
+        return path
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] != "http":
@@ -119,6 +128,7 @@ class RequestContextMiddleware:
                     seconds=time.perf_counter() - started,
                 )
             if scope["path"] not in self.quiet_paths:
+                path = self._loggable_path(scope["path"])
                 duration_ms = round((time.perf_counter() - started) * 1000, 1)
                 client = scope.get("client")
                 client_ip = client[0] if client else "-"
@@ -127,7 +137,7 @@ class RequestContextMiddleware:
                 access_logger.info(
                     "%s %s %s %sms ip=%s user=%s",
                     scope["method"],
-                    scope["path"],
+                    path,
                     status_code,
                     duration_ms,
                     client_ip,
@@ -135,7 +145,7 @@ class RequestContextMiddleware:
                     extra={
                         "extra_fields": {
                             "method": scope["method"],
-                            "path": scope["path"],
+                            "path": path,
                             "status": status_code,
                             "duration_ms": duration_ms,
                             "client_ip": client_ip,

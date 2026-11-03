@@ -6,6 +6,7 @@ import 'package:dio/dio.dart';
 import 'package:retrofit/retrofit.dart';
 
 import '../models/account_deletion.dart';
+import '../models/calendar_feed.dart';
 import '../models/calendar_response.dart';
 import '../models/event_kind.dart';
 import '../models/me.dart';
@@ -67,6 +68,24 @@ abstract class UsersClient {
     @Query('tz') String? tz,
     @Query('kinds') List<EventKind>? kinds,
   });
+
+  /// Get My Calendar Feed.
+  ///
+  /// My webcal subscription URLs, or nulls when the feed is off.
+  @GET('/api/v1/me/calendar-feed')
+  Future<CalendarFeed> getMyCalendarFeed();
+
+  /// Reset My Calendar Feed.
+  ///
+  /// Turns the feed on, or gives it a new secret URL: the previous one stops working.
+  @POST('/api/v1/me/calendar-feed')
+  Future<CalendarFeed> resetMyCalendarFeed();
+
+  /// Disable My Calendar Feed.
+  ///
+  /// Turns the feed off: its URL stops working.
+  @DELETE('/api/v1/me/calendar-feed')
+  Future<void> disableMyCalendarFeed();
 
   /// Get My Availability.
   ///

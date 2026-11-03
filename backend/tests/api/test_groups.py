@@ -62,12 +62,23 @@ def test_invalid_group_fields_are_rejected(client: TestClient) -> None:
         ("currency", "eur"),
         ("timezone", "Nowhere/City"),
         ("name", "  "),
+        ("emoji", "🎲🎉"),
+        ("emoji", "A"),
+        ("emoji", "🇷🇴🇮🇹"),
     ]:
         response = client.post(
             "/api/v1/groups", headers=owner.headers, json={"name": "G", field: value}
         )
         assert response.status_code == 422, (field, response.text)
         assert response.json()["errors"][0]["field"] == field
+
+
+def test_a_group_emoji_is_one_emoji_even_as_a_sequence(client: TestClient) -> None:
+    """Contract section 9: a ZWJ sequence, a flag, a keycap or a skin tone is one emoji."""
+    owner = register(client)
+
+    for emoji in ["👩‍💻", "🇷🇴", "1️⃣", "👍🏽", "❤️", "🏳️‍🌈"]:
+        assert create_group(client, owner, emoji=emoji)["emoji"] == emoji
 
 
 def test_admins_can_edit_the_group_members_cannot(client: TestClient) -> None:

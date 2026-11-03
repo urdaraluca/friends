@@ -38,6 +38,9 @@ class User(IdMixin, TimestampMixin, Base):
     """Bumped to revoke every access token at once (log out everywhere)."""
     last_login_at: Mapped[datetime | None]
     deleted_at: Mapped[datetime | None]
+    calendar_feed_token: Mapped[str | None] = mapped_column(String(64), unique=True, index=True)
+    """The secret in my webcal feed URL (contract section 5.10); null when the feed is off.
+    Stored as is so the URL can be shown again: it only reads what the database holds anyway."""
 
     @property
     def is_active(self) -> bool:

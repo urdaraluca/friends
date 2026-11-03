@@ -106,6 +106,9 @@ abstract final class Routes {
   static const myCalendar = '/calendar';
 
   /// My availability, for every group I'm in.
+  /// Subscribing to my calendar from another calendar app (webcal).
+  static const calendarFeed = '/calendar/subscribe';
+
   static const myAvailability = '/availability';
 
   /// `/availability`, opened on [month]'s month (`YYYY-MM-DD`).

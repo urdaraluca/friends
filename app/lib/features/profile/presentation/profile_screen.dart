@@ -76,6 +76,13 @@ class ProfileScreen extends ConsumerWidget {
                           unawaited(context.push(Routes.myAvailability)),
                     ),
                     ListTile(
+                      leading: const Icon(Icons.event_repeat),
+                      title: Text(context.l10n.calendarFeed),
+                      subtitle: Text(context.l10n.calendarFeedHelp),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => unawaited(context.push(Routes.calendarFeed)),
+                    ),
+                    ListTile(
                       leading: const Icon(Icons.privacy_tip_outlined),
                       title: Text(context.l10n.privacy),
                       subtitle: Text(context.l10n.privacyHelp),

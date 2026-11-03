@@ -1,3 +1,4 @@
+import 'package:friends/core/forms/single_emoji.dart';
 import 'package:friends/core/invites/invite_code.dart';
 import 'package:friends/l10n/l10n.dart';
 
@@ -65,6 +66,13 @@ abstract final class Validators {
   }
 
   /// An optional invite code, in any spelling or as a `…/join/<code>` link.
+  /// Empty, or exactly one emoji ([SingleEmoji]).
+  static String? optionalEmoji(String? value) {
+    final emoji = (value ?? '').trim();
+    if (emoji.isEmpty || SingleEmoji.isValid(emoji)) return null;
+    return currentL10n.singleEmoji;
+  }
+
   static String? optionalInviteCode(String? value) {
     if ((value ?? '').trim().isEmpty) return null;
     return InviteCode.parse(value!) == null ? currentL10n.notInviteCode : null;

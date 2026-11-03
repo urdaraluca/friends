@@ -74,9 +74,7 @@ def build_books(db: Session, actor: Membership, books: Sequence[Book]) -> list[B
     covers: dict[uuid.UUID, datetime] = dict(
         db.execute(
             select(BookCover.book_id, BookCover.updated_at).where(BookCover.book_id.in_(book_ids))
-        )
-        .tuples()
-        .all()
+        ).all()
     )
     ratings: dict[uuid.UUID, tuple[float, int]] = {
         book_id: (float(average), count)
@@ -91,9 +89,7 @@ def build_books(db: Session, actor: Membership, books: Sequence[Book]) -> list[B
             select(BookRating.book_id, BookRating.stars).where(
                 BookRating.book_id.in_(book_ids), BookRating.user_id == actor.user_id
             )
-        )
-        .tuples()
-        .all()
+        ).all()
     )
     users = users_by_id(
         db,
