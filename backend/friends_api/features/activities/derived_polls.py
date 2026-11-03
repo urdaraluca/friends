@@ -42,7 +42,7 @@ def poll_counters(
         )
         .where(Poll.activity_id.in_(activity_ids))
         .group_by(Poll.activity_id)
-    ).tuples()
+    )
     return {
         activity_id: PollCounters(
             poll_count=total, open_poll_count=open_count, my_unvoted_poll_count=unvoted

@@ -68,7 +68,7 @@ LimitParam = Annotated[int, Query(ge=1, le=MAX_LIMIT)]
 
 
 def paginate[T](
-    db: Session, stmt: Select[tuple[T]], *, cursor: str | None, limit: int
+    db: Session, stmt: Select[T], *, cursor: str | None, limit: int
 ) -> tuple[list[T], str | None]:
     """One page of ``stmt`` and the next cursor (``None`` on the last page)."""
     try:

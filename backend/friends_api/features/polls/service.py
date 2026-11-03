@@ -112,7 +112,7 @@ def build_polls(
         select(PollVote.poll_id, PollVote.option_id, PollVote.user_id)
         .where(PollVote.poll_id.in_(poll_ids))
         .order_by(PollVote.created_at, PollVote.user_id)
-    ).tuples():
+    ):
         voters[option_id].append(user_id)
         poll_voters[poll_id].add(user_id)
     users = users_by_id(

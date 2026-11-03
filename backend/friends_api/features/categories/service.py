@@ -378,7 +378,7 @@ def delete_category(db: Session, access: CategoryAccess) -> None:
             select(Category.id, Category.name)
             .where(Category.parent_id == category.id)
             .order_by(Category.position, Category.name, Category.id)
-        ).tuples()
+        )
     removed_ids = [category_id for category_id, _ in removed]
     for hook in CATEGORY_REASSIGN_HOOKS:
         hook(db, category.group_id, removed_ids, category.parent_id)

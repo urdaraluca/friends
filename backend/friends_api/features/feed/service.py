@@ -82,9 +82,7 @@ def _titles(db: Session, rows: list[GroupLog]) -> dict[tuple[str, uuid.UUID], st
     for subject_type, model, column in lookups:
         ids = _ids(rows, subject_type)
         if ids:
-            for subject_id, title in db.execute(
-                select(model.id, column).where(model.id.in_(ids))
-            ).tuples():
+            for subject_id, title in db.execute(select(model.id, column).where(model.id.in_(ids))):
                 titles[subject_type, subject_id] = title
     if spin_ids := _ids(rows, "spin"):
         for spin in db.scalars(select(WheelSpin).where(WheelSpin.id.in_(spin_ids))):

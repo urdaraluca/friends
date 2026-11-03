@@ -155,7 +155,7 @@ def filter_conditions(group: Group, filters: ActivityFilters) -> list[ColumnElem
     return conditions
 
 
-def filter_activities(group: Group, filters: ActivityFilters) -> Select[tuple[Activity]]:
+def filter_activities(group: Group, filters: ActivityFilters) -> Select[Activity]:
     """``SELECT`` of the group's activities that match ``filters`` (unordered)."""
     return select(Activity).where(*filter_conditions(group, filters))
 
