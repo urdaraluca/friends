@@ -31,6 +31,9 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen>
   bool _submitting = false;
   bool _done = false;
 
+  /// The server turned the token down: used, expired or unknown.
+  bool _rejected = false;
+
   @override
   void dispose() {
     _password.dispose();
@@ -54,12 +57,13 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen>
       );
       if (mounted) setState(() => _done = true);
     } on ApiException catch (e) {
-      if (mounted) {
+      if (e is ProblemException && e.code == ErrorCodes.invalidToken) {
+        if (mounted) setState(() => _rejected = true);
+      } else if (mounted) {
         showServerError(
           e,
           fields: const {'new_password'},
           codeFields: const {ErrorCodes.weakPassword: 'new_password'},
-          messages: {ErrorCodes.invalidToken: context.l10n.resetLinkInvalid},
         );
       }
     } finally {
@@ -70,7 +74,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen>
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    final invalid = widget.token.isEmpty;
+    final invalid = widget.token.isEmpty || _rejected;
     return Scaffold(
       appBar: AppBar(title: Text(l10n.chooseNewPassword)),
       body: FormPage(

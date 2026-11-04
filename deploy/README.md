@@ -104,12 +104,21 @@
    ```sh
    docker compose exec -T backend python -m friends_api.cli send-test-email you@example.com
    ```
-   Notification emails (new polls, wheel results, reminders) go out from a cron job; add it next to
-   the backup one:
-   ```cron
-   */15 * * * * cd /srv/friends && docker compose exec -T backend python -m friends_api.cli send-notifications >> /srv/friends/notifications.log 2>&1
+   **Push notifications** (the main channel; email is an opt-in copy) need a Web Push key. Generate
+   one and put it in `.env` as `VAPID_PRIVATE_KEY`, then `./update.sh` again:
+   ```sh
+   docker compose exec -T backend python -m friends_api.cli generate-vapid-key
    ```
-   Each run is safe to repeat: every email is recorded before it is sent, so none goes out twice.
+   Keep the key: changing it ends every browser's subscription. Notifications (new polls, wheel
+   results, new members, plans, reminders) go out from a cron job; add it next to the backup one:
+   ```cron
+   */5 * * * * cd /srv/friends && docker compose exec -T backend python -m friends_api.cli send-notifications >> /srv/friends/notifications.log 2>&1
+   ```
+   Each run is safe to repeat: every notification is recorded before it is sent, so none goes out
+   twice.
+
+   **Movie auto-fill** needs a free TMDB API key (themoviedb.org → Settings → API, the v3 "API
+   Key"): set `TMDB_API_KEY` in `.env`.
 
 10. **Off-site copies (recommended).** A USB drive next to the Pi doesn't survive a fire or a theft.
    Copy the backups to cloud storage with [rclone](https://rclone.org/) after the nightly run:

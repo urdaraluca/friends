@@ -201,7 +201,7 @@ void main() {
           .requestsTo('PUT', ApiPaths.mySettings(Ids.groupId))
           .single
           .jsonMap,
-      {'show_birthday': true},
+      {'show_birthday': true, 'notifications_muted': null},
     );
   });
 

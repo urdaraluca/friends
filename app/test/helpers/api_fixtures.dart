@@ -194,6 +194,8 @@ abstract final class ApiPaths {
   static const passwordReset = '/api/v1/auth/password-reset';
   static const verifyEmail = '/api/v1/auth/verify-email';
   static const unsubscribe = '/api/v1/notifications/unsubscribe';
+  static const pushConfig = '/api/v1/push/config';
+  static const pushSubscription = '/api/v1/me/push-subscription';
   static const calendarFeed = '/api/v1/me/calendar-feed';
   static const groups = '/api/v1/groups';
   static const health = '/api/v1/health';

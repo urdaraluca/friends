@@ -170,6 +170,78 @@ void main() {
       expect(find.text('Dune'), findsWidgets);
     });
 
+    testWidgets('Find the movie fills the movie fields from TMDB', (
+      tester,
+    ) async {
+      backend.adapter
+        ..onJson('GET', '/api/v1/movies/search', [
+          {
+            'tmdb_id': 438631,
+            'title': 'Dune',
+            'original_title': 'Dune',
+            'year': 2021,
+            'overview': 'Paul Atreides goes to Arrakis.',
+            'poster_url': null,
+          },
+        ])
+        ..onJson('GET', '/api/v1/movies/438631', {
+          'tmdb_id': 438631,
+          'title': 'Dune',
+          'original_title': 'Dune',
+          'year': 2021,
+          'overview': 'Paul Atreides goes to Arrakis.',
+          'poster_url': null,
+          'runtime_min': 155,
+          'rating': 7.8,
+          'genres': ['Science Fiction', 'Adventure'],
+          'genre': 'Action',
+          'imdb_url': 'https://www.imdb.com/title/tt1160419/',
+        })
+        ..onJson(
+          'POST',
+          ApiPaths.activities(Ids.groupId),
+          activityJson(),
+          status: 201,
+        )
+        ..onJson('GET', ApiPaths.activity(Ids.activityId), activityJson());
+      await open(tester, Routes.newActivity(Ids.groupId));
+
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Title'),
+        'dune',
+      );
+      await pickCategory(tester, 'Movie night');
+      await tester.tap(find.text('Find the movie on TMDB'));
+      await tester.pumpAndSettle();
+
+      expect(
+        backend.adapter.requestsTo('GET', '/api/v1/movies/search').single.query,
+        'query=dune',
+      );
+      await tester.tap(find.text('Dune · 2021'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Paul Atreides goes to Arrakis.'), findsOneWidget);
+      expect(find.text('7.8'), findsOneWidget);
+      await tester.ensureVisible(find.text('Add idea'));
+      await tester.tap(find.text('Add idea'));
+      await tester.pumpAndSettle();
+
+      final body = backend.adapter
+          .requestsTo('POST', ApiPaths.activities(Ids.groupId))
+          .single
+          .jsonMap;
+      expect(body['title'], 'Dune');
+      expect(body['description'], 'Paul Atreides goes to Arrakis.');
+      expect(body['attributes'], {
+        'genre': 'Action',
+        'imdb_rating': 7.8,
+        'imdb_url': 'https://www.imdb.com/title/tt1160419/',
+        'year': 2021,
+        'runtime_min': 155,
+      });
+    });
+
     testWidgets('changing the category warns about fields it would drop', (
       tester,
     ) async {
