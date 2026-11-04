@@ -1,7 +1,16 @@
-from fastapi import APIRouter, Request, Response, status
+from fastapi import APIRouter, BackgroundTasks, Request, Response, status
 
-from friends_api.deps import AppSettings, Auth, CurrentPrincipal, CurrentUser, DbSession
-from friends_api.features.auth import cookies
+from friends_api.core.mail import send_safely
+from friends_api.core.ratelimit import limit_by_user
+from friends_api.deps import (
+    AppSettings,
+    Auth,
+    CurrentPrincipal,
+    CurrentUser,
+    DbSession,
+    MailerDep,
+)
+from friends_api.features.auth import cookies, email_flows
 from friends_api.features.auth import service as auth_service
 from friends_api.features.auth.schemas import AccountDeletion, PasswordChange, TokenPair
 from friends_api.features.availability import service as availability_service
@@ -13,7 +22,7 @@ from friends_api.features.events import calendar
 from friends_api.features.events.params import FromParam, KindsParam, ToParam, TzParam
 from friends_api.features.events.schemas import CalendarResponse
 from friends_api.features.users import service
-from friends_api.features.users.schemas import Me, MeUpdate
+from friends_api.features.users.schemas import Me, MeUpdate, NotificationSettings
 
 router = APIRouter(prefix="/me", tags=["users"])
 
@@ -27,6 +36,36 @@ def get_me(user: CurrentUser) -> Me:
 def update_me(body: MeUpdate, db: DbSession, user: CurrentUser) -> Me:
     service.update_profile(db, user, body)
     return Me.from_user(user)
+
+
+@router.post("/email-verification", status_code=status.HTTP_202_ACCEPTED)
+def send_verification_email(
+    db: DbSession,
+    auth: Auth,
+    user: CurrentUser,
+    mailer: MailerDep,
+    background: BackgroundTasks,
+    request: Request,
+) -> None:
+    """Emails a new verification link (the older ones stop working). Nothing is sent when the
+    address is already verified. At most 3 an hour."""
+    limit_by_user(request, "verification_email", user.id)
+    if email := email_flows.verification_email(db, auth, user):
+        background.add_task(send_safely, mailer, email)
+
+
+@router.get("/notifications")
+def get_my_notifications(user: CurrentUser) -> NotificationSettings:
+    return NotificationSettings.from_user(user)
+
+
+@router.put("/notifications")
+def update_my_notifications(
+    body: NotificationSettings, db: DbSession, user: CurrentUser
+) -> NotificationSettings:
+    """Which notification emails I get. They go to a verified address only."""
+    service.update_notifications(db, user, body)
+    return NotificationSettings.from_user(user)
 
 
 @router.post("/password")

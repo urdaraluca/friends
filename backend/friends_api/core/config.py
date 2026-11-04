@@ -81,6 +81,25 @@ class Settings(BaseSettings):
     """Enables ``GET /api/v1/metrics`` for scrapers sending ``Authorization: Bearer <token>``.
     Unset: the endpoint is a 404."""
 
+    tmdb_api_key: str | None = None
+    """TMDB API key (v3) for movie auto-fill (contract section 19). Unset: the search is a 503."""
+
+    vapid_private_key: str | None = None
+    """Web Push (contract section 18.6): the base64url P-256 private key from
+    ``cli generate-vapid-key``. Unset: no push."""
+    vapid_subject: str | None = None
+    """``mailto:`` or https contact for push services; defaults to the From address."""
+
+    smtp_host: str | None = None
+    """Outgoing mail server (contract section 18). Unset: emails are only logged."""
+    smtp_port: int = 587
+    """587 uses STARTTLS; 465 connects over TLS directly."""
+    smtp_username: str | None = None
+    smtp_password: str | None = None
+    mail_from: str | None = None
+    """The From address, e.g. ``Friends <friends@example.com>``. Defaults to ``SMTP_USERNAME``
+    (named "Friends") when that is an email address."""
+
     google_books_api_key: str | None = None
     """Optional key for the ISBN lookup's Google Books requests (contract section 17.5); it
     works without one, within Google's anonymous quota."""
@@ -105,6 +124,22 @@ class Settings(BaseSettings):
             if not self.public_app_url or "localhost" in self.public_app_url:
                 raise ValueError("PUBLIC_APP_URL must be set when APP_ENV=prod")
         return self
+
+    @property
+    def mail_sender(self) -> str:
+        """The From header: ``MAIL_FROM``, else ``Friends <SMTP_USERNAME>``."""
+        if self.mail_from:
+            return self.mail_from
+        if self.smtp_username and "@" in self.smtp_username:
+            return f"Friends <{self.smtp_username}>"
+        return "Friends <friends@localhost>"
+
+    @property
+    def push_subject(self) -> str:
+        if self.vapid_subject:
+            return self.vapid_subject
+        address = self.mail_sender.rsplit("<", 1)[-1].rstrip(">").strip()
+        return f"mailto:{address}"
 
     @property
     def is_dev(self) -> bool:

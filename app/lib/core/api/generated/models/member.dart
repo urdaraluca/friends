@@ -21,6 +21,8 @@ abstract class Member with _$Member {
     required BirthdayPublic? birthday,
     @JsonKey(name: 'show_birthday')
     required bool? showBirthday,
+    @JsonKey(name: 'notifications_muted')
+    bool? notificationsMuted,
   }) = _Member;
   
   factory Member.fromJson(Map<String, Object?> json) => _$MemberFromJson(json);

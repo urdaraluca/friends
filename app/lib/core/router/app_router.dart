@@ -3,9 +3,12 @@ import 'package:friends/core/api/generated/export.dart' show RecapPeriod;
 import 'package:friends/core/auth/auth_controller.dart';
 import 'package:friends/core/config/env.dart';
 import 'package:friends/core/router/routes.dart';
+import 'package:friends/features/auth/presentation/forgot_password_screen.dart';
 import 'package:friends/features/auth/presentation/login_screen.dart';
 import 'package:friends/features/auth/presentation/register_screen.dart';
+import 'package:friends/features/auth/presentation/reset_password_screen.dart';
 import 'package:friends/features/auth/presentation/splash_screen.dart';
+import 'package:friends/features/auth/presentation/verify_email_screen.dart';
 import 'package:friends/features/availability/presentation/group_availability_screen.dart';
 import 'package:friends/features/availability/presentation/my_availability_screen.dart';
 import 'package:friends/features/backlog/presentation/activity_detail_screen.dart';
@@ -28,6 +31,7 @@ import 'package:friends/features/groups/presentation/group_shell.dart';
 import 'package:friends/features/groups/presentation/groups_list_screen.dart';
 import 'package:friends/features/health/presentation/health_screen.dart';
 import 'package:friends/features/invites/presentation/join_screen.dart';
+import 'package:friends/features/notifications/presentation/unsubscribe_screen.dart';
 import 'package:friends/features/profile/presentation/appearance_screen.dart';
 import 'package:friends/features/profile/presentation/profile_screen.dart';
 import 'package:friends/features/recap/presentation/recap_screen.dart';
@@ -134,6 +138,28 @@ GoRouter router(Ref ref) {
         path: Routes.joinPattern,
         builder: (context, state) =>
             JoinScreen(code: state.pathParameters['code']!),
+      ),
+      GoRoute(
+        path: Routes.forgotPassword,
+        builder: (context, state) => const ForgotPasswordScreen(),
+      ),
+      GoRoute(
+        path: Routes.resetPassword,
+        builder: (context, state) => ResetPasswordScreen(
+          token: state.uri.queryParameters[Routes.tokenParam] ?? '',
+        ),
+      ),
+      GoRoute(
+        path: Routes.verifyEmail,
+        builder: (context, state) => VerifyEmailScreen(
+          token: state.uri.queryParameters[Routes.tokenParam] ?? '',
+        ),
+      ),
+      GoRoute(
+        path: Routes.unsubscribe,
+        builder: (context, state) => UnsubscribeScreen(
+          token: state.uri.queryParameters[Routes.tokenParam] ?? '',
+        ),
       ),
       GoRoute(
         path: Routes.profile,

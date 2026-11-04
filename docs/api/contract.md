@@ -304,6 +304,12 @@ FieldError { field: str, message: str, type: str }
 | `APP_VERSION` / `GIT_SHA` | `dev` / `unknown` | set by the image build | reported by `/health` |
 | `FORWARDED_ALLOW_IPS` | – | `*` (safe only with the `127.0.0.1` port bind) | read by uvicorn (`--proxy-headers`) |
 | `METRICS_TOKEN` | unset | optional, a long random string | enables `GET /api/v1/metrics` (section 1.13); unset, it is a 404 |
+| `SMTP_HOST` / `SMTP_PORT` | unset / 587 | the mail server, e.g. `mail.smtp2go.com` | Section 18. Unset: emails are only logged. Port 465 uses implicit TLS, any other STARTTLS |
+| `SMTP_USERNAME` / `SMTP_PASSWORD` | unset | the SMTP user | |
+| `MAIL_FROM` | `Friends <SMTP_USERNAME>` | optional | the From header; its domain must be a verified sender |
+| `VAPID_PRIVATE_KEY` | unset | from `cli generate-vapid-key` | Web Push (section 18.6). Unset: no push, `GET /push/config` gives a null key. Changing it ends every browser subscription |
+| `VAPID_SUBJECT` | `mailto:` + the `MAIL_FROM` address | optional | the contact in the VAPID JWT (`mailto:` or `https:`) |
+| `TMDB_API_KEY` | unset | a TMDB v3 API key | movie auto-fill (section 19). Unset: the search is a 503 `lookup_unavailable` |
 | `GOOGLE_BOOKS_API_KEY` | unset | recommended, a Google Cloud API key with the Books API enabled | the ISBN lookup (section 17.5); without it, Google's shared anonymous quota, which is often used up |
 
 ### 1.12 CLI (`python -m friends_api.cli <command>`)
@@ -314,7 +320,10 @@ FieldError { field: str, message: str, type: str }
 | `backup [--keep N]` | Copies the database with the SQLite online-backup API, runs `PRAGMA integrity_check` on the copy, gzips it and keeps the newest N (default `BACKUP_KEEP`). |
 | `export-openapi [PATH]` | Writes `app.openapi()` to `backend/openapi.json` (default) with `indent=2`, UTF-8, LF line endings and a trailing newline. Works even when `DOCS_ENABLED=false`. |
 | `create-user --email E --display-name N [--password-stdin]` | Creates a user **regardless of `REGISTRATION_MODE`**; this is how the first account is made. Prompts twice for the password unless `--password-stdin` is given. Exits non-zero if the email is taken. |
-| `reset-password EMAIL [--password-stdin]` | Sets a new password, increments `token_version` and deletes all the user's refresh tokens. There is no SMTP in the MVP. |
+| `reset-password EMAIL [--password-stdin]` | Sets a new password, increments `token_version` and deletes all the user's refresh tokens. Users can also reset by email (section 18.2). |
+| `send-notifications` | Sends the due notifications by push and email (section 18.4). Run from cron every 5 minutes; exits 1 if any delivery failed. |
+| `generate-vapid-key` | Prints a new Web Push private key for `VAPID_PRIVATE_KEY` (section 18.6). |
+| `send-test-email TO` | Sends a test email to `TO` and reports the outcome: a check of the `SMTP_*` settings. |
 | `seed-demo` | **Refuses when `APP_ENV=prod`** (exit code 2), and also when the demo users already exist. Creates 3 demo users (`demo1..3@example.com`, with the password printed), one group with the default categories, about 120 activities across all statuses and categories (movies with attributes), interests, events (one-time, weekly, monthly, yearly, birthdays, profile birthdays), polls with votes, and a few wheel spins. |
 
 ### 1.13 Metrics (issue #18)
@@ -364,6 +373,7 @@ codes for each endpoint.
 | `weak_password` | 422 | The new password equals the account's email (case-insensitive) on `/auth/register` or `/me/password`. There is no `errors[]`; the client shows it on the password field. |
 | `forbidden` | 403 | A member without the needed role or ownership. |
 | `registration_closed` | 403 | `REGISTRATION_MODE=invite_only` and there was no `invite_code`. |
+| `email_not_verified` | 403 | Inviting by email before confirming your own address (section 18.5). |
 | `not_found` | 404 | The resource doesn't exist, **or the caller isn't a member of its group** (the two look identical); also unknown routes and unknown or malformed invite codes. |
 | `method_not_allowed` | 405 | A known path with the wrong method. |
 | `email_taken` | 409 | Registering with an email that already exists. |
@@ -378,6 +388,7 @@ codes for each endpoint.
 | `invite_expired` | 410 | The invite's `expires_at` has passed. |
 | `invite_revoked` | 410 | The invite was revoked. |
 | `invite_exhausted` | 410 | `use_count` has reached `max_uses`. |
+| `invalid_token` | 422 | An emailed link's token (reset, verification, unsubscribe) is unknown, used, expired, replaced by a newer one, or for an address the account no longer has. `errors[0].field` is `token` (none for unsubscribe). |
 | `invalid_reference` | 422 | An ID in the body (`category_id`, `parent_id`, `owner_id`, `holder_id`, `activity_id`, `user_id`, `option_ids`, `activity_ids`) doesn't exist in this group, or the user isn't a member. `errors[]` names the field. |
 | `invalid_isbn` | 422 | `GET /books/isbn/{isbn}` with something that isn't a valid ISBN-10 or ISBN-13 (section 17.5). |
 | `invalid_image` | 422 | A book cover that isn't a JPEG, PNG or WebP image, or is over 2 MiB (section 17.5). |
@@ -432,6 +443,8 @@ users
   last_login_at      ts null                -- written by POST /auth/login only
   deleted_at         ts null
   calendar_feed_token varchar(64) null      -- the webcal feed's secret (section 5.10); null = off
+  email_verified_at  ts null                -- section 18.3; a reset link counts too
+  notify_polls, notify_wheel, notify_reminders  bool not null default true  -- section 18.4
                      UNIQUE INDEX ix_users_calendar_feed_token
   created_at, updated_at
   CHECK birthday_pair:  (birthday_month IS NULL) = (birthday_day IS NULL)
@@ -862,6 +875,11 @@ Returns 204. Apple requires in-app account deletion; the profile screen offers i
 | `refresh` | `POST /auth/refresh` | 30 per minute per IP |
 | `invites` | `GET /invites/{code}`, `POST /invites/{code}/accept` (shared) | 20 per minute per IP |
 | `isbn_lookup` | `GET /books/isbn/{isbn}` | 30 per minute per IP |
+| `movie_lookup` | `GET /movies/search`, `GET /movies/{tmdb_id}` (shared) | 30 per minute per IP |
+| `password_reset` | `POST /auth/password-reset/request` | 5 per hour per IP |
+| `email_links` | `POST /auth/password-reset`, `POST /auth/verify-email`, `POST /notifications/unsubscribe` (shared) | 30 per hour per IP |
+| `verification_email` | `POST /me/email-verification` | 3 per hour **per user** |
+| `invite_email` | `POST /groups/{group_id}/invites/{invite_id}/email` | 10 per hour **per user** |
 
 Over the limit → 429 `rate_limited` with `Retry-After` (integer seconds until a slot frees up).
 `/health` is never rate-limited. There is no per-email failure bucket.
@@ -1441,6 +1459,9 @@ The Docker HEALTHCHECK calls `http://127.0.0.1:8000/api/v1/health`.
 | `POST /auth/refresh` | `refresh_tokens` | public, RL:refresh | `RefreshRequest` (or the refresh cookie, section 4.11) | 200 `TokenPair` | 401 `refresh_invalid`, `refresh_reuse_detected` |
 | `POST /auth/logout` | `logout` | public | `RefreshRequest` | 204 always; revokes the token's family | – |
 | `POST /auth/logout-all` | `logout_all` | user | – | 204; `token_version += 1`, all families revoked | – |
+| `POST /auth/password-reset/request` | `request_password_reset` | public, RL:password_reset | `PasswordResetRequest` | 202 always; emails a link only to a verified address (section 18.2) | – |
+| `POST /auth/password-reset` | `reset_password` | public, RL:email_links | `PasswordReset` | 204; new password, every session signed out | 422 `invalid_token`, `weak_password` |
+| `POST /auth/verify-email` | `verify_email` | public, RL:email_links | `EmailVerification` | 204 (section 18.3) | 422 `invalid_token` |
 
 ### 8.3 users (tag `users`)
 
@@ -1454,6 +1475,25 @@ The Docker HEALTHCHECK calls `http://127.0.0.1:8000/api/v1/health`.
 | `GET /me/calendar-feed` | `get_my_calendar_feed` | user | – | 200 `CalendarFeed` (section 5.10) | – |
 | `POST /me/calendar-feed` | `reset_my_calendar_feed` | user | – | 200 `CalendarFeed`: on, with a new secret URL | – |
 | `DELETE /me/calendar-feed` | `disable_my_calendar_feed` | user | – | 204: off | – |
+| `POST /me/email-verification` | `send_verification_email` | user, RL:verification_email | – | 202; a new link, or nothing when already verified | – |
+| `GET /me/notifications` | `get_my_notifications` | user | – | 200 `NotificationSettings` | – |
+| `PUT /me/notifications` | `update_my_notifications` | user | `NotificationSettings` | 200 `NotificationSettings` | – |
+
+### 8.3b notifications (tag `notifications`)
+
+| Endpoint | operationId | Auth | Request | Success | Extra errors |
+|---|---|---|---|---|---|
+| `POST /notifications/unsubscribe` | `unsubscribe` | public (the token), RL:email_links | query `token`; any body (RFC 8058 one-click sends a form) | 200 `Unsubscribed` (section 18.4) | 422 `invalid_token` |
+| `GET /push/config` | `get_push_config` | user | – | 200 `PushConfig` (section 18.6) | – |
+| `PUT /me/push-subscription` | `save_push_subscription` | user | `PushSubscriptionWrite` | 204: push on for this browser | 422 `validation_error` (unknown push service, bad keys) |
+| `DELETE /me/push-subscription` | `delete_push_subscription` | user | query `endpoint` | 204 (idempotent) | – |
+
+### 8.3c movies (tag `movies`)
+
+| Endpoint | operationId | Auth | Request | Success | Extra errors |
+|---|---|---|---|---|---|
+| `GET /movies/search` | `search_movies` | user, RL:movie_lookup | query `query` (1..200), `year?` (1870..2100) | 200 `MovieSearchResult[]`, at most 10 (section 19) | 503 `lookup_unavailable` |
+| `GET /movies/{tmdb_id}` | `get_movie` | user, RL:movie_lookup | – | 200 `Movie` | 404 `not_found`; 503 `lookup_unavailable` |
 
 ### 8.3a calendar feed (tag `calendar_feed`)
 
@@ -1483,6 +1523,7 @@ The Docker HEALTHCHECK calls `http://127.0.0.1:8000/api/v1/health`.
 | `GET /groups/{group_id}/invites` | `list_invites` | member | – | 200 `Invite[]`, newest first, at most 100 (section 1.9). Admins+ see all, members see their own. Includes non-valid invites (use `status`). | – |
 | `POST /groups/{group_id}/invites` | `create_invite` | member if `members_can_invite`, else admin+ | `InviteCreate` | 201 `Invite` | 403 (invites are off for members, or a member asked for `never_expires`) |
 | `DELETE /groups/{group_id}/invites/{invite_id}` | `revoke_invite` | creator or admin+ | – | 204; sets `revoked_at`; idempotent | 403 |
+| `POST /groups/{group_id}/invites/{invite_id}/email` | `email_invite` | creator or admin+, verified address, RL:invite_email | `InviteEmail` | 202; emails the invite link (section 18.5) | 403 `forbidden`, `email_not_verified`; 410 `invite_*` |
 | `GET /invites/{code}` | `preview_invite` | public, RL:invites | – | 200 `InvitePreview` (any status) | 404 (unknown or malformed code) |
 | `POST /invites/{code}/accept` | `accept_invite` | user, RL:invites | – | 200 `Group`. Joins as `member`, consumes one use, logs `member.joined {via: "invite"}`. If already a member: 200 and nothing changes. | 404; 410 `invite_*`; 422 `limit_reached` |
 
@@ -1653,12 +1694,30 @@ TokenPair         { access_token: str, refresh_token: str? (null in cookie mode)
 AuthSession       { user: Me, tokens: TokenPair, joined_group: GroupSummary? }
 
 # ---- me ----
-Me                { id: uuid, email: str, display_name: str, avatar_url: str?, birthday: Birthday?,
-                    timezone: str, locale: str?, created_at: datetime }
+Me                { id: uuid, email: str, email_verified: bool, display_name: str, avatar_url: str?,
+                    birthday: Birthday?, timezone: str, locale: str?, created_at: datetime }
+NotificationSettings { polls: bool, wheel: bool, reminders: bool, members: bool = true,
+                    plans: bool = true, email: bool = false }               # section 18.4
+PushConfig        { public_key: str? }       # VAPID applicationServerKey, base64url; null: no push
+PushSubscriptionWrite { endpoint: str (1..1000, https on a known push service),
+                    keys: { p256dh: str (1..200), auth: str (1..100) } }   # section 18.6
+PasswordResetRequest { email: EmailStr (<=254) }
+PasswordReset     { token: str (1..128), new_password: str (10..128) }
+EmailVerification { token: str (1..128) }
+InviteEmail       { email: EmailStr (<=254) }
+Unsubscribed      { kind: NotificationKind }
+# NotificationKind: "polls" | "wheel" | "reminders" | "members" | "plans"
 MeUpdate          { display_name: str (1..50), birthday: Birthday?, timezone: str, locale: str? (<=16),
                     avatar_url: str? }
 PasswordChange    { current_password: str (1..128), new_password: str (10..128) }
 AccountDeletion   { password: str (1..128) }
+
+# ---- movies (section 19) ----
+MovieSearchResult { tmdb_id: int, title: str, original_title: str? (only when it differs),
+                    year: int?, overview: str?, poster_url: str? (https on image.tmdb.org) }
+Movie             { ...MovieSearchResult, runtime_min: int?, rating: float? (0..10, 1 decimal;
+                    null without votes), genres: str[], genre: str? (a Movie night option),
+                    imdb_url: str? }
 
 # ---- groups and members ----
 GroupSummary      { id: uuid, name: str, emoji: str?, color: str?, member_count: int, kind: GroupKind,
@@ -1681,9 +1740,10 @@ GroupUpdate       { name: str (1..60), description: str?, emoji: Emoji?, color: 
 TransferOwnership { user_id: uuid }
 Member            { user: UserPublic, role: Role, joined_at: datetime,
                     birthday: BirthdayPublic?,   # null unless set and show_birthday is on (always shown on your own row)
-                    show_birthday: bool? }       # your own row: your setting; other rows: null
+                    show_birthday: bool?,        # your own row: your setting; other rows: null
+                    notifications_muted: bool? } # your own row: no notifications from this group; other rows: null
 RoleUpdate        { role: AssignableRole }
-MemberSettingsUpdate { show_birthday: bool }
+MemberSettingsUpdate { show_birthday: bool, notifications_muted: bool? (null keeps it) }
 
 # ---- invites ----
 Invite            { id: uuid, group_id: uuid, code: str, url: str, status: InviteStatus,
@@ -1913,7 +1973,7 @@ own phone, and the history feeds the recap ("the wheel decided 14 times").
 - A group feed UI (`GET /groups/{id}/feed` over `group_log`). Built: section 15.
 - A personal calendar UI over `/me/calendar`. Built (`/calendar` in the app).
 - Single-occurrence edits through `override_*` columns on `event_exceptions`. Built: section 5.6.
-- Email verification and password reset, once SMTP exists.
+- Email verification, password reset, invites by email and notification emails. Built: section 18.
 - A Postgres move. UUIDs, UTC instants and plain SQL keep it cheap; `COLLATE NOCASE` becomes `citext`
   or `lower()` indexes. Every SQLite-specific spot and the data move: `docs/postgres.md`.
 
@@ -2370,3 +2430,116 @@ Book           { id: uuid, group_id: uuid, title: str, author: str?, description
 IsbnLookup     { isbn: str, title: str, author: str?, description: str?, genre: BookGenre?,
                  language: str?, cover_url: str? }    # an https image to preview
 ```
+
+---
+
+## 18. Email (issue #18)
+
+### 18.1 Sending
+
+- **Transport:** SMTP (`SMTP_*`, section 1.11), STARTTLS on 587 or implicit TLS on 465, 20-second
+  timeout. Without `SMTP_HOST`, emails are written to the log instead (development).
+- **Request-time emails** (verification, reset, invites) are sent by FastAPI background tasks
+  **after the response**: a slow or failing mail server never delays or fails the request. A
+  failure is logged (`friends_api.core.mail`), not retried.
+- **Format:** multipart, plain text and HTML, in **English** (section 16). Links point into the web
+  app at `PUBLIC_APP_URL` (`/reset-password`, `/verify-email`, `/unsubscribe`, `/join/{code}`,
+  `/groups/{id}/backlog/{activity_id}`, `/calendar`), which the Android App Links open in the app.
+
+### 18.2 Email links and password reset
+
+- **Tokens:** `secrets.token_urlsafe(32)` in the link's `?token=`; only the sha256 is stored in
+  `email_tokens (user_id, purpose, token_hash UNIQUE, email, expires_at, used_at)`. Single use.
+  Issuing a new one deletes the user's unused ones for the same purpose. A token only counts while
+  `email` is still the user's address and the user is active.
+- **Lifetimes:** verification 7 days, password reset 1 hour.
+- **Reset:** `POST /auth/password-reset/request {email}` always answers 202 (no account
+  enumeration). A link goes out only for an active account whose address is **verified**: an
+  unverified address may be a typo that belongs to someone else, who must not get a way in. The
+  `reset-password` CLI command stays for everyone else.
+- `POST /auth/password-reset {token, new_password}`: the same password rules as registration
+  (`weak_password`), `token_version += 1` and every refresh token revoked (signed out
+  everywhere), and the address counts as verified (the link reached it). Then sign in.
+
+### 18.3 Email verification (soft)
+
+- Registering sends a verification link; `POST /me/email-verification` sends a new one (nothing
+  when already verified). `POST /auth/verify-email {token}` works signed in or out.
+- `Me.email_verified` is true once a verification or reset link was used.
+- **Nothing is blocked** without it. It is needed for: password reset by email, inviting by email,
+  and notifications **by email** (push needs no address). The app shows a "Confirm your email"
+  banner on the profile while it is false.
+- Accounts made before this, or with the CLI, start unverified.
+
+### 18.4 Notifications
+
+- **Channels:** **push first** (section 18.6), to every browser the user turned it on in. **Email
+  is an opt-in fallback:** `NotificationSettings.email` (off by default) sends a copy of each
+  notification to a verified address.
+- **Kinds**, each switched in `NotificationSettings` (all on by default), only for active users,
+  never to whoever caused it, and not from groups the member muted
+  (`MemberSettingsUpdate.notifications_muted`):
+  - `polls`: a `poll.created` in one of my groups, still open; and an open poll closing within 24
+    hours, to members who haven't voted (not for polls that only ever had less than a day);
+  - `wheel`: a `wheel.accepted`;
+  - `members`: a `member.joined` (not the group's creator joining at creation);
+  - `plans`: an `activity.status_changed` to `scheduled`, to the members interested in it;
+  - `reminders`: my occurrences (exactly what `GET /me/calendar` gives me, member birthdays
+    included, my own excluded): timed ones once they start within 24 hours, all-day ones from
+    18:00 the evening before (in my timezone) until the day ends, one message per run listing
+    them; and timed ones again within the hour, **by push only** (ref suffix `:1h`).
+- **The job:** `cli send-notifications`, from cron every 5 minutes. Log-based kinds come from
+  `group_log` rows of the last 6 hours, so a missed run catches up and older ones are dropped.
+- **At most once:** `notification_deliveries (user_id, channel, kind, ref)` is UNIQUE; rows are
+  written and committed **before** sending, so nothing goes out twice (a failure is not retried).
+  A notice that went out on **any** channel is not sent again on another: turning email on, or
+  push in a new browser, does not resend old ones. `ref` is the `group_log` id, the poll id
+  (closing), or `<event_id or user_id>:<occurrence_key>`. Rows older than 60 days are pruned.
+- **Unsubscribe:** every notification email has a footer link to `/unsubscribe?token=` and the
+  RFC 8058 headers `List-Unsubscribe: <…/api/v1/notifications/unsubscribe?token=…>` and
+  `List-Unsubscribe-Post: List-Unsubscribe=One-Click`. The token is a JWT (HS256, `JWT_SECRET`,
+  audience `friends-unsubscribe`, claims `sub` and `kind`) without expiry, so old emails keep
+  working. Unsubscribing turns that one kind off, by email and push.
+
+### 18.5 Invites by email
+
+- `POST /groups/{group_id}/invites/{invite_id}/email {email}`: whoever can see the invite (its
+  creator or an admin, section 4.7; others get 403 `forbidden`), with a verified address of their
+  own (403 `email_not_verified`), for a usable invite (410 `invite_*`). At most 10 an hour per user.
+- The email names the inviter and the group and links to `Invite.url`. The recipient address is
+  not stored.
+
+### 18.6 Web Push
+
+- **Standards:** the Push API with VAPID (RFC 8292, an ES256 JWT for the push service's origin,
+  12 hours) and `aes128gcm` payload encryption (RFC 8291). Implemented on `cryptography`; no
+  Firebase project is needed, and it works in Chrome, Edge, Firefox and Safari (on iOS only once
+  the web app is added to the home screen). The native Android app has no push yet.
+- **Keys:** `VAPID_PRIVATE_KEY` (`cli generate-vapid-key`); `GET /push/config` hands the browser
+  the public key. Without a key the app shows push as unavailable.
+- **Subscriptions:** `push_subscriptions (user_id, endpoint UNIQUE, p256dh, auth, created_at,
+  last_used_at)`. `PUT /me/push-subscription` takes `PushSubscription.toJSON()`; an endpoint
+  another account had moves to the caller (one browser, one account). At most 20 per user, the
+  oldest dropped. The endpoint must be `https` on a known push service (`fcm.googleapis.com`,
+  `android.googleapis.com`, `push.services.mozilla.com`, `push.apple.com`,
+  `notify.windows.com` and their subdomains): the server POSTs to it, so anything else is a 422.
+  Signing out (one or all sessions) deletes this browser's subscription.
+- **Sending:** `TTL: 86400`, `Urgency: normal`, 10-second timeout. A 404 or 410 from the push
+  service deletes the subscription; other failures are logged and counted.
+- **Payload:** JSON `{title, body, url, tag}`; `web/push_sw.js` shows it as a notification and
+  opens (or focuses) `url` on click. `tag` is `<kind>:<ref>`, so a repeat replaces, not stacks.
+- **App:** a "Get notified" card on the groups list until push is on, blocked or dismissed, and a
+  switch in Profile → Notifications.
+
+## 19. Movie auto-fill (TMDB)
+
+- `GET /movies/search?query=&year=` and `GET /movies/{tmdb_id}` call TMDB's v3 API with
+  `TMDB_API_KEY`, in the user's language (`ro-RO` for Romanian, else `en-US`), 5-second timeout.
+  No key, a network error or any answer but 200 or 404 is a 503 `lookup_unavailable`.
+- `Movie.genre` maps TMDB's (English) genre to the Movie night `genre` option (section 6.5), or
+  `Other`. `rating` is TMDB's `vote_average` rounded to one decimal: TMDB has no IMDb rating, so
+  the app puts it in the `imdb_rating` field. `imdb_url` is built from TMDB's `imdb_id`.
+- **App:** "Find the movie on TMDB" in the activity form, for Movie night groups and categories
+  with the movie fields. Choosing a result fills the title, the description (if empty), genre,
+  rating, IMDb link, year and runtime; everything stays editable. The sheet credits TMDB, as its
+  terms require.

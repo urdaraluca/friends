@@ -65,7 +65,12 @@ def list_members(db: DbSession, access: GroupMember) -> list[Member]:
 def update_my_member_settings(
     body: MemberSettingsUpdate, db: DbSession, access: GroupMember
 ) -> Member:
-    service.update_my_settings(db, access, show_birthday=body.show_birthday)
+    service.update_my_settings(
+        db,
+        access,
+        show_birthday=body.show_birthday,
+        notifications_muted=body.notifications_muted,
+    )
     return service.get_member(db, access, access.membership.user_id)
 
 

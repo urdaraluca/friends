@@ -3,8 +3,11 @@
 - ``migrate``: back up the database if migrations are pending, then ``alembic upgrade head``.
 - ``backup``: consistent online backup (safe while the app is running), gzip, rotate.
 - ``export-openapi``: write the OpenAPI schema used to generate the Dart client.
-- ``create-user`` / ``reset-password``: account administration (there is no email sending).
+- ``create-user`` / ``reset-password``: account administration.
 - ``seed-demo``: demo users, a group and its data for development (refused in prod).
+- ``send-notifications``: due notifications, by email and push (cron, every 5 minutes).
+- ``generate-vapid-key``: a Web Push key pair for ``VAPID_PRIVATE_KEY``.
+- ``send-test-email TO``: checks the SMTP settings.
 """
 
 import argparse
@@ -28,15 +31,19 @@ from sqlalchemy.engine import make_url
 
 from friends_api.core.backups import PRE_MIGRATE_KEEP, PRE_MIGRATE_PREFIX, SCHEDULED_PREFIX
 from friends_api.core.config import AppEnv, Settings, get_settings
-from friends_api.core.db import create_db_engine, create_session_factories
+from friends_api.core.db import create_db_engine, create_session_factories, utcnow
 from friends_api.core.errors import AppError
+from friends_api.core.mail import create_mailer
 from friends_api.core.security import Passwords
+from friends_api.core.webpush import Vapid, create_pusher
 from friends_api.demo.base import demo_users_exist
 from friends_api.demo.context import DEMO_EMAILS, DEMO_PASSWORD
 from friends_api.demo.runner import seed_demo
 from friends_api.features.auth import service as auth_service
 from friends_api.features.auth.models import RefreshToken, User
 from friends_api.features.auth.service import AuthContext
+from friends_api.features.emails.render import compose
+from friends_api.features.notifications.service import send_notifications
 from friends_api.main import create_app
 
 BACKEND_DIR = Path(__file__).resolve().parent.parent
@@ -224,6 +231,46 @@ def cmd_seed_demo(settings: Settings, _args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_send_notifications(settings: Settings, _args: argparse.Namespace) -> int:
+    engine = create_db_engine(settings.database_url)
+    _, write = create_session_factories(engine)
+    try:
+        with write() as db:
+            pusher = create_pusher(settings)
+            try:
+                report = send_notifications(db, settings, create_mailer(settings), pusher, utcnow())
+            finally:
+                pusher.close()
+    finally:
+        engine.dispose()
+    sent = ", ".join(f"{kind}: {count}" for kind, count in sorted(report.sent.items())) or "none"
+    print(f"Notifications sent: {sent}; failed: {report.failed}")
+    return 1 if report.failed else 0
+
+
+def cmd_send_test_email(settings: Settings, args: argparse.Namespace) -> int:
+    email = compose(
+        to=args.to,
+        subject="Friends test email",
+        paragraphs=["This is a test email from your Friends server. Sending works."],
+    )
+    try:
+        create_mailer(settings).send(email)
+    except Exception as exc:
+        print(f"Sending failed: {exc!r}", file=sys.stderr)
+        return 1
+    where = settings.smtp_host or "the log (SMTP_HOST is unset)"
+    print(f"Sent to {args.to} through {where}, from {settings.mail_sender}.")
+    return 0
+
+
+def cmd_generate_vapid_key(_settings: Settings, _args: argparse.Namespace) -> int:
+    key = Vapid.generate_private_key()
+    print("Put this in .env (and keep it: changing it ends every push subscription):")
+    print(f"VAPID_PRIVATE_KEY={key}")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="python -m friends_api.cli")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -249,6 +296,11 @@ def build_parser() -> argparse.ArgumentParser:
     reset.add_argument("--password-stdin", action="store_true", help="read the password from stdin")
 
     sub.add_parser("seed-demo", help="create demo users and a group full of data (not in prod)")
+
+    sub.add_parser("send-notifications", help="send due notification emails (run from cron)")
+    sub.add_parser("generate-vapid-key", help="a new Web Push (VAPID) private key for .env")
+    test_email = sub.add_parser("send-test-email", help="check the SMTP settings")
+    test_email.add_argument("to", help="the address to send the test email to")
     return parser
 
 
@@ -259,6 +311,9 @@ COMMANDS = {
     "create-user": cmd_create_user,
     "reset-password": cmd_reset_password,
     "seed-demo": cmd_seed_demo,
+    "send-notifications": cmd_send_notifications,
+    "send-test-email": cmd_send_test_email,
+    "generate-vapid-key": cmd_generate_vapid_key,
 }
 
 

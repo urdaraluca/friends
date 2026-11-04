@@ -21,6 +21,7 @@ import 'package:friends/features/backlog/domain/field_values.dart';
 import 'package:friends/features/backlog/presentation/widgets/category_picker.dart';
 import 'package:friends/features/backlog/presentation/widgets/category_visuals.dart';
 import 'package:friends/features/backlog/presentation/widgets/dynamic_fields_form.dart';
+import 'package:friends/features/backlog/presentation/widgets/movie_search_sheet.dart';
 import 'package:friends/features/groups/data/group_providers.dart';
 import 'package:friends/features/groups/presentation/widgets/group_themed.dart';
 import 'package:friends/l10n/l10n.dart';
@@ -215,7 +216,42 @@ class _ActivityFormState extends ConsumerState<ActivityForm>
 
   bool _saving = false;
 
+  /// Bumped when a movie fills the custom fields, so their inputs (which
+  /// read their value once) are rebuilt with it.
+  int _fills = 0;
+
   bool get _creating => widget.activity == null;
+
+  /// A Movie night, or a category with the movie fields: TMDB can fill it.
+  bool _movieFields(List<FieldDef> defs) =>
+      widget.group.kind == GroupKind.movieNight ||
+      defs.any((def) => def.key == 'imdb_url' || def.key == 'imdb_rating');
+
+  Future<void> _findMovie(List<FieldDef> defs) async {
+    final movie = await showMovieSearch(context, query: _title.text.trim());
+    if (movie == null || !mounted) return;
+    setState(() {
+      _title.text = movie.title;
+      if (_description.text.trim().isEmpty && movie.overview != null) {
+        _description.text = movie.overview!;
+      }
+      for (final def in defs) {
+        final value = switch (def.key) {
+          'genre' when def.options?.contains(movie.genre) ?? false =>
+            movie.genre,
+          // TMDB has no IMDb rating; its own score stands in for it.
+          'imdb_rating' =>
+            movie.rating == null ? null : FieldValues.toText(movie.rating),
+          'imdb_url' => movie.imdbUrl,
+          'year' => movie.year?.toString(),
+          'runtime_min' => movie.runtimeMin?.toString(),
+          _ => null,
+        };
+        if (value != null) _attributes[def.key] = value;
+      }
+      _fills++;
+    });
+  }
 
   @override
   void dispose() {
@@ -439,6 +475,15 @@ class _ActivityFormState extends ConsumerState<ActivityForm>
             forceErrorText: serverError('title'),
             onChanged: (_) => clearServerError('title'),
           ),
+          if (_movieFields(defs))
+            Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: TextButton.icon(
+                onPressed: () => unawaited(_findMovie(defs)),
+                icon: const Icon(Icons.movie_filter_outlined),
+                label: Text(context.l10n.findMovie),
+              ),
+            ),
           const SizedBox(height: 4),
           InputDecorator(
             decoration: InputDecoration(
@@ -460,6 +505,7 @@ class _ActivityFormState extends ConsumerState<ActivityForm>
           if (defs.isNotEmpty) ...[
             const SizedBox(height: 8),
             DynamicFieldsForm(
+              key: ValueKey(_fills),
               fieldDefs: defs,
               values: _attributes,
               serverError: (key) => serverError('attributes.$key'),

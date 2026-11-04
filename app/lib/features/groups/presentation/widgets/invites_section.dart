@@ -13,6 +13,7 @@ import 'package:friends/core/widgets/form_widgets.dart';
 import 'package:friends/features/groups/data/group_providers.dart';
 import 'package:friends/features/groups/data/groups_controller.dart';
 import 'package:friends/features/groups/domain/group_permissions.dart';
+import 'package:friends/features/groups/presentation/widgets/email_invite_dialog.dart';
 import 'package:friends/features/groups/presentation/widgets/group_action.dart';
 import 'package:friends/features/invites/data/invite_sharer.dart';
 import 'package:friends/features/invites/presentation/invite_labels.dart';
@@ -207,6 +208,13 @@ class InviteTile extends ConsumerWidget {
                         unawaited(copyInviteCode(context, invite.code)),
                     icon: const Icon(Icons.copy),
                     label: Text(context.l10n.copyCode),
+                  ),
+                if (valid)
+                  TextButton.icon(
+                    onPressed: () =>
+                        unawaited(showEmailInviteDialog(context, invite)),
+                    icon: const Icon(Icons.mail_outline),
+                    label: Text(context.l10n.emailAction),
                   ),
                 if (invite.canDelete && invite.status != InviteStatus.revoked)
                   TextButton.icon(
@@ -475,6 +483,10 @@ class InviteCreatedDialog extends ConsumerWidget {
         TextButton(
           onPressed: () => unawaited(copyInviteCode(context, invite.code)),
           child: Text(context.l10n.copyCode),
+        ),
+        TextButton(
+          onPressed: () => unawaited(showEmailInviteDialog(context, invite)),
+          child: Text(context.l10n.emailAction),
         ),
         Builder(
           builder: (context) => FilledButton.icon(

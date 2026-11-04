@@ -66,3 +66,12 @@ def test_docs_are_off_in_prod_by_default() -> None:
 )
 def test_the_web_base_path_is_the_path_of_the_public_app_url(url: str, base: str) -> None:
     assert make(public_app_url=url).web_base_path == base
+
+
+def test_the_mail_sender_defaults_to_the_smtp_username() -> None:
+    base = Settings(_env_file=None)
+    assert base.mail_sender == "Friends <friends@localhost>"
+    named = base.model_copy(update={"smtp_username": "friends@example.com"})
+    assert named.mail_sender == "Friends <friends@example.com>"
+    explicit = named.model_copy(update={"mail_from": "Crew <crew@example.com>"})
+    assert explicit.mail_sender == "Crew <crew@example.com>"

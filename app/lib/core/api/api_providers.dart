@@ -100,3 +100,18 @@ FeedClient feedClient(Ref ref) => ref.watch(friendsApiProvider).feed;
 /// A group's book archive.
 @Riverpod(keepAlive: true)
 BooksClient booksClient(Ref ref) => ref.watch(friendsApiProvider).books;
+
+/// Push subscriptions and the VAPID key. [publicNotificationsClient] for
+/// unsubscribing from an email's link.
+@Riverpod(keepAlive: true)
+NotificationsClient notificationsClient(Ref ref) =>
+    ref.watch(friendsApiProvider).notifications;
+
+/// Unsubscribing from a notification email's link: public.
+@Riverpod(keepAlive: true)
+NotificationsClient publicNotificationsClient(Ref ref) =>
+    ref.watch(publicApiProvider).notifications;
+
+/// Movie auto-fill from TMDB (contract section 19).
+@Riverpod(keepAlive: true)
+MoviesClient moviesClient(Ref ref) => ref.watch(friendsApiProvider).movies;

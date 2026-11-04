@@ -53,6 +53,7 @@ RESTRICTED: dict[str, Callable[[World], dict[str, Any] | None]] = {
     "update_member_role": lambda w: {"role": "admin"},
     "remove_member": lambda w: None,
     "revoke_invite": lambda w: None,
+    "email_invite": lambda w: {"email": "friend@example.com"},
     "update_category": lambda w: CATEGORY_WRITE,
     "delete_category": lambda w: None,
     "reorder_categories": lambda w: {"category_ids": []},
@@ -210,12 +211,18 @@ def world(client: TestClient) -> World:
     )
 
 
+NOT_UUID_IDS = {"get_movie"}
+"""Routes whose ``{..._id}`` is someone else's id (TMDB's), not one of ours."""
+
+
 def uuid_routes(app: FastAPI) -> list[tuple[RouteContext, str]]:
     # FastAPI >= 0.141 keeps included routers as nodes; iter_route_contexts flattens them.
     routes: list[tuple[RouteContext, str]] = []
     for route in iter_route_contexts(app.routes):
-        if isinstance(route.original_route, APIRoute) and re.search(
-            r"\{\w+_id\}", route.path or ""
+        if (
+            isinstance(route.original_route, APIRoute)
+            and route.name not in NOT_UUID_IDS
+            and re.search(r"\{\w+_id\}", route.path or "")
         ):
             routes.extend((route, method) for method in sorted(route.methods or ()))
     return routes

@@ -11,9 +11,11 @@ Map<String, Object?> meJson({
   String timezone = 'Europe/Bucharest',
   String? locale,
   String? avatarUrl,
+  bool emailVerified = true,
 }) => {
   'id': id,
   'email': email,
+  'email_verified': emailVerified,
   'display_name': displayName,
   'avatar_url': avatarUrl,
   'birthday': birthday,
@@ -186,6 +188,14 @@ abstract final class ApiPaths {
   static const me = '/api/v1/me';
   static const password = '/api/v1/me/password';
   static const deletion = '/api/v1/me/deletion';
+  static const emailVerification = '/api/v1/me/email-verification';
+  static const notifications = '/api/v1/me/notifications';
+  static const passwordResetRequest = '/api/v1/auth/password-reset/request';
+  static const passwordReset = '/api/v1/auth/password-reset';
+  static const verifyEmail = '/api/v1/auth/verify-email';
+  static const unsubscribe = '/api/v1/notifications/unsubscribe';
+  static const pushConfig = '/api/v1/push/config';
+  static const pushSubscription = '/api/v1/me/push-subscription';
   static const calendarFeed = '/api/v1/me/calendar-feed';
   static const groups = '/api/v1/groups';
   static const health = '/api/v1/health';

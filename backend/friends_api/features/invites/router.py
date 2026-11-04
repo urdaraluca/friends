@@ -1,14 +1,15 @@
 import uuid
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, BackgroundTasks, Depends, Request, status
 
-from friends_api.core.ratelimit import limit_by_ip
-from friends_api.deps import AppSettings, CurrentUser, DbSession, GroupMember
+from friends_api.core.mail import send_safely
+from friends_api.core.ratelimit import limit_by_ip, limit_by_user
+from friends_api.deps import AppSettings, CurrentUser, DbSession, GroupMember, MailerDep
 from friends_api.features.groups import policies
 from friends_api.features.groups import service as groups_service
 from friends_api.features.groups.schemas import Group
 from friends_api.features.invites import service
-from friends_api.features.invites.schemas import Invite, InviteCreate, InvitePreview
+from friends_api.features.invites.schemas import Invite, InviteCreate, InviteEmail, InvitePreview
 
 router = APIRouter(tags=["invites"])
 
@@ -35,6 +36,26 @@ def create_invite(
 def revoke_invite(invite_id: uuid.UUID, db: DbSession, access: GroupMember) -> None:
     """Idempotent."""
     service.revoke_invite(db, access, service.get_group_invite(db, access, invite_id))
+
+
+@router.post("/groups/{group_id}/invites/{invite_id}/email", status_code=status.HTTP_202_ACCEPTED)
+def email_invite(
+    invite_id: uuid.UUID,
+    body: InviteEmail,
+    db: DbSession,
+    settings: AppSettings,
+    access: GroupMember,
+    user: CurrentUser,
+    mailer: MailerDep,
+    background: BackgroundTasks,
+    request: Request,
+) -> None:
+    """Emails the invite's link to ``email``. Whoever can see the invite, with a verified email
+    of their own; at most 10 an hour."""
+    limit_by_user(request, "invite_email", user.id)
+    invite = service.get_group_invite(db, access, invite_id)
+    email = service.invite_email(db, settings, access, user, invite, body.email)
+    background.add_task(send_safely, mailer, email)
 
 
 @router.get("/invites/{code}", dependencies=[Depends(limit_by_ip("invites"))])

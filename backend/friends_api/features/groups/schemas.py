@@ -133,6 +133,8 @@ class Member(BaseModel):
     """Null unless set and shared with the group (your own row always shows it)."""
     show_birthday: bool | None
     """Your own row: your setting. Other rows: null."""
+    notifications_muted: bool | None = None
+    """Your own row: whether this group's notifications are off. Other rows: null."""
 
 
 class RoleUpdate(RequestModel):
@@ -141,3 +143,5 @@ class RoleUpdate(RequestModel):
 
 class MemberSettingsUpdate(RequestModel):
     show_birthday: bool
+    notifications_muted: bool | None = None
+    """Null keeps it."""

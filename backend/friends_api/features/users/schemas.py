@@ -71,6 +71,8 @@ def user_birthday(user: User) -> Birthday | None:
 class Me(BaseModel):
     id: uuid.UUID
     email: str
+    email_verified: bool
+    """False until a verification (or password-reset) link was opened (contract section 18.3)."""
     display_name: str
     avatar_url: str | None
     birthday: Birthday | None
@@ -83,6 +85,7 @@ class Me(BaseModel):
         return cls(
             id=user.id,
             email=user.email,
+            email_verified=user.email_verified_at is not None,
             display_name=user.display_name,
             avatar_url=user.avatar_url,
             birthday=user_birthday(user),
@@ -98,3 +101,33 @@ class MeUpdate(RequestModel):
     timezone: Timezone
     locale: Annotated[str, StringConstraints(max_length=16)] | None = None
     avatar_url: HttpUrl | None = None
+
+
+class NotificationSettings(BaseModel):
+    """Which notifications I get (contract section 18.4), by push and, to a verified address,
+    by email."""
+
+    polls: bool
+    """A new poll in one of my groups, and one closing within a day that I haven't voted on."""
+    wheel: bool
+    """The wheel's result was accepted in one of my groups."""
+    reminders: bool
+    """My events and friends' birthdays the day before; by push also an hour before."""
+    members: bool = True
+    """Someone joined one of my groups."""
+    plans: bool = True
+    """An activity I'm interested in was scheduled."""
+    email: bool = False
+    """Also by email, to a verified address: off until switched on. Push, the main channel,
+    goes to every browser I turned it on in."""
+
+    @classmethod
+    def from_user(cls, user: User) -> NotificationSettings:
+        return cls(
+            polls=user.notify_polls,
+            wheel=user.notify_wheel,
+            reminders=user.notify_reminders,
+            members=user.notify_members,
+            plans=user.notify_plans,
+            email=user.notify_email,
+        )

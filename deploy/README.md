@@ -97,7 +97,30 @@
    Backups are consistent even while the app is writing, integrity-checked and gzipped. They go to
    `BACKUP_HOST_DIR`, which should be a USB drive or NAS, not the SD card.
 
-9. **Off-site copies (recommended).** A USB drive next to the Pi doesn't survive a fire or a theft.
+9. **Email.** Password reset, email verification, invites by email and notifications need SMTP.
+   Fill in the `SMTP_*` lines of `.env` (for SMTP2GO: `SMTP_HOST=mail.smtp2go.com`, port 587, the
+   SMTP user's name and password; the sender's domain must be verified in SMTP2GO, with its SPF
+   and DKIM records), run `./update.sh`, then check it:
+   ```sh
+   docker compose exec -T backend python -m friends_api.cli send-test-email you@example.com
+   ```
+   **Push notifications** (the main channel; email is an opt-in copy) need a Web Push key. Generate
+   one and put it in `.env` as `VAPID_PRIVATE_KEY`, then `./update.sh` again:
+   ```sh
+   docker compose exec -T backend python -m friends_api.cli generate-vapid-key
+   ```
+   Keep the key: changing it ends every browser's subscription. Notifications (new polls, wheel
+   results, new members, plans, reminders) go out from a cron job; add it next to the backup one:
+   ```cron
+   */5 * * * * cd /srv/friends && docker compose exec -T backend python -m friends_api.cli send-notifications >> /srv/friends/notifications.log 2>&1
+   ```
+   Each run is safe to repeat: every notification is recorded before it is sent, so none goes out
+   twice.
+
+   **Movie auto-fill** needs a free TMDB API key (themoviedb.org → Settings → API, the v3 "API
+   Key"): set `TMDB_API_KEY` in `.env`.
+
+10. **Off-site copies (recommended).** A USB drive next to the Pi doesn't survive a fire or a theft.
    Copy the backups to cloud storage with [rclone](https://rclone.org/) after the nightly run:
    ```bash
    sudo apt install rclone
@@ -111,7 +134,7 @@
    lifecycle rule on the bucket (e.g. delete after 90 days). Encrypt with an rclone `crypt` remote
    if the storage provider shouldn't read the data.
 
-10. **Alerts (recommended).** Three independent checks:
+11. **Alerts (recommended).** Three independent checks:
     - **Is it up?** Point an uptime monitor (Uptime Kuma, UptimeRobot, healthchecks.io, ...) at
       `https://<your-host>/api/v1/health`. It answers 200 with `"status": "ok"`, or 503 when the
       database is unavailable.
