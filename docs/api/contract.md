@@ -2530,6 +2530,9 @@ IsbnLookup     { isbn: str, title: str, author: str?, description: str?, genre: 
   opens (or focuses) `url` on click. `tag` is `<kind>:<ref>`, so a repeat replaces, not stacks.
 - **App:** a "Get notified" card on the groups list until push is on, blocked or dismissed, and a
   switch in Profile → Notifications.
+- **One service worker:** `push_sw.js`. `web/flutter_bootstrap.js` loads Flutter without its
+  deprecated `flutter_service_worker.js`, which would replace `push_sw.js` on the same scope and
+  then unregister itself, deleting the push subscription on every reload.
 
 ## 19. Movie auto-fill (TMDB)
 
