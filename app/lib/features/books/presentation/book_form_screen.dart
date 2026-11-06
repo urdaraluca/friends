@@ -19,6 +19,7 @@ import 'package:friends/features/books/domain/book_languages.dart';
 import 'package:friends/features/books/domain/isbn.dart';
 import 'package:friends/features/books/presentation/isbn_scanner_screen.dart';
 import 'package:friends/features/books/presentation/widgets/book_cover.dart';
+import 'package:friends/features/books/presentation/widgets/book_search_sheet.dart';
 import 'package:friends/features/groups/data/group_providers.dart';
 import 'package:friends/features/groups/presentation/widgets/group_themed.dart';
 import 'package:friends/l10n/l10n.dart';
@@ -201,7 +202,37 @@ class _BookFormState extends ConsumerState<BookForm> with ServerErrorsMixin {
     await _lookUp();
   }
 
-  Future<void> _lookUp() async {
+  /// Searches the catalogues by title or author (what's typed so far); the
+  /// chosen book's ISBN fills the rest, like a scan.
+  Future<void> _findBook() async {
+    final query = [_optional(_title), _optional(_author)].nonNulls.join(' ');
+    final hit = await showBookSearch(context, query: query);
+    if (hit == null || !mounted) return;
+    if (hit.isbn case final isbn?) {
+      _isbn.text = isbn;
+      clearServerError('isbn');
+      await _lookUp(fallback: hit);
+    } else {
+      _fillFromHit(hit);
+    }
+  }
+
+  /// Just what a search result knows, when the ISBN lookup can't add more.
+  void _fillFromHit(BookSearchResult hit) {
+    setState(() {
+      _title.text = hit.title;
+      if (hit.author case final author?) _author.text = author;
+      if (hit.language case final language? when _language == null) {
+        _language = language;
+      }
+      _filled++;
+    });
+    ['title', 'author'].forEach(clearServerError);
+  }
+
+  /// Looks the typed ISBN up. With a [fallback] (the search result it came
+  /// from), a lookup that finds nothing fills the form from that instead.
+  Future<void> _lookUp({BookSearchResult? fallback}) async {
     final isbn = normalizeIsbn(_isbn.text);
     final l10n = context.l10n;
     final messenger = ScaffoldMessenger.of(context);
@@ -218,6 +249,10 @@ class _BookFormState extends ConsumerState<BookForm> with ServerErrorsMixin {
     try {
       found = await ref.read(booksControllerProvider.notifier).lookUpIsbn(isbn);
     } on ApiException catch (error) {
+      if (fallback != null) {
+        if (mounted) _fillFromHit(fallback);
+        return;
+      }
       final notFound =
           error is ProblemException && error.code == ErrorCodes.notFound;
       say(notFound ? l10n.isbnNotFound : friendlyErrorMessage(error));
@@ -297,7 +332,7 @@ class _BookFormState extends ConsumerState<BookForm> with ServerErrorsMixin {
       if (bytes == null || !mounted) return;
       setState(() => _cover = _PhotoCover(bytes));
     } on Object {
-      messenger.showSnackBar(SnackBar(content: Text(l10n.cameraUnavailable)));
+      messenger.showSnackBar(SnackBar(content: Text(l10n.photoUnavailable)));
     }
   }
 
@@ -517,10 +552,25 @@ class _BookFormState extends ConsumerState<BookForm> with ServerErrorsMixin {
             ],
           ),
           const SizedBox(height: 16),
-          FilledButton.tonalIcon(
-            onPressed: _saving || _lookingUp ? null : () => unawaited(_scan()),
-            icon: const Icon(Icons.qr_code_scanner),
-            label: Text(l10n.scanIsbn),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              FilledButton.tonalIcon(
+                onPressed: _saving || _lookingUp
+                    ? null
+                    : () => unawaited(_scan()),
+                icon: const Icon(Icons.qr_code_scanner),
+                label: Text(l10n.scanIsbn),
+              ),
+              FilledButton.tonalIcon(
+                onPressed: _saving || _lookingUp
+                    ? null
+                    : () => unawaited(_findBook()),
+                icon: const Icon(Icons.manage_search),
+                label: Text(l10n.findBook),
+              ),
+            ],
           ),
           const SizedBox(height: 12),
           TextFormField(

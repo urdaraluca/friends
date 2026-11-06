@@ -1,4 +1,4 @@
-"""ISBNs and looking books up by one (contract section 17.5).
+"""ISBNs, looking books up by one, and searching by title or author (contract section 17.5).
 
 Google Books answers first (it has descriptions, categories and languages); Open Library fills
 what it leaves out, or answers alone when Google doesn't know the book. Only these fixed hosts
@@ -8,7 +8,9 @@ are ever fetched, covers included, so no caller-supplied URL reaches the network
 import logging
 import re
 from collections import Counter
+from collections.abc import Callable
 from dataclasses import dataclass, replace
+from functools import partial
 from typing import Any
 from urllib.parse import urlsplit
 
@@ -23,6 +25,9 @@ GOOGLE_BOOKS_URL = "https://www.googleapis.com/books/v1/volumes"
 OPEN_LIBRARY_HOME = "https://openlibrary.org"
 OPEN_LIBRARY_URL = f"{OPEN_LIBRARY_HOME}/api/books"
 OPEN_LIBRARY_COVER_URL = "https://covers.openlibrary.org/b/isbn/{isbn}-L.jpg"
+OPEN_LIBRARY_SEARCH_URL = f"{OPEN_LIBRARY_HOME}/search.json"
+OPEN_LIBRARY_COVER_ID_URL = "https://covers.openlibrary.org/b/id/{cover_id}-M.jpg"
+MAX_SEARCH_RESULTS = 10
 COVER_HOSTS = frozenset(
     {"books.google.com", "books.googleusercontent.com", "covers.openlibrary.org"}
 )
@@ -82,6 +87,19 @@ class FoundBook:
             language=self.language or other.language,
             cover_url=self.cover_url or other.cover_url,
         )
+
+
+@dataclass(frozen=True, slots=True)
+class BookHit:
+    """One search result: enough to pick the right book. With an ISBN, the app then looks it
+    up for the rest (description, genre, cover)."""
+
+    title: str
+    author: str | None = None
+    year: int | None = None
+    isbn: str | None = None
+    language: str | None = None
+    cover_url: str | None = None
 
 
 # Most specific first: "Juvenile Fiction" is for children, "Science Fiction" isn't just fiction.
@@ -240,6 +258,104 @@ def parse_open_library(
     )
 
 
+def _year(value: object) -> int | None:
+    if isinstance(value, int) and 0 < value < 10000:
+        return value
+    if isinstance(value, str) and len(value) >= 4 and value[:4].isdigit():
+        return int(value[:4])
+    return None
+
+
+# ISBN-13 prefixes of the registration groups for a user's language: a work's editions come in
+# no useful order (Open Library lists Circe's Swedish one first), so one from the reader's
+# language area wins.
+_ISBN_GROUPS = {"ro": ("978973", "978606"), "en": ("9780", "9781")}
+
+
+def _isbn_groups(locale: str | None) -> tuple[str, ...]:
+    return _ISBN_GROUPS["ro" if (locale or "").lower().startswith("ro") else "en"]
+
+
+def _best_isbn(values: object, prefer: tuple[str, ...] = ()) -> str | None:
+    """The first valid ISBN in ``values`` from one of the ``prefer`` groups, else the first
+    valid one, as an ISBN-13."""
+    if not isinstance(values, list):
+        return None
+    isbns = [
+        isbn
+        for value in values
+        if isinstance(value, str) and (isbn := normalize_isbn(value)) is not None
+    ]
+    return next((isbn for isbn in isbns if isbn.startswith(prefer)), isbns[0] if isbns else None)
+
+
+def parse_google_search(body: object) -> list[BookHit]:
+    hits: list[BookHit] = []
+    items = body.get("items") if isinstance(body, dict) else None
+    for item in items if isinstance(items, list) else []:
+        info = item.get("volumeInfo") if isinstance(item, dict) else None
+        if not isinstance(info, dict):
+            continue
+        title = _text(info.get("title"), 200)
+        if title is None:
+            continue
+        identifiers = info.get("industryIdentifiers") or []
+        isbns = [
+            entry.get("identifier")
+            for entry in sorted(
+                (e for e in identifiers if isinstance(e, dict)),
+                key=lambda e: e.get("type") != "ISBN_13",  # ISBN-13 first
+            )
+            if entry.get("type") in ("ISBN_13", "ISBN_10")
+        ]
+        authors = [name for name in info.get("authors") or [] if isinstance(name, str)]
+        images = info.get("imageLinks") or {}
+        hits.append(
+            BookHit(
+                title=title,
+                author=_text(", ".join(authors), 120),
+                year=_year(info.get("publishedDate")),
+                isbn=_best_isbn(isbns),
+                language=_language(info.get("language")),
+                cover_url=_https(images.get("thumbnail") or images.get("smallThumbnail")),
+            )
+        )
+    return hits
+
+
+def parse_open_library_search(body: object, locale: str | None = None) -> list[BookHit]:
+    hits: list[BookHit] = []
+    docs = body.get("docs") if isinstance(body, dict) else None
+    for doc in docs if isinstance(docs, list) else []:
+        if not isinstance(doc, dict):
+            continue
+        title = _text(doc.get("title"), 200)
+        if title is None:
+            continue
+        authors = [name for name in doc.get("author_name") or [] if isinstance(name, str)]
+        languages = doc.get("language")
+        cover_id = doc.get("cover_i")
+        hits.append(
+            BookHit(
+                title=title,
+                author=_text(", ".join(authors), 120),
+                year=_year(doc.get("first_publish_year")),
+                isbn=_best_isbn(doc.get("isbn"), _isbn_groups(locale)),
+                language=(
+                    _language(languages[0])
+                    if isinstance(languages, list) and len(languages) == 1
+                    else None
+                ),
+                cover_url=(
+                    OPEN_LIBRARY_COVER_ID_URL.format(cover_id=cover_id)
+                    if isinstance(cover_id, int)
+                    else None
+                ),
+            )
+        )
+    return hits
+
+
 # --- the client -----------------------------------------------------------------------------
 
 
@@ -277,6 +393,22 @@ class BookLookup:
             raise LookupUnavailable("Couldn't reach the book catalogues, try again later.")
         return None
 
+    def search(self, query: str, *, locale: str | None = None) -> list[BookHit]:
+        """Up to 10 books matching ``query`` (a title, an author or both): Google Books', or
+        Open Library's when Google fails or finds nothing. Raises LookupUnavailable when
+        neither could be asked."""
+        google, google_failed = self._ask(self._google_search, query)
+        if google:
+            return google
+        library, library_failed = self._ask(
+            partial(self._open_library_search, locale=locale), query
+        )
+        if library:
+            return library
+        if google_failed and library_failed:
+            raise LookupUnavailable("Couldn't reach the book catalogues, try again later.")
+        return []
+
     def fetch_cover(self, isbn: str) -> tuple[bytes, str] | None:
         """A cover image for ``isbn`` as (bytes, content type), or None."""
         try:
@@ -294,12 +426,14 @@ class BookLookup:
 
     # --- sources ---
 
-    def _ask(self, source: Any, isbn: str) -> tuple[FoundBook | None, bool]:
-        """(what ``source`` found, whether asking it failed)."""
+    def _ask[T](self, source: Callable[[str], T], key: str) -> tuple[T | None, bool]:
+        """(what ``source`` found for ``key``, whether asking it failed)."""
         try:
-            found: FoundBook | None = source(isbn)
+            found = source(key)
         except (httpx2.HTTPError, ValueError) as error:
-            logger.warning("book lookup via %s failed: %s", source.__name__, error)
+            logger.warning(
+                "book lookup via %s failed: %s", getattr(source, "func", source).__name__, error
+            )
             return None, True
         return found, False
 
@@ -310,6 +444,26 @@ class BookLookup:
         response = self._client.get(GOOGLE_BOOKS_URL, params=params)
         response.raise_for_status()
         return parse_google(isbn, response.json())
+
+    def _google_search(self, query: str) -> list[BookHit]:
+        params = {"q": query, "maxResults": str(MAX_SEARCH_RESULTS), "printType": "books"}
+        if self._google_api_key:
+            params["key"] = self._google_api_key
+        response = self._client.get(GOOGLE_BOOKS_URL, params=params)
+        response.raise_for_status()
+        return parse_google_search(response.json())[:MAX_SEARCH_RESULTS]
+
+    def _open_library_search(self, query: str, locale: str | None) -> list[BookHit]:
+        response = self._client.get(
+            OPEN_LIBRARY_SEARCH_URL,
+            params={
+                "q": query,
+                "limit": str(MAX_SEARCH_RESULTS),
+                "fields": "title,author_name,first_publish_year,isbn,language,cover_i",
+            },
+        )
+        response.raise_for_status()
+        return parse_open_library_search(response.json(), locale)[:MAX_SEARCH_RESULTS]
 
     def _open_library(self, isbn: str) -> FoundBook | None:
         response = self._client.get(

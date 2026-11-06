@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, Header, Response, UploadFile, status
+from fastapi import APIRouter, Depends, File, Header, Query, Response, UploadFile, status
 
 from friends_api.core.errors import NotFound, Unprocessable
 from friends_api.core.ratelimit import limit_by_ip
@@ -12,6 +12,7 @@ from friends_api.features.books.models import MAX_COVER_BYTES
 from friends_api.features.books.schemas import (
     Book,
     BookCreate,
+    BookSearchResult,
     BookWrite,
     Handover,
     IsbnLookup,
@@ -59,6 +60,21 @@ def look_up_isbn(isbn: str, lookup: IsbnLookupClient, _user: CurrentUser) -> Isb
         language=found.language,
         cover_url=found.cover_url,
     )
+
+
+@router.get(
+    "/books/search",
+    dependencies=[Depends(limit_by_ip("isbn_lookup"))],
+)
+def search_books(
+    query: Annotated[str, Query(min_length=1, max_length=200)],
+    lookup: IsbnLookupClient,
+    user: CurrentUser,
+) -> list[BookSearchResult]:
+    """Up to 10 books matching a title, an author or both, from Google Books (or Open Library
+    when Google can't answer). 503 ``lookup_unavailable`` when neither can be reached."""
+    hits = lookup.search(query.strip(), locale=user.locale)
+    return [BookSearchResult.model_validate(hit, from_attributes=True) for hit in hits]
 
 
 @router.get("/books/{book_id}")

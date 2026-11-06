@@ -957,5 +957,10 @@
   "movieTitle": "Titlul filmului",
   "search": "Caută",
   "noMoviesFound": "Niciun film găsit.",
-  "tmdbAttribution": "Detaliile filmelor vin de la TMDB. Nota este scorul TMDB."
+  "tmdbAttribution": "Detaliile filmelor vin de la TMDB. Nota este scorul TMDB.",
+  "findBook": "Caută cartea",
+  "bookSearchLabel": "Titlu sau autor",
+  "noBooksFound": "Nicio carte găsită.",
+  "bookSearchAttribution": "Detaliile cărților vin de la Google Books și Open Library.",
+  "photoUnavailable": "Nu am putut lua poza. Încearcă alta."
 }

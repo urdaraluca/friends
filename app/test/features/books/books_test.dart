@@ -137,6 +137,42 @@ void main() {
       expect(find.text('No books match.'), findsOneWidget);
     });
 
+    testWidgets('"I have" lists my books on my shelf and the ones lent to me', (
+      tester,
+    ) async {
+      await open(
+        tester,
+        Routes.groupBooks(Ids.groupId),
+        books: [
+          bookJson(), // mine, with me
+          bookJson(
+            id: Ids.otherBookId,
+            title: 'Middlemarch',
+            owner: bea,
+            holder: userPublicJson(), // Bea's, lent to me
+          ),
+          bookJson(
+            id: '0190c3a5-0000-7000-8000-0000000000b3',
+            title: 'Persuasion',
+            holder: cris, // mine, lent to Cris
+          ),
+          bookJson(
+            id: '0190c3a5-0000-7000-8000-0000000000b4',
+            title: 'Wolf Hall',
+            owner: bea, // Bea's, with Bea
+          ),
+        ],
+      );
+
+      await tester.tap(find.widgetWithText(ChoiceChip, 'I have'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Dune'), findsOneWidget);
+      expect(find.text('Middlemarch'), findsOneWidget);
+      expect(find.text('Persuasion'), findsNothing);
+      expect(find.text('Wolf Hall'), findsNothing);
+    });
+
     testWidgets('an empty shelf invites adding a book', (tester) async {
       await open(tester, Routes.groupBooks(Ids.groupId));
 

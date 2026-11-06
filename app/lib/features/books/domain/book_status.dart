@@ -24,7 +24,8 @@ enum BookFilter {
     all => true,
     available => book.holder == null,
     mine => book.owner?.id == me,
-    withMe => book.holder?.id == me,
+    // No holder: it's with its owner (contract section 17).
+    withMe => (book.holder ?? book.owner)?.id == me,
     waiting => book.inMyQueue,
   };
 }

@@ -221,6 +221,116 @@ void main() {
       );
     });
 
+    testWidgets('finds the book by title and fills it from its ISBN', (
+      tester,
+    ) async {
+      await open(tester, Routes.newBook(Ids.groupId));
+      backend.adapter
+        ..onJson('GET', ApiPaths.bookSearch, [
+          {
+            'title': 'Dune',
+            'author': 'Frank Herbert',
+            'year': 1965,
+            'isbn': dune,
+            'language': 'en',
+            'cover_url': null,
+          },
+          {
+            'title': 'Dune Messiah',
+            'author': null,
+            'year': null,
+            'isbn': null,
+            'language': null,
+            'cover_url': null,
+          },
+        ])
+        ..onJson('GET', ApiPaths.isbnLookup(dune), isbnLookupJson());
+
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Title'),
+        'dune',
+      );
+      await tapText(tester, 'Find the book');
+
+      expect(
+        backend.adapter.requestsTo('GET', ApiPaths.bookSearch).single.query,
+        'query=dune',
+      );
+      expect(find.text('Frank Herbert · 1965'), findsOneWidget);
+      await tester.tap(find.text('Frank Herbert · 1965'));
+      await tester.pumpAndSettle();
+      // "dune" was typed: the found details replace it when asked.
+      expect(find.text('Use the details found?'), findsOneWidget);
+      await tester.tap(find.text('Replace'));
+      await tester.pumpAndSettle();
+
+      expect(
+        backend.adapter.requestsTo('GET', ApiPaths.isbnLookup(dune)),
+        hasLength(1),
+      );
+      expect(find.widgetWithText(TextFormField, dune), findsOneWidget);
+      expect(find.widgetWithText(TextFormField, 'Dune'), findsOneWidget);
+      expect(find.text('Set on the desert planet Arrakis.'), findsOneWidget);
+    });
+
+    testWidgets('a found book without an ISBN fills its title and author', (
+      tester,
+    ) async {
+      await open(tester, Routes.newBook(Ids.groupId));
+      backend.adapter.onJson('GET', ApiPaths.bookSearch, [
+        {
+          'title': 'Dune Messiah',
+          'author': 'Frank Herbert',
+          'year': null,
+          'isbn': null,
+          'language': null,
+          'cover_url': null,
+        },
+      ]);
+
+      await tapText(tester, 'Find the book');
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Title or author'),
+        'messiah',
+      );
+      await tester.testTextInput.receiveAction(TextInputAction.search);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Dune Messiah'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.widgetWithText(TextFormField, 'Dune Messiah'),
+        findsOneWidget,
+      );
+      expect(
+        find.widgetWithText(TextFormField, 'Frank Herbert'),
+        findsOneWidget,
+      );
+      expect(
+        backend.adapter.requests.where((r) => r.path.contains('/isbn/')),
+        isEmpty,
+      );
+    });
+
+    testWidgets('says when a photo can not be read', (tester) async {
+      await open(
+        tester,
+        Routes.newBook(Ids.groupId),
+        overrides: [
+          coverPickerProvider.overrideWithValue(
+            (_) async => throw StateError('blocked'),
+          ),
+        ],
+      );
+
+      await tapText(tester, 'Choose a photo');
+
+      expect(
+        find.text("Couldn't get that photo. Try another one."),
+        findsOneWidget,
+      );
+    });
+
     testWidgets("adds Bea's book, which Cris has, with a photo", (
       tester,
     ) async {

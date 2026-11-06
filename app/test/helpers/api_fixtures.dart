@@ -246,6 +246,7 @@ abstract final class ApiPaths {
   static String bookCover(String id) => '${book(id)}/cover';
   static String bookIsbnCover(String id) => '${book(id)}/cover/isbn';
   static String isbnLookup(String isbn) => '/api/v1/books/isbn/$isbn';
+  static const bookSearch = '/api/v1/books/search';
   static String groupAvailability(String groupId) =>
       '${group(groupId)}/availability';
 }

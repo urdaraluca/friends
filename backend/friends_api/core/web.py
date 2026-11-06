@@ -62,7 +62,9 @@ CONTENT_SECURITY_POLICY = "; ".join(
         # its fallback fonts (emoji, other scripts) from fonts.gstatic.com.
         "img-src 'self' data: blob: https:",
         "font-src 'self' data: https://fonts.gstatic.com",
-        "connect-src 'self' https:",
+        # blob:: on the web, image_picker hands over a picked (and downsized) photo as a blob: URL
+        # that cross_file reads back with an XHR.
+        "connect-src 'self' https: blob:",
         "worker-src 'self' blob:",
         "manifest-src 'self'",
         "object-src 'none'",

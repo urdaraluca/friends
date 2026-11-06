@@ -9,6 +9,7 @@ import 'package:retrofit/retrofit.dart';
 
 import '../models/book.dart';
 import '../models/book_create.dart';
+import '../models/book_search_result.dart';
 import '../models/book_write.dart';
 import '../models/handover.dart';
 import '../models/isbn_lookup.dart';
@@ -43,6 +44,15 @@ abstract class BooksClient {
   @GET('/api/v1/books/isbn/{isbn}')
   Future<IsbnLookup> lookUpIsbn({
     @Path('isbn') required String isbn,
+  });
+
+  /// Search Books.
+  ///
+  /// Up to 10 books matching a title, an author or both, from Google Books (or Open Library.
+  /// when Google can't answer). 503 ``lookup_unavailable`` when neither can be reached.
+  @GET('/api/v1/books/search')
+  Future<List<BookSearchResult>> searchBooks({
+    @Query('query') required String query,
   });
 
   /// Get Book

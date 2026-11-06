@@ -43,6 +43,7 @@ export 'models/book.dart';
 export 'models/book_create.dart';
 export 'models/book_genre.dart';
 export 'models/book_queue_entry.dart';
+export 'models/book_search_result.dart';
 export 'models/book_write.dart';
 export 'models/calendar_feed.dart';
 export 'models/calendar_response.dart';

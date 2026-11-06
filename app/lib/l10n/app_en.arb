@@ -2435,5 +2435,10 @@
   "movieTitle": "Movie title",
   "search": "Search",
   "noMoviesFound": "No movies found.",
-  "tmdbAttribution": "Movie details from TMDB. The rating is TMDB's score."
+  "tmdbAttribution": "Movie details from TMDB. The rating is TMDB's score.",
+  "findBook": "Find the book",
+  "bookSearchLabel": "Title or author",
+  "noBooksFound": "No books found.",
+  "bookSearchAttribution": "Book details from Google Books and Open Library.",
+  "photoUnavailable": "Couldn't get that photo. Try another one."
 }

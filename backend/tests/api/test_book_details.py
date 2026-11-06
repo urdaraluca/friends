@@ -521,3 +521,125 @@ def test_no_isbn_cover(app: FastAPI, client: TestClient) -> None:
 
     assert (without.status_code, without.json()["code"]) == (409, "no_isbn")
     assert (not_found.status_code, not_found.json()["code"]) == (404, "not_found")
+
+
+# --- searching by title or author (section 17.5) ---------------------------------------------
+
+GOOGLE_SEARCH = {
+    "items": [
+        {
+            "volumeInfo": {
+                "title": "Dune",
+                "authors": ["Frank Herbert"],
+                "publishedDate": "1990-09-01",
+                "language": "en",
+                "industryIdentifiers": [
+                    {"type": "ISBN_10", "identifier": "0441172717"},
+                    {"type": "ISBN_13", "identifier": "9780441172719"},
+                ],
+                "imageLinks": {"thumbnail": "http://books.google.com/books/content?id=x"},
+            }
+        },
+        {"volumeInfo": {"title": "Dune Messiah", "industryIdentifiers": []}},
+        {"volumeInfo": {"authors": ["No title"]}},  # skipped
+    ]
+}
+OPEN_LIBRARY_SEARCH = {
+    "docs": [
+        {
+            "title": "Dune",
+            "author_name": ["Frank Herbert"],
+            "first_publish_year": 1965,
+            "isbn": ["not one", "9789146235507", "0441172717"],  # English edition wins
+            "language": ["eng"],
+            "cover_i": 42,
+        }
+    ]
+}
+
+
+def _search(client: TestClient, club: Club, query: str) -> Any:
+    return client.get("/api/v1/books/search", params={"query": query}, headers=club.ana.headers)
+
+
+def test_searching_google_books(app: FastAPI, client: TestClient) -> None:
+    club = Club(client)
+    asked = _use_catalogues(app, lambda request: _json(GOOGLE_SEARCH))
+
+    response = _search(client, club, "  dune herbert ")
+
+    assert response.status_code == 200, response.text
+    assert response.json() == [
+        {
+            "title": "Dune",
+            "author": "Frank Herbert",
+            "year": 1990,
+            "isbn": "9780441172719",
+            "language": "en",
+            "cover_url": "https://books.google.com/books/content?id=x",
+        },
+        {
+            "title": "Dune Messiah",
+            "author": None,
+            "year": None,
+            "isbn": None,
+            "language": None,
+            "cover_url": None,
+        },
+    ]
+    assert len(asked) == 1
+    assert "q=dune+herbert" in asked[0]
+
+
+@pytest.mark.parametrize("google", ["down", "empty"])
+def test_open_library_searches_when_google_cant(
+    app: FastAPI, client: TestClient, google: str
+) -> None:
+    club = Club(client)
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        if request.url.host == "www.googleapis.com":
+            return httpx2.Response(429) if google == "down" else _json({"totalItems": 0})
+        assert request.url.path == "/search.json"
+        return _json(OPEN_LIBRARY_SEARCH)
+
+    _use_catalogues(app, handler)
+
+    assert _search(client, club, "dune").json() == [
+        {
+            "title": "Dune",
+            "author": "Frank Herbert",
+            "year": 1965,
+            "isbn": "9780441172719",
+            "language": "en",
+            "cover_url": "https://covers.openlibrary.org/b/id/42-M.jpg",
+        }
+    ]
+
+
+def test_a_search_with_no_matches_is_empty(app: FastAPI, client: TestClient) -> None:
+    club = Club(client)
+    _use_catalogues(
+        app, lambda request: _json({"totalItems": 0} if "google" in str(request.url) else {})
+    )
+
+    response = _search(client, club, "zzzz")
+
+    assert (response.status_code, response.json()) == (200, [])
+
+
+def test_a_search_with_both_catalogues_down_is_a_503(app: FastAPI, client: TestClient) -> None:
+    club = Club(client)
+    _use_catalogues(app, lambda request: httpx2.Response(500))
+
+    response = _search(client, club, "dune")
+
+    assert (response.status_code, response.json()["code"]) == (503, "lookup_unavailable")
+
+
+def test_a_search_needs_a_query_and_a_user(app: FastAPI, client: TestClient) -> None:
+    club = Club(client)
+    _use_catalogues(app, lambda request: _json(GOOGLE_SEARCH))
+
+    assert _search(client, club, "").status_code == 422
+    assert client.get("/api/v1/books/search", params={"query": "dune"}).status_code == 401

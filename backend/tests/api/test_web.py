@@ -92,6 +92,7 @@ def test_the_web_build_has_security_headers(web: TestClient, path: str) -> None:
     assert "script-src 'self' 'wasm-unsafe-eval'" in csp  # no inline scripts, no eval
     assert "frame-ancestors 'none'" in csp
     assert "object-src 'none'" in csp
+    assert "connect-src 'self' https: blob:" in csp  # picked photos are read from blob: URLs
     assert response.headers["x-content-type-options"] == "nosniff"
     assert response.headers["x-frame-options"] == "DENY"
     assert response.headers["referrer-policy"] == "strict-origin-when-cross-origin"

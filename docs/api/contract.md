@@ -57,6 +57,8 @@ changes one, it changes the other.
     - `img-src … https:` and `connect-src 'self' https:`: avatars are external https URLs.
       CanvasKit fetches its fallback fonts (emoji, other scripts) from `fonts.gstatic.com`
       (`font-src`).
+    - `connect-src … blob:`: on the web, a photo picked for a book cover comes back as a `blob:`
+      URL that the app reads with an XHR.
     - `object-src 'none'`, `base-uri 'self'`, `form-action 'self'`, and `frame-ancestors 'none'`
       (no framing).
   - `X-Content-Type-Options: nosniff`;
@@ -874,7 +876,7 @@ Returns 204. Apple requires in-app account deletion; the profile screen offers i
 | `register` | `POST /auth/register` | 5 per hour per IP |
 | `refresh` | `POST /auth/refresh` | 30 per minute per IP |
 | `invites` | `GET /invites/{code}`, `POST /invites/{code}/accept` (shared) | 20 per minute per IP |
-| `isbn_lookup` | `GET /books/isbn/{isbn}` | 30 per minute per IP |
+| `isbn_lookup` | `GET /books/isbn/{isbn}`, `GET /books/search` (shared) | 30 per minute per IP |
 | `movie_lookup` | `GET /movies/search`, `GET /movies/{tmdb_id}` (shared) | 30 per minute per IP |
 | `password_reset` | `POST /auth/password-reset/request` | 5 per hour per IP |
 | `email_links` | `POST /auth/password-reset`, `POST /auth/verify-email`, `POST /notifications/unsubscribe` (shared) | 30 per hour per IP |
@@ -2344,6 +2346,7 @@ book_ratings                                      -- a member's stars for a book
 | `POST /books/{book_id}/cover/isbn` | `use_isbn_cover` | owner, adder or admin+ | – | 200 `Book`. The cover the catalogues have for the book's ISBN (section 17.5). | 403; 404 `not_found`; 409 `no_isbn` |
 | `DELETE /books/{book_id}/cover` | `delete_book_cover` | owner, adder or admin+ | – | 200 `Book` (idempotent) | 403 |
 | `GET /books/isbn/{isbn}` | `look_up_isbn` | signed in | – | 200 `IsbnLookup` (section 17.5) | 404 `not_found`; 422 `invalid_isbn`; 429; 503 `lookup_unavailable` |
+| `GET /books/search` | `search_books` | signed in | query `query` (1..200) | 200 `BookSearchResult[]`, at most 10 (section 17.5) | 422; 429; 503 `lookup_unavailable` |
 
 **Adding a book.** Any member adds books, their own or someone else's: `owner_id` (null: the
 caller) and `holder_id` (null or the owner: with its owner) must be members of the group. A holder
@@ -2398,6 +2401,15 @@ when nothing more specific is named. Neither knowing the ISBN is a 404; neither 
 network error or a 4xx/5xx from both) is a 503 `lookup_unavailable`. Requests time out after 5 s
 and are rate limited to 30 a minute per IP.
 
+**The search** (`GET /books/search?query=`) finds books by title, author or both, for when there
+is no barcode to scan: Google Books (`volumes?q=…&printType=books`, with the same key), or Open
+Library's `search.json` when Google fails or finds nothing. Up to 10 results, each with its
+ISBN-13 when the catalogue has one; the app then looks that ISBN up for the description, genre
+and cover, or fills just the title and author without one. Neither answering is a 503
+`lookup_unavailable`; no match is an empty list. It shares the lookup's rate limit
+(`isbn_lookup`). **App:** "Find the book" in the book form, next to "Scan ISBN"; it starts from
+the typed title and author.
+
 `POST /books/{id}/cover/isbn` downloads the lookup's cover, or else Open Library's cover by ISBN
 (`covers.openlibrary.org/b/isbn/{isbn}-L.jpg?default=false`). The server only ever fetches from
 Google Books' and Open Library's hosts: no URL a client sends is fetched.
@@ -2428,6 +2440,9 @@ Book           { id: uuid, group_id: uuid, title: str, author: str?, description
                  can_hand_over: bool,                 # the owner, the holder or admin+
                  created_at: ts, updated_at: ts }
 IsbnLookup     { isbn: str, title: str, author: str?, description: str?, genre: BookGenre?,
+                 language: str?, cover_url: str? }    # an https image to preview
+BookSearchResult { title: str, author: str?, year: int?,  # year first published
+                 isbn: str?,                          # ISBN-13; look it up for the rest
                  language: str?, cover_url: str? }    # an https image to preview
 ```
 

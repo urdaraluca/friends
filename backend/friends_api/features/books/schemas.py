@@ -109,3 +109,17 @@ class IsbnLookup(BaseModel):
     language: str | None
     cover_url: str | None
     """An https image to preview; save it with ``POST /books/{id}/cover/isbn``."""
+
+
+class BookSearchResult(BaseModel):
+    """A book matching a search by title or author (contract section 17.5)."""
+
+    title: str
+    author: str | None
+    year: int | None
+    """The year it was (first) published."""
+    isbn: str | None
+    """ISBN-13. With one, ``GET /books/isbn/{isbn}`` fills in the rest."""
+    language: str | None
+    cover_url: str | None
+    """An https image to preview."""
